@@ -1,0 +1,5 @@
+loguru==0.6.0
+requests==2.25.1
+tabulate==0.8.9
+urllib3==1.25.1
+wcwidth==0.2.5

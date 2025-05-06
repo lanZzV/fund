@@ -140,12 +140,12 @@ class MaYiFund:
                     "X-API-Key": "foobar",
                     "accept": "json"
                 }
-                url = f"http://www.fund123.cn/matiaria?fundCode={fund}"
+                url = f"https://www.fund123.cn/matiaria?fundCode={fund}"
                 response = self.session.get(url, headers=headers, timeout=10, verify=False)
                 dayOfGrowth = re.findall('\"dayOfGrowth\"\:\"(.*?)\"', response.text)[0]
                 dayOfGrowth = str(round(float(dayOfGrowth), 2)) + "%"
 
-                url = "http://www.fund123.cn/api/fund/queryFundEstimateIntraday"
+                url = "https://www.fund123.cn/api/fund/queryFundEstimateIntraday"
                 params = {
                     "_csrf": self._csrf
                 }

@@ -456,17 +456,19 @@ class MaYiFund:
 
         for i in range(len(data)):
             gold = data[i]
-            gold2 = data2[i]
             t = gold["time"]
             date = datetime.datetime.fromtimestamp(t / 1000).strftime("%Y-%m-%d")
             radio = str(gold["q70"])
-            radio2 = str(gold2["q70"])
+            radio2 = "N/A"
+            gold2 = {}
+            if len(data2) > i:
+                gold2 = data2[i]
+                radio2 = str(gold2["q70"])
             if not is_return:
                 if "-" in radio:
                     radio = "\033[1;32m" + radio
                 else:
                     radio = "\033[1;31m" + radio
-
                 if "-" in radio2:
                     radio2 = "\033[1;32m" + radio2
                 else:
@@ -474,7 +476,7 @@ class MaYiFund:
             gold_list.append([
                 date,
                 gold["q1"],
-                gold2["q1"],
+                gold2.get("q1", "N/A"),
                 radio,
                 radio2
             ])

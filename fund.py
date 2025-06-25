@@ -183,7 +183,7 @@ class MaYiFund:
                     else:
                         break
                 if montly_growth[0] == "跌":
-                    consecutive_count = "\033[1;32m" + str(consecutive_count)
+                    consecutive_count = "\033[1;32m" + str(-consecutive_count)
                 else:
                     consecutive_count = "\033[1;31m" + str(consecutive_count)
 

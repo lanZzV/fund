@@ -188,7 +188,10 @@ class MaYiFund:
                     else:
                         consecutive_count = str(-consecutive_count)
                 else:
-                    consecutive_count = "\033[1;31m" + str(consecutive_count)
+                    if not is_return:
+                        consecutive_count = "\033[1;31m" + str(consecutive_count)
+                    else:
+                        consecutive_count = str(consecutive_count)
 
                 url = "https://www.fund123.cn/api/fund/queryFundEstimateIntraday"
                 params = {

@@ -183,7 +183,10 @@ class MaYiFund:
                     else:
                         break
                 if montly_growth[0] == "跌":
-                    consecutive_count = "\033[1;32m" + str(-consecutive_count)
+                    if not is_return:
+                        consecutive_count = "\033[1;32m" + str(-consecutive_count)
+                    else:
+                        consecutive_count = str(-consecutive_count)
                 else:
                     consecutive_count = "\033[1;31m" + str(consecutive_count)
 
@@ -255,7 +258,7 @@ class MaYiFund:
         for i in result:
             info += get_tbody(i)
 
-        return get_result_html(["基金代码", "基金名称", "估值时间", "估值", "日涨幅"]).format(tbody=info) + style
+        return get_result_html(["基金代码", "基金名称", "估值时间", "估值", "日涨幅", "连跌/连涨天数"]).format(tbody=info) + style
 
     def run(self, is_add=False, is_delete=False):
         if not self.CACHE_MAP:

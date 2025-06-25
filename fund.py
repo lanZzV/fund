@@ -130,6 +130,9 @@ class MaYiFund:
         result = []
         for fund, fund_data in self.CACHE_MAP.items():
             try:
+                fund_key = fund_data["fund_key"]
+                fund_name = fund_data["fund_name"]
+
                 headers = {
                     "Accept-Language": "zh-CN,zh;q=0.9",
                     "Connection": "keep-alive",
@@ -145,12 +148,49 @@ class MaYiFund:
                 dayOfGrowth = re.findall('\"dayOfGrowth\"\:\"(.*?)\"', response.text)[0]
                 dayOfGrowth = str(round(float(dayOfGrowth), 2)) + "%"
 
+                url = "https://www.fund123.cn/api/fund/queryFundQuotationCurves"
+                params = {
+                    "_csrf": self._csrf
+                }
+                data = {
+                    "productId": fund_key,
+                    "dateInterval": "ONE_MONTH"
+                }
+                response = self.session.post(url, headers=headers, params=params, json=data, timeout=10, verify=False)
+                if not response.json()["success"]:
+                    logger.error(f"查询基金代码【{fund}】失败: {response.text.strip()}")
+                    continue
+                points = response.json()["points"]
+                points = [x for x in points if x["type"] == "fund"]
+
+                montly_growth = []
+                last_rate = None
+                for point in points:
+                    if last_rate is None:
+                        last_rate = point["rate"]
+                        continue
+                    now_rate = point["rate"]
+                    if now_rate >= last_rate:
+                        montly_growth.append("涨")
+                    else:
+                        montly_growth.append("跌")
+                    last_rate = now_rate
+                montly_growth = montly_growth[::-1]
+                consecutive_count = 1
+                for i in montly_growth[1:]:
+                    if i == montly_growth[0]:
+                        consecutive_count += 1
+                    else:
+                        break
+                if montly_growth[0] == "跌":
+                    consecutive_count = "\033[1;32m" + str(consecutive_count)
+                else:
+                    consecutive_count = "\033[1;31m" + str(consecutive_count)
+
                 url = "https://www.fund123.cn/api/fund/queryFundEstimateIntraday"
                 params = {
                     "_csrf": self._csrf
                 }
-                fund_key = fund_data["fund_key"]
-                fund_name = fund_data["fund_name"]
                 today = datetime.datetime.now().strftime("%Y-%m-%d")
                 tomorrow = (datetime.datetime.now() + datetime.timedelta(days=1)).strftime("%Y-%m-%d")
                 data = {
@@ -169,7 +209,8 @@ class MaYiFund:
                     else:
                         fund_info = response.json()["list"][-1]
                         now_time = datetime.datetime.fromtimestamp(fund_info["time"] / 1000).strftime(
-                            "%Y-%m-%d %H:%M:%S")
+                            "%Y-%m-%d %H:%M:%S"
+                        )
                         forecastGrowth = str(round(float(fund_info["forecastGrowth"]) * 100, 2)) + "%"
                         if not is_return:
                             if "-" in forecastGrowth:
@@ -181,7 +222,7 @@ class MaYiFund:
                             dayOfGrowth = "\033[1;32m" + dayOfGrowth
                         else:
                             dayOfGrowth = "\033[1;31m" + dayOfGrowth
-                    result.append([fund, fund_name, now_time, forecastGrowth, dayOfGrowth])
+                    result.append([fund, fund_name, now_time, forecastGrowth, dayOfGrowth, consecutive_count])
                 else:
                     logger.error(f"查询基金代码【{fund}】失败: {response.text.strip()}")
             except Exception as e:
@@ -202,7 +243,7 @@ class MaYiFund:
             logger.critical(f"{time.strftime('%Y-%m-%d %H:%M')} 基金估值信息:")
             for line_msg in format_table_msg([
                 [
-                    "基金代码", "基金名称", "估值时间", "估值", "日涨幅"
+                    "基金代码", "基金名称", "估值时间", "估值", "日涨幅", "连跌/连涨天数"
                 ],
                 *result
             ]).split("\n"):
@@ -528,7 +569,7 @@ class MaYiFund:
                         i[5] = str(round(float(float(i[5]) / 10000 / 10000), 2)) + "亿"
                     except:
                         pass
-                    result.append(i)
+                    result.append(i[:-2])
                 if is_return:
                     return result
                 logger.critical(f"{time.strftime('%Y-%m-%d %H:%M')} 近 30 分钟上证指数:")

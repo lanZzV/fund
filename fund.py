@@ -57,7 +57,7 @@ class MaYiFund:
             json.dump(self.CACHE_MAP, f, ensure_ascii=False, indent=4)
 
     def init(self):
-        res = self.session.get("http://www.fund123.cn/fund", headers={
+        res = self.session.get("https://www.fund123.cn/fund", headers={
             "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
             "Accept-Language": "zh-CN,zh;q=0.9",
             "Connection": "keep-alive",
@@ -84,13 +84,13 @@ class MaYiFund:
                     "Accept-Language": "zh-CN,zh;q=0.9",
                     "Connection": "keep-alive",
                     "Content-Type": "application/json",
-                    "Origin": "http://www.fund123.cn",
-                    "Referer": "http://www.fund123.cn/fund",
+                    "Origin": "https://www.fund123.cn",
+                    "Referer": "https://www.fund123.cn/fund",
                     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36",
                     "X-API-Key": "foobar",
                     "accept": "json"
                 }
-                url = "http://www.fund123.cn/api/fund/searchFund"
+                url = "https://www.fund123.cn/api/fund/searchFund"
                 params = {
                     "_csrf": self._csrf
                 }
@@ -137,8 +137,8 @@ class MaYiFund:
                     "Accept-Language": "zh-CN,zh;q=0.9",
                     "Connection": "keep-alive",
                     "Content-Type": "application/json",
-                    "Origin": "http://www.fund123.cn",
-                    "Referer": "http://www.fund123.cn/fund",
+                    "Origin": "https://www.fund123.cn",
+                    "Referer": "https://www.fund123.cn/fund",
                     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36",
                     "X-API-Key": "foobar",
                     "accept": "json"

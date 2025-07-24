@@ -175,10 +175,12 @@ class MaYiFund:
                     else:
                         montly_growth.append(f"跌,{now_rate}")
                     last_rate = now_rate
+
                 montly_growth = montly_growth[::-1]
+                montly_growth_day = sum(1 for x in montly_growth if x[0] == "涨")
                 consecutive_count = 1
-                consecutive_growth = 0
                 start_rate = montly_growth[0].split(",")[1]
+                montly_growth_rate = str(round(round(float(start_rate), 4) * 100, 2)) + "%"
                 end_rate = 0
                 for i in montly_growth[1:]:
                     if i[0] == montly_growth[0][0]:
@@ -186,6 +188,15 @@ class MaYiFund:
                     else:
                         end_rate = i.split(",")[1]
                         break
+
+                montly_growth_day = str(montly_growth_day)
+                if "-" in montly_growth_rate:
+                    montly_growth_day = "\033[1;32m" + montly_growth_day
+                else:
+                    if not is_return:
+                        montly_growth_day = "\033[1;31m" + montly_growth_day
+
+
                 consecutive_growth = str(round(round(float(start_rate) - float(end_rate), 4) * 100, 2)) + "%"
                 if montly_growth[0][0] == "跌":
                     if not is_return:
@@ -237,7 +248,9 @@ class MaYiFund:
                             dayOfGrowth = "\033[1;32m" + dayOfGrowth
                         else:
                             dayOfGrowth = "\033[1;31m" + dayOfGrowth
-                    result.append([fund, fund_name, now_time, forecastGrowth, dayOfGrowth, consecutive_count, consecutive_growth])
+                    result.append(
+                        [fund, fund_name, now_time, forecastGrowth, dayOfGrowth, consecutive_count, consecutive_growth,
+                         montly_growth_day, montly_growth_rate])
                 else:
                     logger.error(f"查询基金代码【{fund}】失败: {response.text.strip()}")
             except Exception as e:
@@ -258,7 +271,8 @@ class MaYiFund:
             logger.critical(f"{time.strftime('%Y-%m-%d %H:%M')} 基金估值信息:")
             for line_msg in format_table_msg([
                 [
-                    "基金代码", "基金名称", "估值时间", "估值", "日涨幅", "连跌/连涨天数", "连跌/连涨涨幅"
+                    "基金代码", "基金名称", "估值时间", "估值", "日涨幅", "连跌/连涨天数", "连跌/连涨涨幅", "月涨天数",
+                    "月涨幅"
                 ],
                 *result
             ]).split("\n"):
@@ -270,7 +284,9 @@ class MaYiFund:
         for i in result:
             info += get_tbody(i)
 
-        return get_result_html(["基金代码", "基金名称", "估值时间", "估值", "日涨幅", "连跌/连涨天数", "连跌/连涨涨幅"]).format(tbody=info) + style
+        return get_result_html(
+            ["基金代码", "基金名称", "估值时间", "估值", "日涨幅", "连跌/连涨天数", "连跌/连涨涨幅", "月涨天数",
+             "月涨幅"]).format(tbody=info) + style
 
     def run(self, is_add=False, is_delete=False):
         if not self.CACHE_MAP:
@@ -604,6 +620,7 @@ class MaYiFund:
         return get_result_html(
             ["时间", "价格", "涨跌额", "涨跌幅", "成交量", "成交额"]
         ).format(tbody=info) + style
+
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='MaYiFund')

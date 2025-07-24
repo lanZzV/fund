@@ -191,7 +191,8 @@ class MaYiFund:
 
                 montly_growth_day = str(montly_growth_day)
                 if "-" in montly_growth_rate:
-                    montly_growth_day = "\033[1;32m" + montly_growth_day
+                    if not is_return:
+                        montly_growth_day = "\033[1;32m" + montly_growth_day
                 else:
                     if not is_return:
                         montly_growth_day = "\033[1;31m" + montly_growth_day

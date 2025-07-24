@@ -1,7 +1,9 @@
+import importlib
+
 import urllib3
 from flask import Flask, request
 
-from fund import MaYiFund
+import fund
 
 urllib3.disable_warnings()
 urllib3.util.ssl_.DEFAULT_CIPHERS = ":".join(
@@ -23,16 +25,16 @@ app = Flask(__name__)
 def get_fund():
     add = request.args.get("add")
     delete = request.args.get("delete")
-
-    fund = MaYiFund()
+    importlib.reload(fund)
+    my_fund = fund.MaYiFund()
     if add:
-        fund.add_code(add)
+        my_fund.add_code(add)
     if delete:
-        fund.delete_code(delete)
-    html = fund.marker_html()
-    html += "\n" + fund.gold_html()
-    html += "\n" + fund.A_html()
-    html += "\n" + fund.fund_html()
+        my_fund.delete_code(delete)
+    html = my_fund.marker_html()
+    html += "\n" + my_fund.gold_html()
+    html += "\n" + my_fund.A_html()
+    html += "\n" + my_fund.fund_html()
     return html
 
 

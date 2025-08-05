@@ -238,7 +238,7 @@ class MaYiFund:
                     else:
                         fund_info = response.json()["list"][-1]
                         now_time = datetime.datetime.fromtimestamp(fund_info["time"] / 1000).strftime(
-                            "%H:%M"
+                            "%H:%M:%S"
                         )
                         forecastGrowth = str(round(float(fund_info["forecastGrowth"]) * 100, 2)) + "%"
                         if not is_return:

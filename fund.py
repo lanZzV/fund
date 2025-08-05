@@ -285,9 +285,10 @@ class MaYiFund:
         for i in result:
             info += get_tbody(i)
 
-        return get_result_html(
-            ["基金代码", "基金名称", "估值时间", "估值", "日涨幅", "连跌/连涨天数", "连跌/连涨涨幅", "近30天上涨天数",
-             "近30天涨幅"]).format(tbody=info) + style
+        return get_result_html([
+            "基金代码", "基金名称", "估值时间", "估值", "日涨幅", "连跌/连涨天数", "连跌/连涨涨幅", "近30天上涨天数",
+            "近30天涨幅"
+        ]).format(tbody=info) + style
 
     def run(self, is_add=False, is_delete=False):
         if not self.CACHE_MAP:

@@ -238,7 +238,7 @@ class MaYiFund:
                     else:
                         fund_info = response.json()["list"][-1]
                         now_time = datetime.datetime.fromtimestamp(fund_info["time"] / 1000).strftime(
-                            "%Y-%m-%d %H:%M:%S"
+                            "%H:%M"
                         )
                         forecastGrowth = str(round(float(fund_info["forecastGrowth"]) * 100, 2)) + "%"
                         if not is_return:
@@ -253,7 +253,7 @@ class MaYiFund:
                             dayOfGrowth = "\033[1;31m" + dayOfGrowth
                     result.append(
                         [fund, fund_name, now_time, forecastGrowth, dayOfGrowth, consecutive_count, consecutive_growth,
-                         montly_growth_day, montly_growth_rate])
+                         f"{montly_growth_day} / {montly_growth_day_count}", montly_growth_rate])
                 else:
                     logger.error(f"查询基金代码【{fund}】失败: {response.text.strip()}")
             except Exception as e:
@@ -264,7 +264,7 @@ class MaYiFund:
                 key=lambda x: float(x[3].replace("%", "")) if x[3] != "N/A" else -99,
                 reverse=True
             )
-            return result, montly_growth_day_count
+            return result
         if result:
             result = sorted(
                 result,
@@ -274,22 +274,20 @@ class MaYiFund:
             logger.critical(f"{time.strftime('%Y-%m-%d %H:%M')} 基金估值信息:")
             for line_msg in format_table_msg([
                 [
-                    "基金代码", "基金名称", "估值时间", "估值", "日涨幅", "连跌/连涨天数", "连跌/连涨涨幅",
-                    f"近{montly_growth_day_count}个交易日上涨天数", f"近{montly_growth_day_count}个交易日天涨幅"
+                    "基金代码", "基金名称", "估值时间", "估值", "日涨幅", "连涨天数", "连涨幅", "涨/总 (近30天)", "总涨幅"
                 ],
                 *result
             ]).split("\n"):
                 logger.info(line_msg)
 
     def fund_html(self):
-        result, montly_growth_day_count = self.search_code(True)
+        result = self.search_code(True)
         info = ""
         for i in result:
             info += get_tbody(i)
 
         return get_result_html([
-            "基金代码", "基金名称", "估值时间", "估值", "日涨幅", "连跌/连涨天数", "连跌/连涨涨幅",
-            f"近{montly_growth_day_count}个交易日上涨天数", f"近{montly_growth_day_count}个交易日天涨幅"
+            "基金代码", "基金名称", "估值时间", "估值", "日涨幅", "连涨天数", "连涨幅", "涨/总 (近30天)", "总涨幅"
         ]).format(tbody=info) + style
 
     def run(self, is_add=False, is_delete=False):

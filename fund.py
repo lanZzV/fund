@@ -128,6 +128,7 @@ class MaYiFund:
 
     def search_code(self, is_return=False):
         result = []
+        montly_growth_day_count = 0
         for fund, fund_data in self.CACHE_MAP.items():
             try:
                 fund_key = fund_data["fund_key"]
@@ -178,6 +179,7 @@ class MaYiFund:
 
                 montly_growth = montly_growth[::-1]
                 montly_growth_day = sum(1 for x in montly_growth if x[0] == "涨")
+                montly_growth_day_count = len(montly_growth)
                 consecutive_count = 1
                 start_rate = montly_growth[0].split(",")[1]
                 montly_growth_rate = str(round(round(float(start_rate), 4) * 100, 2)) + "%"
@@ -262,7 +264,7 @@ class MaYiFund:
                 key=lambda x: float(x[3].replace("%", "")) if x[3] != "N/A" else -99,
                 reverse=True
             )
-            return result
+            return result, montly_growth_day_count
         if result:
             result = sorted(
                 result,
@@ -272,22 +274,22 @@ class MaYiFund:
             logger.critical(f"{time.strftime('%Y-%m-%d %H:%M')} 基金估值信息:")
             for line_msg in format_table_msg([
                 [
-                    "基金代码", "基金名称", "估值时间", "估值", "日涨幅", "连跌/连涨天数", "连跌/连涨涨幅", "近30天上涨天数",
-                    "近30天涨幅"
+                    "基金代码", "基金名称", "估值时间", "估值", "日涨幅", "连跌/连涨天数", "连跌/连涨涨幅",
+                    f"近{montly_growth_day_count}个交易日上涨天数", f"近{montly_growth_day_count}个交易日天涨幅"
                 ],
                 *result
             ]).split("\n"):
                 logger.info(line_msg)
 
     def fund_html(self):
-        result = self.search_code(True)
+        result, montly_growth_day_count = self.search_code(True)
         info = ""
         for i in result:
             info += get_tbody(i)
 
         return get_result_html([
-            "基金代码", "基金名称", "估值时间", "估值", "日涨幅", "连跌/连涨天数", "连跌/连涨涨幅", "近30天上涨天数",
-            "近30天涨幅"
+            "基金代码", "基金名称", "估值时间", "估值", "日涨幅", "连跌/连涨天数", "连跌/连涨涨幅",
+            f"近{montly_growth_day_count}个交易日上涨天数", f"近{montly_growth_day_count}个交易日天涨幅"
         ]).format(tbody=info) + style
 
     def run(self, is_add=False, is_delete=False):

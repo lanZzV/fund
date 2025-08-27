@@ -103,7 +103,8 @@ class MaYiFund:
                     fund_name = response.json()["fundInfo"]["fundName"]
                     self.CACHE_MAP[code] = {
                         "fund_key": fund_key,
-                        "fund_name": fund_name
+                        "fund_name": fund_name,
+                        "is_hold": False
                     }
                     logger.info(f"添加基金代码【{code}】成功")
                 else:
@@ -292,28 +293,53 @@ class MaYiFund:
             "基金代码", "基金名称", "估值时间", "估值", "日涨幅", "连涨天数", "连涨幅", "涨/总 (近30天)", "总涨幅"
         ]).format(tbody=info) + style
 
-    def run(self, is_add=False, is_delete=False, is_hold=False):
+    def run(self, is_add=False, is_delete=False, is_hold=False, is_not_hold=False):
         if not self.CACHE_MAP:
             logger.warning("暂无缓存代码信息, 请先添加基金代码")
             is_add = True
-        else:
-            if is_hold:
-                now_codes = list(self.CACHE_MAP.keys())
-                logger.debug(f"当前缓存基金代码: {now_codes}")
-                logger.debug("请输入基金代码, 多个基金代码以英文逗号分隔:")
-                codes = input()
-                codes = codes.split(",")
-                codes = [code.strip() for code in codes if code.strip()]
-                for code in codes:
-                    try:
-                        if code in self.CACHE_MAP:
-                            self.CACHE_MAP[code]["is_hold"] = True
-                            logger.info(f"添加持有标注【{code}】成功")
-                        else:
-                            logger.warning(f"添加持有标注【{code}】失败: 不存在该基金代码, 请先添加该基金代码")
-                    except Exception as e:
-                        logger.error(f"添加持有标注【{code}】失败: {e}")
-                self.save_cache()
+            is_delete = False
+            is_hold = False
+            is_not_hold = False
+        if is_not_hold:
+            hold_codes = [code for code, data in self.CACHE_MAP.items() if data.get("is_hold", False)]
+            if not hold_codes:
+                logger.warning("暂无持有标注基金代码")
+                return
+            logger.debug(f"当前持有标注基金代码: {hold_codes}")
+            logger.debug("请输入基金代码, 多个基金代码以英文逗号分隔:")
+            codes = input()
+            codes = codes.split(",")
+            codes = [code.strip() for code in codes if code.strip()]
+            for code in codes:
+                try:
+                    if code in self.CACHE_MAP:
+                        self.CACHE_MAP[code]["is_hold"] = False
+                        logger.info(f"删除持有标注【{code}】成功")
+                    else:
+                        logger.warning(f"删除持有标注【{code}】失败: 不存在该基金代码")
+                except Exception as e:
+                    logger.error(f"删除持有标注【{code}】失败: {e}")
+            self.save_cache()
+            return
+        if is_hold:
+            now_codes = list(self.CACHE_MAP.keys())
+            logger.debug(f"当前缓存基金代码: {now_codes}")
+            logger.debug("请输入基金代码, 多个基金代码以英文逗号分隔:")
+            codes = input()
+            codes = codes.split(",")
+            codes = [code.strip() for code in codes if code.strip()]
+            for code in codes:
+                try:
+                    if code in self.CACHE_MAP:
+                        self.CACHE_MAP[code]["is_hold"] = True
+                        logger.info(f"添加持有标注【{code}】成功")
+                    else:
+                        logger.warning(f"添加持有标注【{code}】失败: 不存在该基金代码, 请先添加该基金代码")
+                except Exception as e:
+                    logger.error(f"添加持有标注【{code}】失败: {e}")
+            self.save_cache()
+            return
+
         if is_delete:
             now_codes = list(self.CACHE_MAP.keys())
             logger.debug(f"当前缓存基金代码: {now_codes}")
@@ -649,7 +675,8 @@ if __name__ == '__main__':
     parser.add_argument('-a', '--add', action='store_true', help='添加基金代码')
     parser.add_argument("-d", "--delete", action="store_true", help="删除基金代码")
     parser.add_argument("-c", "--hold", action="store_true", help="添加持有基金标注")
+    parser.add_argument("-b", "--not_hold", action="store_true", help="删除持有基金标注")
     args = parser.parse_args()
 
     mayi_fund = MaYiFund()
-    mayi_fund.run(args.add, args.delete, args.hold)
+    mayi_fund.run(args.add, args.delete, args.hold, args.not_hold)

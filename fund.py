@@ -5,6 +5,7 @@ import datetime
 import json
 import os
 import re
+import threading
 import time
 
 import requests
@@ -13,6 +14,8 @@ from loguru import logger
 from tabulate import tabulate
 
 from module_html import get_result_html, get_tbody, style
+
+sem = threading.Semaphore(5)
 
 urllib3.disable_warnings()
 urllib3.util.ssl_.DEFAULT_CIPHERS = ":".join(
@@ -42,6 +45,7 @@ class MaYiFund:
         self._csrf = ""
         self.load_cache()
         self.init()
+        self.result = []
 
     def load_cache(self):
         if not os.path.exists("cache"):
@@ -127,10 +131,8 @@ class MaYiFund:
                 logger.error(f"删除基金代码【{code}】失败: {e}")
         self.save_cache()
 
-    def search_code(self, is_return=False):
-        result = []
-        montly_growth_day_count = 0
-        for fund, fund_data in self.CACHE_MAP.items():
+    def search_one_code(self, fund, fund_data, is_return):
+        with sem:
             try:
                 fund_key = fund_data["fund_key"]
                 fund_name = fund_data["fund_name"]
@@ -161,7 +163,7 @@ class MaYiFund:
                 response = self.session.post(url, headers=headers, params=params, json=data, timeout=10, verify=False)
                 if not response.json()["success"]:
                     logger.error(f"查询基金代码【{fund}】失败: {response.text.strip()}")
-                    continue
+                    return
                 points = response.json()["points"]
                 points = [x for x in points if x["type"] == "fund"]
 
@@ -254,23 +256,37 @@ class MaYiFund:
                     if not is_return:
                         if self.CACHE_MAP[fund].get("is_hold", False):
                             fund_name = "⭐ " + fund_name
-                    result.append(
-                        [fund, fund_name, now_time, forecastGrowth, dayOfGrowth, consecutive_count, consecutive_growth,
-                         f"{montly_growth_day} / {montly_growth_day_count}", montly_growth_rate])
+                    self.result.append([
+                        fund, fund_name, now_time, forecastGrowth, dayOfGrowth, consecutive_count, consecutive_growth,
+                        f"{montly_growth_day} / {montly_growth_day_count}", montly_growth_rate
+                    ])
                 else:
                     logger.error(f"查询基金代码【{fund}】失败: {response.text.strip()}")
             except Exception as e:
                 logger.error(f"查询基金代码【{fund}】失败: {e}")
+
+    def search_code(self, is_return=False):
+        self.result = []
+        threads = []
+        for fund, fund_data in self.CACHE_MAP.items():
+            t = threading.Thread(target=self.search_one_code, args=(fund, fund_data, is_return))
+            threads.append(t)
+
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join()
+
         if is_return:
-            result = sorted(
-                result,
+            self.result = sorted(
+                self.result,
                 key=lambda x: float(x[3].replace("%", "")) if x[3] != "N/A" else -99,
                 reverse=True
             )
-            return result
-        if result:
-            result = sorted(
-                result,
+            return self.result
+        if self.result:
+            self.result = sorted(
+                self.result,
                 key=lambda x: float(x[3].split("m")[1].replace("%", "")) if x[3] != "N/A" else -99,
                 reverse=True
             )
@@ -279,7 +295,7 @@ class MaYiFund:
                 [
                     "基金代码", "基金名称", "估值时间", "估值", "日涨幅", "连涨天数", "连涨幅", "涨/总 (近30天)", "总涨幅"
                 ],
-                *result
+                *self.result
             ]).split("\n"):
                 logger.info(line_msg)
 

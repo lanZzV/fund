@@ -199,7 +199,6 @@ class MaYiFund:
                     if not is_return:
                         montly_growth_day = "\033[1;31m" + montly_growth_day
 
-
                 consecutive_growth = str(round(round(float(start_rate) - float(end_rate), 4) * 100, 2)) + "%"
                 if montly_growth[0][0] == "跌":
                     if not is_return:
@@ -251,6 +250,9 @@ class MaYiFund:
                             dayOfGrowth = "\033[1;32m" + dayOfGrowth
                         else:
                             dayOfGrowth = "\033[1;31m" + dayOfGrowth
+                    if not is_return:
+                        if self.CACHE_MAP[fund].get("is_hold", False):
+                            fund_name = "⭐ " + fund_name
                     result.append(
                         [fund, fund_name, now_time, forecastGrowth, dayOfGrowth, consecutive_count, consecutive_growth,
                          f"{montly_growth_day} / {montly_growth_day_count}", montly_growth_rate])
@@ -290,10 +292,28 @@ class MaYiFund:
             "基金代码", "基金名称", "估值时间", "估值", "日涨幅", "连涨天数", "连涨幅", "涨/总 (近30天)", "总涨幅"
         ]).format(tbody=info) + style
 
-    def run(self, is_add=False, is_delete=False):
+    def run(self, is_add=False, is_delete=False, is_hold=False):
         if not self.CACHE_MAP:
             logger.warning("暂无缓存代码信息, 请先添加基金代码")
             is_add = True
+        else:
+            if is_hold:
+                now_codes = list(self.CACHE_MAP.keys())
+                logger.debug(f"当前缓存基金代码: {now_codes}")
+                logger.debug("请输入基金代码, 多个基金代码以英文逗号分隔:")
+                codes = input()
+                codes = codes.split(",")
+                codes = [code.strip() for code in codes if code.strip()]
+                for code in codes:
+                    try:
+                        if code in self.CACHE_MAP:
+                            self.CACHE_MAP[code]["is_hold"] = True
+                            logger.info(f"添加持有标注【{code}】成功")
+                        else:
+                            logger.warning(f"添加持有标注【{code}】失败: 不存在该基金代码, 请先添加该基金代码")
+                    except Exception as e:
+                        logger.error(f"添加持有标注【{code}】失败: {e}")
+                self.save_cache()
         if is_delete:
             now_codes = list(self.CACHE_MAP.keys())
             logger.debug(f"当前缓存基金代码: {now_codes}")
@@ -628,7 +648,8 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='MaYiFund')
     parser.add_argument('-a', '--add', action='store_true', help='添加基金代码')
     parser.add_argument("-d", "--delete", action="store_true", help="删除基金代码")
+    parser.add_argument("-c", "--hold", action="store_true", help="添加持有基金标注")
     args = parser.parse_args()
 
     mayi_fund = MaYiFund()
-    mayi_fund.run(args.add, args.delete)
+    mayi_fund.run(args.add, args.delete, args.hold)

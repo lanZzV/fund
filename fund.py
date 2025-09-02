@@ -373,6 +373,7 @@ class MaYiFund:
         else:
             self.kx()
             self.bk()
+            self.real_time_gold()
             self.gold()
             self.A()
             self.get_market_info()
@@ -627,6 +628,87 @@ class MaYiFund:
                 *gold_list[::-1]
             ]).split("\n"):
                 logger.info(line_msg)
+
+    @staticmethod
+    def real_time_gold(is_return=False):
+        headers = {
+            "accept": "*/*",
+            "accept-language": "zh-CN,zh;q=0.9",
+            "referer": "https://quote.cngold.org/gjs/gjhj.html",
+            "sec-ch-ua": "\"Not;A=Brand\";v=\"99\", \"Google Chrome\";v=\"139\", \"Chromium\";v=\"139\"",
+            "sec-ch-ua-mobile": "?0",
+            "sec-ch-ua-platform": "\"Windows\"",
+            "sec-fetch-dest": "script",
+            "sec-fetch-mode": "no-cors",
+            "sec-fetch-site": "cross-site",
+            "sec-fetch-storage-access": "active",
+            "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36"
+        }
+        url = "https://api.jijinhao.com/quoteCenter/realTime.htm"
+        params = {
+            "codes": "JO_71,JO_92233",
+            "_": str(int(time.time() * 1000))
+        }
+        response = requests.get(url, headers=headers, params=params, timeout=10, verify=False)
+        data = json.loads(response.text.replace("var quote_json = ", ""))
+        result = [[], []]
+        columns = ["名称", "最新价", "涨跌额", "涨跌幅", "开盘价", "最高价", "最低价", "昨收价", "更新时间", "单位"]
+        if data:
+            data1 = data["JO_71"]
+            data2 = data["JO_92233"]
+            keys = ["showName", "q63", "q70", "q80", "q1", "q3", "q4", "q2", "time", "unit"]
+            for key in keys:
+                if key == "time":
+                    t = data1[key]
+                    date = datetime.datetime.fromtimestamp(t / 1000).strftime("%Y-%m-%d %H:%M:%S")
+                    result[0].append(date)
+                    t = data2[key]
+                    date = datetime.datetime.fromtimestamp(t / 1000).strftime("%Y-%m-%d %H:%M:%S")
+                    result[1].append(date)
+                else:
+                    value1 = data1.get(key, "N/A")
+                    value2 = data2.get(key, "N/A")
+                    if not isinstance(value1, str):
+                        value1 = round(value1, 2)
+                    if not isinstance(value2, str):
+                        value2 = round(value2, 2)
+                    value1 = str(value1)
+                    value2 = str(value2)
+                    if key == "q70":
+                        if not is_return:
+                            if "-" in value1:
+                                value1 = "\033[1;32m" + value1
+                            else:
+                                value1 = "\033[1;31m" + value1
+                            if "-" in value2:
+                                value2 = "\033[1;32m" + value2
+                            else:
+                                value2 = "\033[1;31m" + value2
+                    if key == "q80":
+                        value1 = value1 + "%"
+                        value2 = value2 + "%"
+                    result[0].append(value1)
+                    result[1].append(value2)
+
+        if is_return:
+            return result
+        if result and result[0] and result[1]:
+            logger.critical(f"{time.strftime('%Y-%m-%d %H:%M')} 实时金价:")
+            for line_msg in format_table_msg([
+                columns,
+                result[0],
+                result[1]
+            ]).split("\n"):
+                logger.info(line_msg)
+
+    def real_time_gold_html(self):
+        result = self.real_time_gold(True)
+        info = ""
+        for i in result:
+            info += get_tbody(i)
+        return get_result_html(
+            ["名称", "最新价", "涨跌额", "涨跌幅", "开盘价", "最高价", "最低价", "昨收价", "更新时间", "单位"]
+        ).format(tbody=info) + style
 
     def A(self, is_return=False):
         url = "https://finance.pae.baidu.com/vapi/v1/getquotation"

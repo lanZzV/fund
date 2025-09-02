@@ -1,4 +1,5 @@
 import importlib
+import threading
 
 import urllib3
 from flask import Flask, request
@@ -31,10 +32,27 @@ def get_fund():
         my_fund.add_code(add)
     if delete:
         my_fund.delete_code(delete)
-    html = my_fund.marker_html()
-    html += "\n" + my_fund.gold_html()
-    html += "\n" + my_fund.A_html()
-    html += "\n" + my_fund.fund_html()
+    results = {}
+
+    def fetch_html(_name, _func):
+        results[_name] = _func()
+
+    threads = []
+    tasks = {
+        'marker': my_fund.marker_html,
+        'gold': my_fund.gold_html,
+        "real_time_gold": my_fund.real_time_gold_html,
+        'A': my_fund.A_html,
+        'fund': my_fund.fund_html,
+    }
+    for name in ["marker", "real_time_gold", "gold", "A", "fund"]:
+        func = tasks[name]
+        thread = threading.Thread(target=fetch_html, args=(name, func))
+        thread.start()
+        threads.append(thread)
+    for thread in threads:
+        thread.join()
+    html = "\n".join(results[name] for name in tasks.keys())
     return html
 
 

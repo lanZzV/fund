@@ -45,14 +45,14 @@ def get_fund():
         'A': my_fund.A_html,
         'fund': my_fund.fund_html,
     }
-    for name in ["marker", "real_time_gold", "gold", "A", "fund"]:
+    for name, func in tasks.items():
         func = tasks[name]
         thread = threading.Thread(target=fetch_html, args=(name, func))
         thread.start()
         threads.append(thread)
     for thread in threads:
         thread.join()
-    html = "\n".join(results[name] for name in tasks.keys())
+    html = "\n".join(results[name] for name in ["marker", "real_time_gold", "gold", "A", "fund"])
     return html
 
 

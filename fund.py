@@ -152,6 +152,10 @@ class MaYiFund:
                 dayOfGrowth = re.findall('\"dayOfGrowth\"\:\"(.*?)\"', response.text)[0]
                 dayOfGrowth = str(round(float(dayOfGrowth), 2)) + "%"
 
+                netValueDate = re.findall('\"netValueDate\"\:\"(.*?)\"', response.text)[0]
+                if is_return:
+                    dayOfGrowth = f"{dayOfGrowth}({netValueDate})"
+
                 url = "https://www.fund123.cn/api/fund/queryFundQuotationCurves"
                 params = {
                     "_csrf": self._csrf

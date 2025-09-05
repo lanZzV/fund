@@ -497,11 +497,17 @@ class MaYiFund:
                         ratio = "\033[1;32m" + ratio
                     else:
                         ratio = "\033[1;31m" + ratio
+                    add_market_cap = bk["ADD_MARKET_CAP"]
+                    add_market_cap = str(round(add_market_cap / 100000000, 2)) + "亿"
+                    if "-" in add_market_cap:
+                        add_market_cap = "\033[1;32m" + add_market_cap
+                    else:
+                        add_market_cap = "\033[1;31m" + add_market_cap
                     bk_result.append([
                         bk["BOARD_NAME"],
                         ratio,
                         str(round(bk["HK_VALUE"] / 100000000, 2)) + "亿",
-                        str(round(bk["ADD_MARKET_CAP"] / 100000000, 2)) + "亿",
+                        add_market_cap,
                         str(round(bk["ADD_RATIO"], 2)) + "%"
                     ])
         except:

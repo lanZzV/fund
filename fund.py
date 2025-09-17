@@ -470,7 +470,7 @@ class MaYiFund:
         ).format(tbody=info) + style
 
     @staticmethod
-    def bk():
+    def bk(is_return=False):
         bk_result = []
         TRADE_DATE = "2023-08-31"
         try:
@@ -494,16 +494,18 @@ class MaYiFund:
                 data = response.json()["result"]["data"]
                 for bk in data:
                     ratio = str(bk["INDEX_CHANGE_RATIO"]) + "%"
-                    if "-" in ratio:
-                        ratio = "\033[1;32m" + ratio
-                    else:
-                        ratio = "\033[1;31m" + ratio
+                    if not is_return:
+                        if "-" in ratio:
+                            ratio = "\033[1;32m" + ratio
+                        else:
+                            ratio = "\033[1;31m" + ratio
                     add_market_cap = bk["ADD_MARKET_CAP"]
                     add_market_cap = str(round(add_market_cap / 100000000, 2)) + "亿"
-                    if "-" in add_market_cap:
-                        add_market_cap = "\033[1;32m" + add_market_cap
-                    else:
-                        add_market_cap = "\033[1;31m" + add_market_cap
+                    if not is_return:
+                        if "-" in add_market_cap:
+                            add_market_cap = "\033[1;32m" + add_market_cap
+                        else:
+                            add_market_cap = "\033[1;31m" + add_market_cap
                     bk_result.append([
                         bk["BOARD_NAME"],
                         ratio,
@@ -513,12 +515,15 @@ class MaYiFund:
                     ])
         except:
             pass
+
+        bk_result = sorted(
+            bk_result,
+            key=lambda x: float(x[1].split("m")[-1].replace("%", "")) if x[3] != "N/A" else -99,
+            reverse=True
+        )
+        if is_return:
+            return bk_result
         if bk_result:
-            bk_result = sorted(
-                bk_result,
-                key=lambda x: float(x[1].split("m")[1].replace("%", "")) if x[3] != "N/A" else -99,
-                reverse=True
-            )
             logger.critical(f"{time.strftime('%Y-%m-%d %H:%M')} 行业板块:")
             for line_msg in format_table_msg([
                 [
@@ -528,6 +533,16 @@ class MaYiFund:
                 *bk_result
             ]).split("\n"):
                 logger.info(line_msg)
+
+    def bk_html(self):
+        result = self.bk(True)
+        info = ""
+        for i in result:
+            info += get_tbody(i)
+        return get_result_html(
+            ["板块名称", "最新涨跌幅", "北向资金今日持股市值", "北向资金今日增持估计市值",
+             "北向资金今日增持估计市值增幅"]
+        ).format(tbody=info) + style
 
     @staticmethod
     def kx():

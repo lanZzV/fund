@@ -1,5 +1,6 @@
 import importlib
 import threading
+from module_html import get_full_page_html
 
 import urllib3
 from flask import Flask, request
@@ -54,7 +55,9 @@ def get_fund():
         threads.append(thread)
     for thread in threads:
         thread.join()
-    html = "\n".join(results[name] for name in ["marker", "real_time_gold", "gold", "seven_A", "A", "fund", "bk"])
+    html = get_full_page_html(
+        [results[name] for name in ["marker", "real_time_gold", "gold", "seven_A", "A", "fund", "bk"]]
+    )
     return html
 
 

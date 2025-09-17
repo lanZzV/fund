@@ -379,6 +379,7 @@ class MaYiFund:
             self.bk()
             self.real_time_gold()
             self.gold()
+            self.seven_A()
             self.A()
             self.get_market_info()
             self.search_code()
@@ -775,6 +776,62 @@ class MaYiFund:
             info += get_tbody(i)
         return get_result_html(
             ["时间", "价格", "涨跌额", "涨跌幅", "成交量", "成交额"]
+        ).format(tbody=info) + style
+
+    def seven_A(self, is_return=False):
+        url = "https://finance.pae.baidu.com/sapi/v1/metrictrend"
+        params = {
+            "financeType": "index",
+            "market": "ab",
+            "code": "000001",
+            "targetType": "market",
+            "metric": "amount",
+            "finClientType": "pc"
+        }
+        response = self.baidu_session.get(url, params=params, timeout=10, verify=False)
+        if str(response.json()["ResultCode"]) == "0":
+            trend = response.json()["Result"]["trend"]
+            result = []
+            # 近七天的日期
+            today = datetime.datetime.now()
+            dates = [(today - datetime.timedelta(days=i)).strftime("%Y-%m-%d") for i in range(8)]
+            for i in dates:
+                total = trend[0]
+                ss = trend[1]
+                sz = trend[2]
+                bj = trend[3]
+                total_data = [x for x in total["content"] if x["marketDate"] == i]
+                ss_data = [x for x in ss["content"] if x["marketDate"] == i]
+                sz_data = [x for x in sz["content"] if x["marketDate"] == i]
+                bj_data = [x for x in bj["content"] if x["marketDate"] == i]
+                if total_data and ss_data and sz_data and bj_data:
+                    total_amount = total_data[0]["data"]["amount"] + "亿"
+                    ss_amount = ss_data[0]["data"]["amount"] + "亿"
+                    sz_amount = sz_data[0]["data"]["amount"] + "亿"
+                    bj_amount = bj_data[0]["data"]["amount"] + "亿"
+                    result.append([
+                        i, total_amount, ss_amount, sz_amount, bj_amount
+                    ])
+
+            if is_return:
+                return result
+            if result:
+                logger.critical(f"{time.strftime('%Y-%m-%d %H:%M')} 近 7 日成交量:")
+                for line_msg in format_table_msg([
+                    [
+                        "日期", "总成交额", "上交所", "深交所", "北交所"
+                    ],
+                    *result
+                ]).split("\n"):
+                    logger.info(line_msg)
+
+    def seven_A_html(self):
+        result = self.seven_A(True)
+        info = ""
+        for i in result:
+            info += get_tbody(i)
+        return get_result_html(
+            ["日期", "总成交额", "上交所", "深交所", "北交所"]
         ).format(tbody=info) + style
 
 

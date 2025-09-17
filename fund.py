@@ -13,7 +13,7 @@ import urllib3
 from loguru import logger
 from tabulate import tabulate
 
-from module_html import get_result_html, get_tbody, style
+from module_html import get_table_html
 
 sem = threading.Semaphore(5)
 
@@ -305,13 +305,13 @@ class MaYiFund:
 
     def fund_html(self):
         result = self.search_code(True)
-        info = ""
-        for i in result:
-            info += get_tbody(i)
-
-        return get_result_html([
-            "基金代码", "基金名称", "估值时间", "估值", "日涨幅", "连涨天数", "连涨幅", "涨/总 (近30天)", "总涨幅"
-        ]).format(tbody=info) + style
+        return get_table_html(
+            [
+                "基金代码", "基金名称", "估值时间", "估值", "日涨幅", "连涨天数", "连涨幅", "涨/总 (近30天)", "总涨幅"
+            ],
+            result,
+            sortable_columns=[3, 4, 5, 6, 7, 8]
+        )
 
     def run(self, is_add=False, is_delete=False, is_hold=False, is_not_hold=False):
         if not self.CACHE_MAP:
@@ -454,20 +454,17 @@ class MaYiFund:
 
     def marker_html(self):
         result = self.get_market_info(True)
-        info = ""
-        for i in result:
-            info += get_tbody(i)
-
-        return get_result_html(["指数名称", "指数", "涨跌幅"]).format(tbody=info) + style
+        return get_table_html(
+            ["指数名称", "指数", "涨跌幅"],
+            result,
+        )
 
     def gold_html(self):
         result = self.gold(True)
-        info = ""
-        for i in result:
-            info += get_tbody(i)
-        return get_result_html(
-            ["日期", "中国黄金基础金价", "周大福金价", "中国黄金基础金价涨跌", "周大福金价涨跌"]
-        ).format(tbody=info) + style
+        return get_table_html(
+            ["日期", "中国黄金基础金价", "周大福金价", "中国黄金基础金价涨跌", "周大福金价涨跌"],
+            result
+        )
 
     @staticmethod
     def bk(is_return=False):
@@ -536,13 +533,12 @@ class MaYiFund:
 
     def bk_html(self):
         result = self.bk(True)
-        info = ""
-        for i in result:
-            info += get_tbody(i)
-        return get_result_html(
+        return get_table_html(
             ["板块名称", "最新涨跌幅", "北向资金今日持股市值", "北向资金今日增持估计市值",
-             "北向资金今日增持估计市值增幅"]
-        ).format(tbody=info) + style
+             "北向资金今日增持估计市值增幅"],
+            result,
+            sortable_columns=[1, 2, 3, 4]
+        )
 
     @staticmethod
     def kx():
@@ -729,12 +725,10 @@ class MaYiFund:
 
     def real_time_gold_html(self):
         result = self.real_time_gold(True)
-        info = ""
-        for i in result:
-            info += get_tbody(i)
-        return get_result_html(
-            ["名称", "最新价", "涨跌额", "涨跌幅", "开盘价", "最高价", "最低价", "昨收价", "更新时间", "单位"]
-        ).format(tbody=info) + style
+        return get_table_html(
+            ["名称", "最新价", "涨跌额", "涨跌幅", "开盘价", "最高价", "最低价", "昨收价", "更新时间", "单位"],
+            result
+        )
 
     def A(self, is_return=False):
         url = "https://finance.pae.baidu.com/vapi/v1/getquotation"
@@ -786,12 +780,10 @@ class MaYiFund:
 
     def A_html(self):
         result = self.A(True)
-        info = ""
-        for i in result:
-            info += get_tbody(i)
-        return get_result_html(
-            ["时间", "价格", "涨跌额", "涨跌幅", "成交量", "成交额"]
-        ).format(tbody=info) + style
+        return get_table_html(
+            ["时间", "价格", "涨跌额", "涨跌幅", "成交量", "成交额"],
+            result
+        )
 
     def seven_A(self, is_return=False):
         url = "https://finance.pae.baidu.com/sapi/v1/metrictrend"
@@ -842,12 +834,11 @@ class MaYiFund:
 
     def seven_A_html(self):
         result = self.seven_A(True)
-        info = ""
-        for i in result:
-            info += get_tbody(i)
-        return get_result_html(
-            ["日期", "总成交额", "上交所", "深交所", "北交所"]
-        ).format(tbody=info) + style
+        return get_table_html(
+            ["日期", "总成交额", "上交所", "深交所", "北交所"],
+            result,
+            [1, 2, 3, 4]
+        )
 
 
 if __name__ == '__main__':

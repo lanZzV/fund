@@ -469,46 +469,52 @@ class MaYiFund:
     @staticmethod
     def bk(is_return=False):
         bk_result = []
-        TRADE_DATE = "2023-08-31"
         try:
-            url = "https://datacenter-web.eastmoney.com/api/data/v1/get"
+            url = "https://push2.eastmoney.com/api/qt/clist/get"
             params = {
-                "callback": "",
-                "sortColumns": "ADD_MARKET_CAP",
-                "sortTypes": "-1",
-                "pageSize": "100",
-                "pageNumber": "1",
-                "reportName": "RPT_MUTUAL_BOARD_HOLDRANK_WEB",
-                "columns": "ALL",
-                "quoteColumns": "f3~05~SECURITY_CODE~INDEX_CHANGE_RATIO",
-                "quoteType": "0",
-                "source": "WEB",
-                "client": "WEB",
-                "filter": "(BOARD_TYPE=\"5\")(INTERVAL_TYPE=\"1\")(TRADE_DATE='%s')" % TRADE_DATE,
+                "cb": "",
+                "fid": "f62",
+                "po": "1",
+                "pz": "100",
+                "pn": "1",
+                "np": "1",
+                "fltt": "2",
+                "invt": "2",
+                "ut": "8dec03ba335b81bf4ebdf7b29ec27d15",
+                "fs": "m:90 t:2",
+                "fields": "f12,f14,f2,f3,f62,f184,f66,f69,f72,f75,f78,f81,f84,f87,f204,f205,f124,f1,f13"
             }
             response = requests.get(url, params=params, timeout=10, verify=False)
-            if str(response.json()["code"]) == "0":
-                data = response.json()["result"]["data"]
-                for bk in data:
-                    ratio = str(bk["INDEX_CHANGE_RATIO"]) + "%"
+            if str(response.json()["data"]):
+                data = response.json()["data"]
+                for bk in data["diff"]:
+                    ratio = str(bk["f3"]) + "%"
                     if not is_return:
                         if "-" in ratio:
                             ratio = "\033[1;32m" + ratio
                         else:
                             ratio = "\033[1;31m" + ratio
-                    add_market_cap = bk["ADD_MARKET_CAP"]
+                    add_market_cap = bk["f62"]
                     add_market_cap = str(round(add_market_cap / 100000000, 2)) + "亿"
                     if not is_return:
                         if "-" in add_market_cap:
                             add_market_cap = "\033[1;32m" + add_market_cap
                         else:
                             add_market_cap = "\033[1;31m" + add_market_cap
+                    add_market_cap2 = bk["f84"]
+                    add_market_cap2 = str(round(add_market_cap2 / 100000000, 2)) + "亿"
+                    if not is_return:
+                        if "-" in add_market_cap2:
+                            add_market_cap2 = "\033[1;32m" + add_market_cap2
+                        else:
+                            add_market_cap2 = "\033[1;31m" + add_market_cap2
                     bk_result.append([
-                        bk["BOARD_NAME"],
+                        bk["f14"],
                         ratio,
-                        str(round(bk["HK_VALUE"] / 100000000, 2)) + "亿",
                         add_market_cap,
-                        str(round(bk["ADD_RATIO"], 2)) + "%"
+                        str(round(bk["f184"], 2)) + "%",
+                        add_market_cap2,
+                        str(round(bk["f87"], 2)) + "%",
                     ])
         except:
             pass
@@ -524,8 +530,7 @@ class MaYiFund:
             logger.critical(f"{time.strftime('%Y-%m-%d %H:%M')} 行业板块:")
             for line_msg in format_table_msg([
                 [
-                    "板块名称", "最新涨跌幅", "北向资金今日持股市值", "北向资金今日增持估计市值",
-                    "北向资金今日增持估计市值增幅",
+                    "板块名称", "今日涨跌幅", "今日主力净流入", "今日主力净流入占比", "今日小单净流入", "今日小单流入占比"
                 ],
                 *bk_result
             ]).split("\n"):
@@ -534,10 +539,9 @@ class MaYiFund:
     def bk_html(self):
         result = self.bk(True)
         return get_table_html(
-            ["板块名称", "最新涨跌幅", "北向资金今日持股市值", "北向资金今日增持估计市值",
-             "北向资金今日增持估计市值增幅"],
+            ["板块名称", "今日涨跌幅", "今日主力净流入", "今日主力净流入占比", "今日小单净流入", "今日小单流入占比"],
             result,
-            sortable_columns=[1, 2, 3, 4]
+            sortable_columns=[1, 2, 3, 4, 5]
         )
 
     @staticmethod

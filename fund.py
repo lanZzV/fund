@@ -776,7 +776,7 @@ class MaYiFund:
                 logger.critical(f"{time.strftime('%Y-%m-%d %H:%M')} 近 30 分钟上证指数:")
                 for line_msg in format_table_msg([
                     [
-                        "时间", "价格", "涨跌额", "涨跌幅", "成交量", "成交额"
+                        "时间", "指数", "涨跌额", "涨跌幅", "成交量", "成交额"
                     ],
                     *result
                 ]).split("\n"):
@@ -785,7 +785,7 @@ class MaYiFund:
     def A_html(self):
         result = self.A(True)
         return get_table_html(
-            ["时间", "价格", "涨跌额", "涨跌幅", "成交量", "成交额"],
+            ["时间", "指数", "涨跌额", "涨跌幅", "成交量", "成交额"],
             result
         )
 

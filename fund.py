@@ -395,18 +395,17 @@ class MaYiFund:
                 if response.json()["ResultCode"] == "0":
                     market_list = response.json()["Result"]["list"]
                     for market_info in market_list:
-                        if market_info["name"] in target_matket:
-                            ratio = market_info["ratio"]
-                            if not is_return:
-                                if "-" in ratio:
-                                    ratio = "\033[1;32m" + ratio
-                                else:
-                                    ratio = "\033[1;31m" + ratio
-                            result.append([
-                                market_info["name"],
-                                market_info["lastPrice"],
-                                ratio
-                            ])
+                        ratio = market_info["ratio"]
+                        if not is_return:
+                            if "-" in ratio:
+                                ratio = "\033[1;32m" + ratio
+                            else:
+                                ratio = "\033[1;31m" + ratio
+                        result.append([
+                            market_info["name"],
+                            market_info["lastPrice"],
+                            ratio
+                        ])
 
             # 增加创业板指
             url = "https://finance.pae.baidu.com/vapi/v1/getquotation"
@@ -854,4 +853,4 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     mayi_fund = MaYiFund()
-    mayi_fund.run(args.add, args.delete, args.hold, args.not_hold)
+    mayi_fund.get_market_info()

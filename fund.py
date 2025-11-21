@@ -853,4 +853,4 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     mayi_fund = MaYiFund()
-    mayi_fund.get_market_info()
+    mayi_fund.run(args.add, args.delete, args.hold, args.not_hold)

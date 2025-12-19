@@ -383,6 +383,8 @@ class MaYiFund:
             self.A()
             self.get_market_info()
             self.search_code()
+            # 添加AI分析
+            self.ai_analysis()
 
     def get_market_info(self, is_return=False):
         target_matket = ["上证指数", "深证指数", "纳斯达克", "道琼斯"]
@@ -842,6 +844,278 @@ class MaYiFund:
             result,
             [1, 2, 3, 4]
         )
+
+    def init_langchain_llm(self):
+        """初始化LangChain LLM"""
+        try:
+            from langchain_openai import ChatOpenAI
+
+            # 从环境变量读取配置
+            api_base = os.getenv("LLM_API_BASE", "https://api.openai.com/v1")
+            api_key = os.getenv("LLM_API_KEY", "")
+            model = os.getenv("LLM_MODEL", "gpt-3.5-turbo")
+
+            if not api_key:
+                logger.warning("未配置LLM_API_KEY环境变量，跳过AI分析")
+                return None
+
+            # 创建ChatOpenAI实例
+            llm = ChatOpenAI(
+                model=model,
+                openai_api_key=api_key,
+                openai_api_base=api_base,
+                temperature=0.7,
+                max_tokens=2000,
+                request_timeout=60
+            )
+
+            return llm
+
+        except Exception as e:
+            logger.error(f"初始化LangChain LLM失败: {e}")
+            return None
+
+    def ai_analysis(self):
+        """使用LangChain提示链进行AI分析"""
+        try:
+            from langchain_core.prompts import ChatPromptTemplate
+            from langchain_core.output_parsers import StrOutputParser
+
+            logger.debug("正在收集数据进行AI分析...")
+
+            # 初始化LLM
+            llm = self.init_langchain_llm()
+            if llm is None:
+                return
+
+            # 收集市场数据
+            market_data = self.get_market_info(is_return=True)
+            market_summary = "主要市场指数：\n"
+            for item in market_data[:10]:
+                market_summary += f"- {item[0]}: {item[1]} ({item[2]})\n"
+
+            # 收集板块数据
+            bk_data = self.bk(is_return=True)
+            top_sectors = "涨幅前5板块：\n"
+            for i, item in enumerate(bk_data[:5]):
+                top_sectors += f"{i+1}. {item[0]}: {item[1]}, 主力净流入{item[2]}, 主力流入占比{item[3]}\n"
+
+            bottom_sectors = "跌幅后5板块：\n"
+            for i, item in enumerate(bk_data[-5:]):
+                bottom_sectors += f"{i+1}. {item[0]}: {item[1]}, 主力净流入{item[2]}, 主力流入占比{item[3]}\n"
+
+            # 收集基金数据
+            fund_data = []
+            for fund_code, fund_info in self.CACHE_MAP.items():
+                for fund in self.result:
+                    if fund[0] == fund_code:
+                        fund_data.append({
+                            "code": fund[0],
+                            "name": fund[1].replace("⭐ ", "").replace("\033[1;31m", "").replace("\033[1;32m", ""),
+                            "forecast": fund[3].replace("\033[1;31m", "").replace("\033[1;32m", ""),
+                            "growth": fund[4].replace("\033[1;31m", "").replace("\033[1;32m", ""),
+                            "consecutive": fund[5].replace("\033[1;31m", "").replace("\033[1;32m", ""),
+                            "consecutive_growth": fund[6].replace("\033[1;31m", "").replace("\033[1;32m", ""),
+                            "month_stats": fund[7],
+                            "month_growth": fund[8].replace("\033[1;31m", "").replace("\033[1;32m", ""),
+                            "is_hold": fund_info.get("is_hold", False)
+                        })
+                        break
+
+            # 构建基金摘要
+            fund_summary = f"自选基金总数: {len(fund_data)}只\n\n"
+
+            # 持有基金
+            hold_funds = [f for f in fund_data if f["is_hold"]]
+            if hold_funds:
+                fund_summary += "持有基金：\n"
+                for i, f in enumerate(hold_funds, 1):
+                    fund_summary += f"{i}. {f['name']}: 估值{f['forecast']}, 日涨幅{f['growth']}, 连续{f['consecutive']}天, 近30天{f['month_stats']}\n"
+                fund_summary += "\n"
+
+            # 表现最好的基金
+            top_funds = sorted(fund_data, key=lambda x: float(x["forecast"].replace("%", "")) if x["forecast"] != "N/A" else -999, reverse=True)[:5]
+            fund_summary += "今日涨幅前5的基金：\n"
+            for i, f in enumerate(top_funds, 1):
+                hold_mark = "【持有】" if f["is_hold"] else ""
+                fund_summary += f"{i}. {hold_mark}{f['name']}: 估值{f['forecast']}, 日涨幅{f['growth']}\n"
+
+            # 创建提示链 - 市场趋势分析
+            trend_prompt = ChatPromptTemplate.from_messages([
+                ("system", "你是一位资深金融分析师，擅长宏观市场分析和趋势判断。请从专业角度深入分析市场走势。"),
+                ("user", """请基于以下市场数据，进行深入的市场趋势分析：
+
+{market_summary}
+
+{top_sectors}
+
+请从以下角度进行分析（输出300-400字）：
+1. 分析主要指数的走势特征和相互关系
+2. 判断当前市场所处的阶段（上涨/震荡/调整）
+3. 分析市场情绪和资金流向特征
+4. 对比国内外市场表现，指出关键影响因素
+
+请用专业、客观的语言输出，使用纯文本格式（不要使用markdown语法如#、*、**、表格等），适合命令行展示。""")
+            ])
+
+            # 创建提示链 - 板块机会分析
+            sector_prompt = ChatPromptTemplate.from_messages([
+                ("system", "你是一位行业研究专家，精通各个行业板块的投资逻辑和周期规律。"),
+                ("user", """请基于以下板块数据，深入分析行业投资机会：
+
+涨幅领先板块：
+{top_sectors}
+
+跌幅板块：
+{bottom_sectors}
+
+请从以下角度进行分析（输出300-400字）：
+1. 分析领涨板块的共同特征和驱动因素
+2. 判断这些板块的行情可持续性
+3. 结合资金流入情况，评估板块强度
+4. 提示哪些板块值得重点关注，给出配置建议
+5. 分析弱势板块是否存在反转机会
+
+请用专业、深入的语言输出，使用纯文本格式（不要使用markdown语法如#、*、**、表格等），适合命令行展示。""")
+            ])
+
+            # 创建提示链 - 基金组合建议
+            portfolio_prompt = ChatPromptTemplate.from_messages([
+                ("system", "你是一位专业的基金投资顾问，擅长基金组合配置和风险管理。"),
+                ("user", """请基于以下基金持仓和表现数据，给出投资建议：
+
+{fund_summary}
+
+当前市场环境：
+{market_summary}
+
+请从以下角度给出建议（输出300-400字）：
+1. 评估当前持仓基金的表现和风险特征
+2. 分析持仓基金与市场环境的匹配度
+3. 给出具体的调仓建议（增持/减持/持有）
+4. 对表现优异的基金，分析背后原因和可持续性
+5. 提示仓位配置和风险敞口的优化方向
+
+请给出具体、可操作的建议，使用纯文本格式（不要使用markdown语法如#、*、**、表格等），适合命令行展示。""")
+            ])
+
+            # 创建提示链 - 风险提示
+            risk_prompt = ChatPromptTemplate.from_messages([
+                ("system", "你是一位风险管理专家，擅长识别市场风险和制定风控策略。"),
+                ("user", """请基于当前市场数据，进行全面的风险分析：
+
+市场概况：
+{market_summary}
+
+板块表现：
+{top_sectors}
+{bottom_sectors}
+
+基金持仓：
+{fund_summary}
+
+请从以下角度进行风险分析（输出250-350字）：
+1. 识别当前市场的主要风险点
+2. 分析可能引发调整的触发因素
+3. 评估持仓基金的风险暴露
+4. 给出风险防控建议和应对策略
+5. 提示需要关注的风险信号
+
+请客观、谨慎地提示风险，使用纯文本格式（不要使用markdown语法如#、*、**、表格等），适合命令行展示。""")
+            ])
+
+            # 创建输出解析器
+            output_parser = StrOutputParser()
+
+            # 执行四个维度的分析
+            logger.info("正在进行市场趋势分析...")
+            trend_chain = trend_prompt | llm | output_parser
+            trend_analysis = trend_chain.invoke({
+                "market_summary": market_summary,
+                "top_sectors": top_sectors
+            })
+
+            logger.info("正在进行板块机会分析...")
+            sector_chain = sector_prompt | llm | output_parser
+            sector_analysis = sector_chain.invoke({
+                "top_sectors": top_sectors,
+                "bottom_sectors": bottom_sectors
+            })
+
+            logger.info("正在进行基金组合分析...")
+            portfolio_chain = portfolio_prompt | llm | output_parser
+            portfolio_analysis = portfolio_chain.invoke({
+                "fund_summary": fund_summary,
+                "market_summary": market_summary
+            })
+
+            logger.info("正在进行风险分析...")
+            risk_chain = risk_prompt | llm | output_parser
+            risk_analysis = risk_chain.invoke({
+                "market_summary": market_summary,
+                "top_sectors": top_sectors,
+                "bottom_sectors": bottom_sectors,
+                "fund_summary": fund_summary
+            })
+
+            # 定义文本格式化函数
+            def format_text(text, max_width=100):
+                """将长文本按照标点符号智能分行，保持可读性"""
+                lines = []
+                for paragraph in text.split("\n"):
+                    if not paragraph.strip():
+                        continue
+
+                    # 按句子分割（句号、问号、感叹号、分号）
+                    current_line = ""
+                    for char in paragraph:
+                        current_line += char
+                        # 遇到句子结束符号且长度超过50字符，或长度超过max_width
+                        if (char in "。！？；" and len(current_line) > 50) or len(current_line) >= max_width:
+                            lines.append(current_line.strip())
+                            current_line = ""
+
+                    # 添加剩余内容
+                    if current_line.strip():
+                        lines.append(current_line.strip())
+
+                return lines
+
+            # 输出完整的AI分析报告
+            logger.critical(f"\n{time.strftime('%Y-%m-%d %H:%M')} 📊 AI市场深度分析报告")
+            logger.info("=" * 80)
+
+            logger.info("\n1️⃣ 市场整体趋势分析")
+            logger.info("-" * 80)
+            for line in format_text(trend_analysis):
+                logger.info(line)
+
+            logger.info("\n" + "=" * 80)
+            logger.info("\n2️⃣ 行业板块机会分析")
+            logger.info("-" * 80)
+            for line in format_text(sector_analysis):
+                logger.info(line)
+
+            logger.info("\n" + "=" * 80)
+            logger.info("\n3️⃣ 基金组合投资建议")
+            logger.info("-" * 80)
+            for line in format_text(portfolio_analysis):
+                logger.info(line)
+
+            logger.info("\n" + "=" * 80)
+            logger.info("\n4️⃣ 风险提示与应对")
+            logger.info("-" * 80)
+            for line in format_text(risk_analysis):
+                logger.info(line)
+
+            logger.info("\n" + "=" * 80)
+            logger.info("\n💡 提示：以上分析由AI生成，仅供参考，不构成投资建议。投资有风险，入市需谨慎。")
+            logger.info("=" * 80)
+
+        except Exception as e:
+            logger.error(f"AI分析过程出错: {e}")
+            import traceback
+            logger.error(traceback.format_exc())
 
 
 if __name__ == '__main__':

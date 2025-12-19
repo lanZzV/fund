@@ -114,6 +114,8 @@ The application follows a three-layer architecture:
 - `MaYiFund.gold()` / `real_time_gold()`: Gold price data
 - `MaYiFund.get_market_info()`: Market indices
 - `MaYiFund.A()` / `seven_A()`: Shanghai index minute-by-minute and 7-day volume
+- `MaYiFund.ai_analysis()`: Collects data and calls LLM API for intelligent analysis
+- `MaYiFund.call_llm_api(prompt)`: Calls OpenAI-compatible LLM API
 - Methods ending in `_html()`: Return HTML strings for web interface
 
 **fund_server.py** (web server):
@@ -145,6 +147,36 @@ The application follows a three-layer architecture:
 **Other:**
 - `api.jijinhao.com` - Gold prices (China Gold, Chow Tai Fook)
 - `push2.eastmoney.com` - Sector/industry data
+
+**LLM API (Optional):**
+- OpenAI-compatible API endpoints for AI market analysis
+- Configured via environment variables: `LLM_API_KEY`, `LLM_API_BASE`, `LLM_MODEL`
+- Supports: OpenAI, DeepSeek, 通义千问, 智谱AI, Moonshot, etc.
+- Called after all data is collected to provide intelligent analysis
+
+### AI Analysis Feature
+
+**When Enabled:**
+- Reads environment variables for API configuration
+- Collects market indices, sector performance, and fund data
+- Constructs a comprehensive prompt with market overview
+- Calls LLM API for analysis covering:
+  - Market overall trend
+  - Sector opportunities
+  - Fund portfolio recommendations
+  - Risk warnings
+- Outputs formatted analysis to console
+
+**Configuration:**
+```bash
+export LLM_API_KEY="your-api-key"
+export LLM_API_BASE="https://api.deepseek.com/v1"  # Optional
+export LLM_MODEL="deepseek-chat"  # Optional
+```
+
+**When Disabled:**
+- If `LLM_API_KEY` is not set, AI analysis is skipped silently
+- All other features work normally
 
 ### Data Processing Notes
 

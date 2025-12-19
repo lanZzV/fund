@@ -1059,57 +1059,56 @@ class MaYiFund:
             })
 
             # 定义文本格式化函数
-            def format_text(text, max_width=100):
+            def format_text(text, max_width=60):
                 """将长文本按照标点符号智能分行，保持可读性"""
                 lines = []
-                for paragraph in text.split("\n"):
-                    if not paragraph.strip():
-                        continue
+                # 先去掉多余的空行，合并成一段
+                text = " ".join(line.strip() for line in text.split("\n") if line.strip())
 
-                    # 按句子分割（句号、问号、感叹号、分号）
-                    current_line = ""
-                    for char in paragraph:
-                        current_line += char
-                        # 遇到句子结束符号且长度超过50字符，或长度超过max_width
-                        if (char in "。！？；" and len(current_line) > 50) or len(current_line) >= max_width:
-                            lines.append(current_line.strip())
-                            current_line = ""
-
-                    # 添加剩余内容
-                    if current_line.strip():
+                # 按句子分割（句号、问号、感叹号、分号）
+                current_line = ""
+                for char in text:
+                    current_line += char
+                    # 遇到句子结束符号且长度超过30字符，或长度超过max_width
+                    if (char in "。！？；" and len(current_line) > 30) or len(current_line) >= max_width:
                         lines.append(current_line.strip())
+                        current_line = ""
+
+                # 添加剩余内容
+                if current_line.strip():
+                    lines.append(current_line.strip())
 
                 return lines
 
             # 输出完整的AI分析报告
-            logger.critical(f"\n{time.strftime('%Y-%m-%d %H:%M')} 📊 AI市场深度分析报告")
+            logger.critical(f"{time.strftime('%Y-%m-%d %H:%M')} 📊 AI市场深度分析报告")
             logger.info("=" * 80)
 
-            logger.info("\n1️⃣ 市场整体趋势分析")
+            logger.info("1️⃣ 市场整体趋势分析")
             logger.info("-" * 80)
             for line in format_text(trend_analysis):
                 logger.info(line)
 
-            logger.info("\n" + "=" * 80)
-            logger.info("\n2️⃣ 行业板块机会分析")
+            logger.info("=" * 80)
+            logger.info("2️⃣ 行业板块机会分析")
             logger.info("-" * 80)
             for line in format_text(sector_analysis):
                 logger.info(line)
 
-            logger.info("\n" + "=" * 80)
-            logger.info("\n3️⃣ 基金组合投资建议")
+            logger.info("=" * 80)
+            logger.info("3️⃣ 基金组合投资建议")
             logger.info("-" * 80)
             for line in format_text(portfolio_analysis):
                 logger.info(line)
 
-            logger.info("\n" + "=" * 80)
-            logger.info("\n4️⃣ 风险提示与应对")
+            logger.info("=" * 80)
+            logger.info("4️⃣ 风险提示与应对")
             logger.info("-" * 80)
             for line in format_text(risk_analysis):
                 logger.info(line)
 
-            logger.info("\n" + "=" * 80)
-            logger.info("\n💡 提示：以上分析由AI生成，仅供参考，不构成投资建议。投资有风险，入市需谨慎。")
+            logger.info("=" * 80)
+            logger.info("💡 提示：以上分析由AI生成，仅供参考，不构成投资建议。投资有风险，入市需谨慎。")
             logger.info("=" * 80)
 
         except Exception as e:

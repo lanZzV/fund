@@ -44,6 +44,7 @@ class MaYiFund:
         self.session = requests.Session()
         self.baidu_session = requests.Session()
         self._csrf = ""
+        self.report_dir = "reports"  # 默认报告目录
         self.load_cache()
         self.init()
         self.result = []
@@ -314,7 +315,10 @@ class MaYiFund:
             sortable_columns=[3, 4, 5, 6, 7, 8]
         )
 
-    def run(self, is_add=False, is_delete=False, is_hold=False, is_not_hold=False):
+    def run(self, is_add=False, is_delete=False, is_hold=False, is_not_hold=False, report_dir="reports"):
+        # 存储报告目录到实例属性
+        self.report_dir = report_dir
+
         if not self.CACHE_MAP:
             logger.warning("暂无缓存代码信息, 请先添加基金代码")
             is_add = True
@@ -852,7 +856,7 @@ class MaYiFund:
     def ai_analysis(self):
         """使用AI分析器进行市场分析"""
         analyzer = AIAnalyzer()
-        analyzer.analyze(self)
+        analyzer.analyze(self, report_dir=self.report_dir)
 
 
 if __name__ == '__main__':
@@ -861,7 +865,8 @@ if __name__ == '__main__':
     parser.add_argument("-d", "--delete", action="store_true", help="删除基金代码")
     parser.add_argument("-c", "--hold", action="store_true", help="添加持有基金标注")
     parser.add_argument("-b", "--not_hold", action="store_true", help="删除持有基金标注")
+    parser.add_argument("-r", "--report-dir", type=str, default="reports", help="AI分析报告输出目录（默认: reports）")
     args = parser.parse_args()
 
     mayi_fund = MaYiFund()
-    mayi_fund.run(args.add, args.delete, args.hold, args.not_hold)
+    mayi_fund.run(args.add, args.delete, args.hold, args.not_hold, args.report_dir)

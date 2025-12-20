@@ -130,7 +130,7 @@ class AIAnalyzer:
 
         return lines
 
-    def analyze(self, data_collector):
+    def analyze(self, data_collector, report_dir="reports"):
         """
         执行AI分析
 
@@ -144,6 +144,7 @@ class AIAnalyzer:
                 - A(is_return=True)
                 - bk(is_return=True)
                 以及 self.result 和 self.CACHE_MAP 属性
+            report_dir: AI分析报告输出目录，默认为"reports"
         """
         try:
             from langchain_core.prompts import ChatPromptTemplate
@@ -492,10 +493,10 @@ class AIAnalyzer:
 """
 
             # 保存markdown文件
-            if not os.path.exists("reports"):
-                os.mkdir("reports")
+            if not os.path.exists(report_dir):
+                os.makedirs(report_dir, exist_ok=True)
 
-            report_filename = f"reports/AI市场深度分析报告{time.strftime('%Y%m%d_%H%M%S')}.md"
+            report_filename = f"{report_dir}/AI市场深度分析报告{time.strftime('%Y%m%d_%H%M%S')}.md"
             with open(report_filename, "w", encoding="utf-8") as f:
                 f.write(markdown_content)
 

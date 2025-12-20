@@ -17,4 +17,9 @@ fi
 # 运行程序
 echo "正在启动基金监控工具..."
 echo "=========================================="
-python3 fund.py
+
+# 支持传递命令行参数，包括 --report-dir
+# 用法示例：
+#   ./run.sh                              # 使用默认报告目录 reports
+#   ./run.sh --report-dir /tmp/reports    # 使用自定义报告目录
+python3 fund.py "$@"

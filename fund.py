@@ -14,6 +14,7 @@ from loguru import logger
 from tabulate import tabulate
 
 from module_html import get_table_html
+from ai_analyzer import AIAnalyzer
 
 sem = threading.Semaphore(5)
 
@@ -43,6 +44,7 @@ class MaYiFund:
         self.session = requests.Session()
         self.baidu_session = requests.Session()
         self._csrf = ""
+        self.report_dir = "reports"  # 默认报告目录
         self.load_cache()
         self.init()
         self.result = []
@@ -313,7 +315,10 @@ class MaYiFund:
             sortable_columns=[3, 4, 5, 6, 7, 8]
         )
 
-    def run(self, is_add=False, is_delete=False, is_hold=False, is_not_hold=False):
+    def run(self, is_add=False, is_delete=False, is_hold=False, is_not_hold=False, report_dir="reports"):
+        # 存储报告目录到实例属性
+        self.report_dir = report_dir
+
         if not self.CACHE_MAP:
             logger.warning("暂无缓存代码信息, 请先添加基金代码")
             is_add = True
@@ -383,6 +388,8 @@ class MaYiFund:
             self.A()
             self.get_market_info()
             self.search_code()
+            # 添加AI分析
+            self.ai_analysis()
 
     def get_market_info(self, is_return=False):
         target_matket = ["上证指数", "深证指数", "纳斯达克", "道琼斯"]
@@ -544,7 +551,7 @@ class MaYiFund:
         )
 
     @staticmethod
-    def kx():
+    def kx(is_return=False):
         url = "https://finance.pae.baidu.com/selfselect/expressnews?rn=10&pn=0&tag=A股&finClientType=pc"
         headers = {
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36"
@@ -556,6 +563,9 @@ class MaYiFund:
                 kx_list = response.json()["Result"]["content"]["list"]
         except:
             pass
+
+        if is_return:
+            return kx_list
 
         if kx_list:
             logger.critical(f"{time.strftime('%Y-%m-%d %H:%M')} 7*24 快讯:")
@@ -843,6 +853,11 @@ class MaYiFund:
             [1, 2, 3, 4]
         )
 
+    def ai_analysis(self):
+        """使用AI分析器进行市场分析"""
+        analyzer = AIAnalyzer()
+        analyzer.analyze(self, report_dir=self.report_dir)
+
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='MaYiFund')
@@ -850,7 +865,8 @@ if __name__ == '__main__':
     parser.add_argument("-d", "--delete", action="store_true", help="删除基金代码")
     parser.add_argument("-c", "--hold", action="store_true", help="添加持有基金标注")
     parser.add_argument("-b", "--not_hold", action="store_true", help="删除持有基金标注")
+    parser.add_argument("-r", "--report-dir", type=str, default="reports", help="AI分析报告输出目录（默认: reports）")
     args = parser.parse_args()
 
     mayi_fund = MaYiFund()
-    mayi_fund.run(args.add, args.delete, args.hold, args.not_hold)
+    mayi_fund.run(args.add, args.delete, args.hold, args.not_hold, args.report_dir)

@@ -53,6 +53,17 @@ class AIAnalyzer:
             return None
 
     @staticmethod
+    def clean_ansi_codes(text):
+        """清理所有ANSI颜色代码"""
+        if not isinstance(text, str):
+            return text
+        # 清理完整的ANSI转义序列 \033[XXXm
+        text = re.sub(r'\033\[\d+(?:;\d+)?m', '', text)
+        # 清理不完整的ANSI代码 [XXXm (可能在某些情况下\033被截断)
+        text = re.sub(r'\[\d+(?:;\d+)?m', '', text)
+        return text
+
+    @staticmethod
     def strip_markdown(text):
         """移除markdown格式标记，用于控制台显示"""
         # 移除标题符号 (###、##、#)
@@ -209,13 +220,13 @@ class AIAnalyzer:
                     if fund[0] == fund_code:
                         fund_data.append({
                             "code": fund[0],
-                            "name": fund[1].replace("⭐ ", "").replace("\033[1;31m", "").replace("\033[1;32m", ""),
-                            "forecast": fund[3].replace("\033[1;31m", "").replace("\033[1;32m", ""),
-                            "growth": fund[4].replace("\033[1;31m", "").replace("\033[1;32m", ""),
-                            "consecutive": fund[5].replace("\033[1;31m", "").replace("\033[1;32m", ""),
-                            "consecutive_growth": fund[6].replace("\033[1;31m", "").replace("\033[1;32m", ""),
-                            "month_stats": fund[7],
-                            "month_growth": fund[8].replace("\033[1;31m", "").replace("\033[1;32m", ""),
+                            "name": AIAnalyzer.clean_ansi_codes(fund[1].replace("⭐ ", "")),
+                            "forecast": AIAnalyzer.clean_ansi_codes(fund[3]),
+                            "growth": AIAnalyzer.clean_ansi_codes(fund[4]),
+                            "consecutive": AIAnalyzer.clean_ansi_codes(fund[5]),
+                            "consecutive_growth": AIAnalyzer.clean_ansi_codes(fund[6]),
+                            "month_stats": AIAnalyzer.clean_ansi_codes(fund[7]),
+                            "month_growth": AIAnalyzer.clean_ansi_codes(fund[8]),
                             "is_hold": fund_info.get("is_hold", False)
                         })
                         break
@@ -484,7 +495,7 @@ class AIAnalyzer:
             if not os.path.exists("reports"):
                 os.mkdir("reports")
 
-            report_filename = f"reports/ai_analysis_{time.strftime('%Y%m%d_%H%M%S')}.md"
+            report_filename = f"reports/AI市场深度分析报告{time.strftime('%Y%m%d_%H%M%S')}.md"
             with open(report_filename, "w", encoding="utf-8") as f:
                 f.write(markdown_content)
 

@@ -3,3 +3,8 @@ requests==2.25.1
 tabulate==0.8.9
 urllib3==1.25.1
 wcwidth==0.2.5
+
+# LangChain for AI analysis
+langchain>=0.3.27
+langchain-openai>=0.3.35
+langchain-core>=0.3.80

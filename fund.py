@@ -315,7 +315,7 @@ class MaYiFund:
             sortable_columns=[3, 4, 5, 6, 7, 8]
         )
 
-    def run(self, is_add=False, is_delete=False, is_hold=False, is_not_hold=False, report_dir="reports"):
+    def run(self, is_add=False, is_delete=False, is_hold=False, is_not_hold=False, report_dir="reports", deep_mode=False, fast_mode=False, no_ai=False):
         # 存储报告目录到实例属性
         self.report_dir = report_dir
 
@@ -388,8 +388,11 @@ class MaYiFund:
             self.A()
             self.get_market_info()
             self.search_code()
-            # 添加AI分析
-            self.ai_analysis()
+            # 添加AI分析（除非用户指定 --no-ai）
+            if not no_ai:
+                self.ai_analysis(deep_mode=deep_mode, fast_mode=fast_mode)
+            else:
+                logger.info("已跳过AI分析（使用了 --no-ai 参数）")
 
     def get_market_info(self, is_return=False):
         target_matket = ["上证指数", "深证指数", "纳斯达克", "道琼斯"]
@@ -551,8 +554,8 @@ class MaYiFund:
         )
 
     @staticmethod
-    def kx(is_return=False):
-        url = "https://finance.pae.baidu.com/selfselect/expressnews?rn=10&pn=0&tag=A股&finClientType=pc"
+    def kx(is_return=False, count=10):
+        url = f"https://finance.pae.baidu.com/selfselect/expressnews?rn={count}&pn=0&tag=A股&finClientType=pc"
         headers = {
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36"
         }
@@ -853,10 +856,20 @@ class MaYiFund:
             [1, 2, 3, 4]
         )
 
-    def ai_analysis(self):
-        """使用AI分析器进行市场分析"""
+    def ai_analysis(self, deep_mode=False, fast_mode=False):
+        """使用AI分析器进行市场分析
+
+        Args:
+            deep_mode: 是否启用深度研究模式（默认False）
+            fast_mode: 是否启用快速分析模式（默认False）
+        """
         analyzer = AIAnalyzer()
-        analyzer.analyze(self, report_dir=self.report_dir)
+        if deep_mode:
+            analyzer.analyze_deep(self, report_dir=self.report_dir)
+        elif fast_mode:
+            analyzer.analyze_fast(self, report_dir=self.report_dir)
+        else:
+            analyzer.analyze(self, report_dir=self.report_dir)
 
 
 if __name__ == '__main__':
@@ -866,7 +879,10 @@ if __name__ == '__main__':
     parser.add_argument("-c", "--hold", action="store_true", help="添加持有基金标注")
     parser.add_argument("-b", "--not_hold", action="store_true", help="删除持有基金标注")
     parser.add_argument("-r", "--report-dir", type=str, default="reports", help="AI分析报告输出目录（默认: reports）")
+    parser.add_argument("-f", "--fast", action="store_true", help="启用快速分析模式（一次性生成简明报告，速度更快）")
+    parser.add_argument("-D", "--deep", action="store_true", help="启用深度研究模式（ReAct Agent自主收集数据并生成报告）")
+    parser.add_argument("-N", "--no-ai", action="store_true", help="跳过AI分析（仅显示数据，不生成AI报告）")
     args = parser.parse_args()
 
     mayi_fund = MaYiFund()
-    mayi_fund.run(args.add, args.delete, args.hold, args.not_hold, args.report_dir)
+    mayi_fund.run(args.add, args.delete, args.hold, args.not_hold, args.report_dir, args.deep, args.fast, args.no_ai)

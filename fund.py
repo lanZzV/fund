@@ -8,9 +8,9 @@ import re
 import threading
 import time
 
-from dotenv import load_dotenv
 import requests
 import urllib3
+from dotenv import load_dotenv
 from loguru import logger
 from tabulate import tabulate
 
@@ -320,7 +320,7 @@ class MaYiFund:
         )
 
     def run(self, is_add=False, is_delete=False, is_hold=False, is_not_hold=False, report_dir="reports",
-            deep_mode=False, fast_mode=False, no_ai=False):
+            deep_mode=False, fast_mode=False, with_ai=False):
         # 存储报告目录到实例属性
         self.report_dir = report_dir
 
@@ -393,11 +393,8 @@ class MaYiFund:
             self.A()
             self.get_market_info()
             self.search_code()
-            # # 添加AI分析（除非用户指定 --no-ai）
-            # if not no_ai:
-            #     self.ai_analysis(deep_mode=deep_mode, fast_mode=fast_mode)
-            # else:
-            #     logger.info("已跳过AI分析（使用了 --no-ai 参数）")
+            if with_ai:
+                self.ai_analysis(deep_mode=deep_mode, fast_mode=fast_mode)
 
     def get_market_info(self, is_return=False):
         target_matket = ["上证指数", "深证指数", "纳斯达克", "道琼斯"]
@@ -604,13 +601,13 @@ class MaYiFund:
             title = v.get("title", v["content"]["items"][0]["data"])
             publish_time = v["publish_time"]
             publish_time = datetime.datetime.fromtimestamp(int(publish_time)).strftime("%H:%M:%S")
-            
+
             # 格式化评价，添加颜色
             if evaluate == "利好":
                 evaluate = f'<span class="positive">{evaluate}</span>'
             elif evaluate == "利空":
                 evaluate = f'<span class="negative">{evaluate}</span>'
-            
+
             table_data.append([publish_time, evaluate, title])
 
         return get_table_html(
@@ -920,8 +917,8 @@ if __name__ == '__main__':
     parser.add_argument("-r", "--report-dir", type=str, default="reports", help="AI分析报告输出目录（默认: reports）")
     parser.add_argument("-f", "--fast", action="store_true", help="启用快速分析模式（一次性生成简明报告，速度更快）")
     parser.add_argument("-D", "--deep", action="store_true", help="启用深度研究模式（ReAct Agent自主收集数据并生成报告）")
-    parser.add_argument("-N", "--no-ai", action="store_true", help="跳过AI分析（仅显示数据，不生成AI报告）")
+    parser.add_argument("-W", "--with-ai", action="store_true", help="AI分析（仅显示数据，不生成AI报告）")
     args = parser.parse_args()
 
     mayi_fund = MaYiFund()
-    mayi_fund.run(args.add, args.delete, args.hold, args.not_hold, args.report_dir, args.deep, args.fast, args.no_ai)
+    mayi_fund.run(args.add, args.delete, args.hold, args.not_hold, args.report_dir, args.deep, args.fast, args.with_ai)

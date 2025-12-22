@@ -8,6 +8,7 @@ import re
 import threading
 import time
 
+from dotenv import load_dotenv
 import requests
 import urllib3
 from loguru import logger
@@ -15,6 +16,9 @@ from tabulate import tabulate
 
 from module_html import get_table_html
 from ai_analyzer import AIAnalyzer
+
+# 加载环境变量
+load_dotenv()
 
 sem = threading.Semaphore(5)
 
@@ -588,6 +592,30 @@ class MaYiFund:
                 logger.info(f"{pre}{i + 1}. {publish_time} {title}.")
                 if entity:
                     logger.debug(f"影响股票: {entity}.")
+
+    def kx_html(self):
+        result = self.kx(True)
+        # 将 result 转换为表格格式
+        # kx 返回的是一个 list of dicts，我们需要将其转换为 list of lists
+        table_data = []
+        for v in result:
+            evaluate = v.get("evaluate", "")
+            title = v.get("title", v["content"]["items"][0]["data"])
+            publish_time = v["publish_time"]
+            publish_time = datetime.datetime.fromtimestamp(int(publish_time)).strftime("%H:%M:%S")
+            
+            # 格式化评价，添加颜色
+            if evaluate == "利好":
+                evaluate = f'<span class="positive">{evaluate}</span>'
+            elif evaluate == "利空":
+                evaluate = f'<span class="negative">{evaluate}</span>'
+            
+            table_data.append([publish_time, evaluate, title])
+
+        return get_table_html(
+            ["时间", "多空", "快讯内容"],
+            table_data
+        )
 
     @staticmethod
     def gold(is_return=False):

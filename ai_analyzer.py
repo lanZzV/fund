@@ -15,6 +15,51 @@ import re
 from loguru import logger
 
 
+from langchain.tools import tool
+from ddgs import DDGS
+
+@tool
+def search_news(query: str) -> str:
+    """使用DuckDuckGo搜索新闻内容（限制最近一周）
+
+    Args:
+        query: 搜索关键词
+    """
+    try:
+        # 解析参数（支持直接传入字符串或JSON字符串）
+        import json
+        if isinstance(query, str):
+            if query.strip().startswith('{'):
+                # 如果是JSON格式: {"query": "关键词"}
+                try:
+                    parsed = json.loads(query)
+                    query = parsed.get('query', '')
+                except:
+                    pass  # 保持原始query
+
+        ddgs = DDGS(verify=False)
+        results = ddgs.text(
+            query=query,
+            region="cn-zh",
+            safesearch="off",
+            timelimit="w",  # 限制最近一周
+            max_results=10,
+        )
+
+        if not results:
+            return f"未找到关于'{query}'的相关新闻"
+
+        output = f"关于'{query}'的搜索结果（最近一周）：\n\n"
+        for i, result in enumerate(results, 1):
+            title = result.get("title", "无标题")
+            body = result.get("body", "无内容")
+            url = result.get("href", "")
+            output += f"{i}. {title}\n{body}\n来源: {url}\n\n"
+
+        return output
+    except Exception as e:
+        return f"搜索失败: {str(e)}"
+
 class AIAnalyzer:
     """AI分析器，提供基于LangChain的市场分析功能"""
 
@@ -896,48 +941,6 @@ class AIAnalyzer:
                     return result
                 except Exception as e:
                     return f"获取基金组合数据失败: {str(e)}"
-
-            @tool
-            def search_news(query: str) -> str:
-                """使用DuckDuckGo搜索新闻内容（限制最近一周）
-
-                Args:
-                    query: 搜索关键词
-                """
-                try:
-                    # 解析参数（支持直接传入字符串或JSON字符串）
-                    import json
-                    if isinstance(query, str):
-                        if query.strip().startswith('{'):
-                            # 如果是JSON格式: {"query": "关键词"}
-                            try:
-                                parsed = json.loads(query)
-                                query = parsed.get('query', '')
-                            except:
-                                pass  # 保持原始query
-
-                    ddgs = DDGS(verify=False)
-                    results = ddgs.text(
-                        query=query,
-                        region="cn-zh",
-                        safesearch="off",
-                        timelimit="w",  # 限制最近一周
-                        max_results=10,
-                    )
-
-                    if not results:
-                        return f"未找到关于'{query}'的相关新闻"
-
-                    output = f"关于'{query}'的搜索结果（最近一周）：\n\n"
-                    for i, result in enumerate(results, 1):
-                        title = result.get("title", "无标题")
-                        body = result.get("body", "无内容")
-                        url = result.get("href", "")
-                        output += f"{i}. {title}\n{body}\n来源: {url}\n\n"
-
-                    return output
-                except Exception as e:
-                    return f"搜索失败: {str(e)}"
 
             @tool
             def fetch_webpage(url: str) -> str:

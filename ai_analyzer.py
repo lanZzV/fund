@@ -558,15 +558,15 @@ class AIAnalyzer:
 💡 **提示**：以上分析由AI生成，仅供参考，不构成投资建议。投资有风险，入市需谨慎。
 """
 
-            # 保存markdown文件
-            if not os.path.exists(report_dir):
-                os.makedirs(report_dir, exist_ok=True)
+            # # 保存markdown文件
+            # if not os.path.exists(report_dir):
+            #     os.makedirs(report_dir, exist_ok=True)
 
-            report_filename = f"{report_dir}/AI市场分析报告{time.strftime('%Y%m%d_%H%M%S')}.md"
-            with open(report_filename, "w", encoding="utf-8") as f:
-                f.write(markdown_content)
-
-            logger.info(f"✅ AI分析报告已保存至：{report_filename}")
+            # report_filename = f"{report_dir}/AI市场分析报告{time.strftime('%Y%m%d_%H%M%S')}.md"
+            # with open(report_filename, "w", encoding="utf-8") as f:
+            #     f.write(markdown_content)
+            #
+            # logger.info(f"✅ AI分析报告已保存至：{report_filename}")
 
             # 输出完整的AI分析报告
             logger.critical(f"{time.strftime('%Y-%m-%d %H:%M')} 📊 AI市场深度分析报告")
@@ -731,15 +731,15 @@ class AIAnalyzer:
 💡 **提示**：快速分析模式，仅供参考，不构成投资建议。投资有风险，入市需谨慎。
 """
 
-            # 保存markdown文件
-            if not os.path.exists(report_dir):
-                os.makedirs(report_dir, exist_ok=True)
-
-            report_filename = f"{report_dir}/AI快速分析报告{time.strftime('%Y%m%d_%H%M%S')}.md"
-            with open(report_filename, "w", encoding="utf-8") as f:
-                f.write(markdown_content)
-
-            logger.info(f"✅ 快速分析报告已保存至：{report_filename}")
+            # # 保存markdown文件
+            # if not os.path.exists(report_dir):
+            #     os.makedirs(report_dir, exist_ok=True)
+            #
+            # report_filename = f"{report_dir}/AI快速分析报告{time.strftime('%Y%m%d_%H%M%S')}.md"
+            # with open(report_filename, "w", encoding="utf-8") as f:
+            #     f.write(markdown_content)
+            #
+            # logger.info(f"✅ 快速分析报告已保存至：{report_filename}")
 
             # 输出分析报告
             logger.critical(f"{time.strftime('%Y-%m-%d %H:%M')} 📊 AI快速市场分析报告")
@@ -1173,15 +1173,15 @@ Thought: {agent_scratchpad}""")
 💡 **提示**：本报告由AI深度研究生成，Agent自主决定数据收集策略。仅供参考，不构成投资建议。投资有风险，入市需谨慎。
 """
 
-            # 保存markdown文件
-            if not os.path.exists(report_dir):
-                os.makedirs(report_dir, exist_ok=True)
-
-            report_filename = f"{report_dir}/AI市场深度研究报告{time.strftime('%Y%m%d_%H%M%S')}.md"
-            with open(report_filename, "w", encoding="utf-8") as f:
-                f.write(markdown_content)
-
-            logger.info(f"✅ 深度研究报告已保存至：{report_filename}")
+            # # 保存markdown文件
+            # if not os.path.exists(report_dir):
+            #     os.makedirs(report_dir, exist_ok=True)
+            #
+            # report_filename = f"{report_dir}/AI市场深度研究报告{time.strftime('%Y%m%d_%H%M%S')}.md"
+            # with open(report_filename, "w", encoding="utf-8") as f:
+            #     f.write(markdown_content)
+            #
+            # logger.info(f"✅ 深度研究报告已保存至：{report_filename}")
 
             # 输出报告到控制台
             logger.critical(f"{time.strftime('%Y-%m-%d %H:%M')} 🔬 AI深度研究报告")

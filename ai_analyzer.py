@@ -877,6 +877,51 @@ class AIAnalyzer:
                     return f"获取金价数据失败: {str(e)}"
 
             @tool
+            def get_realtime_precious_metals() -> str:
+                """获取实时贵金属价格数据（黄金9999、现货黄金、现货白银）
+
+                返回实时贵金属详细数据，包括：
+                - 黄金9999（中国黄金基础金价）
+                - 现货黄金（国际金价，美元/盎司）
+                - 现货白银（国际银价，美元/盎司）
+
+                每个品种包含：最新价、涨跌额、涨跌幅、开盘价、最高价、最低价、昨收价、更新时间、单位
+                """
+                try:
+                    realtime_gold_data = data_collector.real_time_gold(is_return=True)
+
+                    if not realtime_gold_data or len(realtime_gold_data) != 3:
+                        return "实时贵金属数据获取失败或数据不完整"
+
+                    # 构建详细表格
+                    result = "实时贵金属价格（详细数据）：\n\n"
+                    columns = ["名称", "最新价", "涨跌额", "涨跌幅", "开盘价", "最高价", "最低价", "昨收价", "更新时间", "单位"]
+
+                    # 表头
+                    result += "| " + " | ".join(columns) + " |\n"
+                    result += "|" + "|".join(["---" for _ in columns]) + "|\n"
+
+                    # 数据行
+                    for row in realtime_gold_data:
+                        if row and len(row) == len(columns):
+                            result += "| " + " | ".join(str(cell) for cell in row) + " |\n"
+
+                    result += "\n"
+
+                    # 添加简要分析
+                    result += "当前市场状态：\n"
+                    for row in realtime_gold_data:
+                        if row:
+                            name = row[0]
+                            change_pct = row[3]
+                            trend = "上涨" if "-" not in str(change_pct) and str(change_pct) != "0%" else "下跌" if "-" in str(change_pct) else "平稳"
+                            result += f"- {name}: {change_pct} ({trend})\n"
+
+                    return result
+                except Exception as e:
+                    return f"获取实时贵金属数据失败: {str(e)}"
+
+            @tool
             def get_trading_volume() -> str:
                 """获取近7日市场成交量数据"""
                 try:
@@ -1000,6 +1045,7 @@ class AIAnalyzer:
                 get_news_flash,
                 get_sector_performance,
                 get_gold_prices,
+                get_realtime_precious_metals,
                 get_trading_volume,
                 get_shanghai_intraday,
                 get_fund_portfolio,
@@ -1019,6 +1065,14 @@ class AIAnalyzer:
 - 📰 **get_news_flash**：获取7×24快讯列表（包含标题和摘要）
 - 🔍 **search_news**：根据关键词搜索快讯的详细内容和相关报道
 - 📄 **fetch_webpage**：获取完整新闻文章的详细内容
+- 📈 **get_market_indices**：获取市场指数数据（上证、深证、纳指、道指等）
+- 📊 **get_sector_performance**：获取行业板块表现（涨跌幅、资金流向等）
+- 💰 **get_gold_prices**：获取黄金价格数据（近期金价和实时金价）
+- 🥇 **get_realtime_precious_metals**：获取实时贵金属详细数据（黄金9999、现货黄金、现货白银，含开盘价、最高价、最低价等完整信息）
+- 📉 **get_trading_volume**：获取近7日市场成交量数据
+- 📊 **get_shanghai_intraday**：获取上证指数近30分钟分时数据
+- 📋 **get_fund_portfolio**：获取自选基金组合的详细数据
+- 🕐 **get_current_time**：获取当前日期和时间
 - 💡 **建议流程**：先用get_news_flash获取快讯列表，再针对重要事件用search_news和fetch_webpage获取详情
 
 **研究流程建议**：

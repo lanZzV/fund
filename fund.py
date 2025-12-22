@@ -393,11 +393,11 @@ class MaYiFund:
             self.A()
             self.get_market_info()
             self.search_code()
-            # # 添加AI分析（除非用户指定 --no-ai）
-            # if not no_ai:
-            #     self.ai_analysis(deep_mode=deep_mode, fast_mode=fast_mode)
-            # else:
-            #     logger.info("已跳过AI分析（使用了 --no-ai 参数）")
+            # 添加AI分析（除非用户指定 --no-ai）
+            if not no_ai:
+                 self.ai_analysis(deep_mode=deep_mode, fast_mode=fast_mode)
+            else:
+                 logger.info("已跳过AI分析（使用了 --no-ai 参数）")
 
     def get_market_info(self, is_return=False):
         target_matket = ["上证指数", "深证指数", "纳斯达克", "道琼斯"]

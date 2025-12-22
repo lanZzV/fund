@@ -8,3 +8,10 @@ wcwidth==0.2.5
 langchain>=0.3.27
 langchain-openai>=0.3.35
 langchain-core>=0.3.80
+
+# DuckDuckGo search for fact verification
+ddgs>=1.0.0
+
+# Web scraping for fact verification
+beautifulsoup4>=4.12.0
+lxml>=5.0.0

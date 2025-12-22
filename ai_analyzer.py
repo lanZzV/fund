@@ -17,13 +17,29 @@ from loguru import logger
 
 from langchain.tools import tool
 from ddgs import DDGS
+import requests
+from bs4 import BeautifulSoup
 
 @tool
 def search_news(query: str) -> str:
-    """使用DuckDuckGo搜索新闻内容（限制最近一周）
+    """搜索最新金融新闻和市场动态（最近一周内）
+
+    使用场景：
+    - 用户询问最新新闻、事件、政策
+    - 查询特定公司、行业的最新动态
+    - 寻找支持市场趋势判断的新闻依据
+    - 页面数据不足以回答用户问题时
 
     Args:
-        query: 搜索关键词
+        query: 搜索关键词（建议使用具体的公司名、行业名、事件名）
+
+    Returns:
+        最近一周内的相关新闻列表（最多10条），包含标题、摘要和来源链接
+
+    示例：
+    - search_news("新能源汽车政策")
+    - search_news("芯片行业最新动态")
+    - search_news("美联储利率决议")
     """
     try:
         # 解析参数（支持直接传入字符串或JSON字符串）
@@ -56,9 +72,78 @@ def search_news(query: str) -> str:
             url = result.get("href", "")
             output += f"{i}. {title}\n{body}\n来源: {url}\n\n"
 
+        print(output)
         return output
     except Exception as e:
         return f"搜索失败: {str(e)}"
+
+@tool
+def fetch_webpage(url: str) -> str:
+    """获取网页完整内容并提取文本（用于深度阅读新闻文章）
+
+    使用场景：
+    - search_news 返回的新闻标题和摘要不够详细时
+    - 需要了解新闻事件的完整背景和详情
+    - 用户要求查看某个具体网址的内容
+    - 需要验证或深入了解某条新闻的细节
+
+    Args:
+        url: 网页URL（完整的 http:// 或 https:// 地址）
+
+    Returns:
+        网页的文本内容（已移除HTML标签、脚本和样式，最多3000字符）
+
+    示例：
+    - fetch_webpage("https://finance.sina.com.cn/news/xxx")
+    - fetch_webpage("https://www.eastmoney.com/article/xxx")
+
+    注意：
+    - 先用 search_news 找到相关新闻链接，再用此工具获取完整内容
+    - 适合获取详细的新闻报道、分析文章等
+    """
+    try:
+        # 解析参数（支持直接传入字符串或JSON字符串）
+        import json
+        if isinstance(url, str):
+            if url.strip().startswith('{'):
+                # 如果是JSON格式: {"url": "https://..."}
+                try:
+                    parsed = json.loads(url)
+                    url = parsed.get('url', '')
+                except:
+                    pass  # 保持原始url
+
+        headers = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+        }
+
+        import urllib3
+        urllib3.disable_warnings()
+
+        response = requests.get(url, headers=headers, timeout=10, verify=False)
+        response.encoding = response.apparent_encoding
+
+        soup = BeautifulSoup(response.text, 'lxml')
+
+        # 移除script和style标签
+        for script in soup(["script", "style"]):
+            script.decompose()
+
+        # 提取文本
+        text = soup.get_text()
+
+        # 清理文本
+        lines = (line.strip() for line in text.splitlines())
+        chunks = (phrase.strip() for line in lines for phrase in line.split("  "))
+        text = '\n'.join(chunk for chunk in chunks if chunk)
+
+        # 限制长度
+        if len(text) > 3000:
+            text = text[:3000] + "...(内容过长已截断)"
+
+        return f"网页内容：\n{text}"
+    except Exception as e:
+        return f"获取网页失败: {str(e)}"
 
 class AIAnalyzer:
     """AI分析器，提供基于LangChain的市场分析功能"""

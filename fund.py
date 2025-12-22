@@ -14,8 +14,8 @@ import urllib3
 from loguru import logger
 from tabulate import tabulate
 
-from module_html import get_table_html
 from ai_analyzer import AIAnalyzer
+from module_html import get_table_html
 
 # 加载环境变量
 load_dotenv()
@@ -319,7 +319,8 @@ class MaYiFund:
             sortable_columns=[3, 4, 5, 6, 7, 8]
         )
 
-    def run(self, is_add=False, is_delete=False, is_hold=False, is_not_hold=False, report_dir="reports", deep_mode=False, fast_mode=False, no_ai=False):
+    def run(self, is_add=False, is_delete=False, is_hold=False, is_not_hold=False, report_dir="reports",
+            deep_mode=False, fast_mode=False, no_ai=False):
         # 存储报告目录到实例属性
         self.report_dir = report_dir
 
@@ -392,11 +393,11 @@ class MaYiFund:
             self.A()
             self.get_market_info()
             self.search_code()
-            # 添加AI分析（除非用户指定 --no-ai）
-            if not no_ai:
-                self.ai_analysis(deep_mode=deep_mode, fast_mode=fast_mode)
-            else:
-                logger.info("已跳过AI分析（使用了 --no-ai 参数）")
+            # # 添加AI分析（除非用户指定 --no-ai）
+            # if not no_ai:
+            #     self.ai_analysis(deep_mode=deep_mode, fast_mode=fast_mode)
+            # else:
+            #     logger.info("已跳过AI分析（使用了 --no-ai 参数）")
 
     def get_market_info(self, is_return=False):
         target_matket = ["上证指数", "深证指数", "纳斯达克", "道琼斯"]
@@ -712,34 +713,37 @@ class MaYiFund:
         }
         url = "https://api.jijinhao.com/quoteCenter/realTime.htm"
         params = {
-            "codes": "JO_71,JO_92233",
+            "codes": "JO_71,JO_92233,JO_92232,JO_75",
             "_": str(int(time.time() * 1000))
         }
         response = requests.get(url, headers=headers, params=params, timeout=10, verify=False)
         data = json.loads(response.text.replace("var quote_json = ", ""))
-        result = [[], []]
+        result = [[], [], []]
         columns = ["名称", "最新价", "涨跌额", "涨跌幅", "开盘价", "最高价", "最低价", "昨收价", "更新时间", "单位"]
         if data:
             data1 = data["JO_71"]
             data2 = data["JO_92233"]
+            data3 = data["JO_92232"]
             keys = ["showName", "q63", "q70", "q80", "q1", "q3", "q4", "q2", "time", "unit"]
             for key in keys:
                 if key == "time":
-                    t = data1[key]
-                    date = datetime.datetime.fromtimestamp(t / 1000).strftime("%Y-%m-%d %H:%M:%S")
-                    result[0].append(date)
-                    t = data2[key]
-                    date = datetime.datetime.fromtimestamp(t / 1000).strftime("%Y-%m-%d %H:%M:%S")
-                    result[1].append(date)
+                    for i, t in enumerate([data1[key], data2[key], data3[key]]):
+                        date = datetime.datetime.fromtimestamp(t / 1000).strftime("%Y-%m-%d %H:%M:%S")
+                        result[i].append(date)
+
                 else:
                     value1 = data1.get(key, "N/A")
                     value2 = data2.get(key, "N/A")
+                    value3 = data3.get(key, "N/A")
                     if not isinstance(value1, str):
                         value1 = round(value1, 2)
                     if not isinstance(value2, str):
                         value2 = round(value2, 2)
+                    if not isinstance(value3, str):
+                        value3 = round(value3, 2)
                     value1 = str(value1)
                     value2 = str(value2)
+                    value3 = str(value3)
                     if key == "q70":
                         if not is_return:
                             if "-" in value1:
@@ -750,20 +754,27 @@ class MaYiFund:
                                 value2 = "\033[1;32m" + value2
                             else:
                                 value2 = "\033[1;31m" + value2
+                            if "-" in value3:
+                                value3 = "\033[1;32m" + value3
+                            else:
+                                value3 = "\033[1;31m" + value3
                     if key == "q80":
                         value1 = value1 + "%"
                         value2 = value2 + "%"
+                        value3 = value3 + "%"
                     result[0].append(value1)
                     result[1].append(value2)
+                    result[2].append(value3)
 
         if is_return:
             return result
-        if result and result[0] and result[1]:
-            logger.critical(f"{time.strftime('%Y-%m-%d %H:%M')} 实时金价:")
+        if result and result[0] and result[1] and result[2]:
+            logger.critical(f"{time.strftime('%Y-%m-%d %H:%M')} 实时贵金属价:")
             for line_msg in format_table_msg([
                 columns,
                 result[0],
-                result[1]
+                result[1],
+                result[2]
             ]).split("\n"):
                 logger.info(line_msg)
 

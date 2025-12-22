@@ -914,7 +914,7 @@ if __name__ == '__main__':
     parser.add_argument("-d", "--delete", action="store_true", help="删除基金代码")
     parser.add_argument("-c", "--hold", action="store_true", help="添加持有基金标注")
     parser.add_argument("-b", "--not_hold", action="store_true", help="删除持有基金标注")
-    parser.add_argument("-r", "--report-dir", type=str, default="reports", help="AI分析报告输出目录（默认: reports）")
+    # parser.add_argument("-r", "--report-dir", type=str, default="reports", help="AI分析报告输出目录（默认: reports）")
     parser.add_argument("-f", "--fast", action="store_true", help="启用快速分析模式（一次性生成简明报告，速度更快）")
     parser.add_argument("-D", "--deep", action="store_true", help="启用深度研究模式（ReAct Agent自主收集数据并生成报告）")
     parser.add_argument("-W", "--with-ai", action="store_true", help="AI分析（仅显示数据，不生成AI报告）")

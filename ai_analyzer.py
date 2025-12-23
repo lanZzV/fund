@@ -17,13 +17,29 @@ from loguru import logger
 
 from langchain.tools import tool
 from ddgs import DDGS
+import requests
+from bs4 import BeautifulSoup
 
 @tool
 def search_news(query: str) -> str:
-    """使用DuckDuckGo搜索新闻内容（限制最近一周）
+    """搜索最新金融新闻和市场动态（最近一周内）
+
+    使用场景：
+    - 用户询问最新新闻、事件、政策
+    - 查询特定公司、行业的最新动态
+    - 寻找支持市场趋势判断的新闻依据
+    - 页面数据不足以回答用户问题时
 
     Args:
-        query: 搜索关键词
+        query: 搜索关键词（建议使用具体的公司名、行业名、事件名）
+
+    Returns:
+        最近一周内的相关新闻列表（最多10条），包含标题、摘要和来源链接
+
+    示例：
+    - search_news("新能源汽车政策")
+    - search_news("芯片行业最新动态")
+    - search_news("美联储利率决议")
     """
     try:
         # 解析参数（支持直接传入字符串或JSON字符串）
@@ -56,9 +72,78 @@ def search_news(query: str) -> str:
             url = result.get("href", "")
             output += f"{i}. {title}\n{body}\n来源: {url}\n\n"
 
+        print(output)
         return output
     except Exception as e:
         return f"搜索失败: {str(e)}"
+
+@tool
+def fetch_webpage(url: str) -> str:
+    """获取网页完整内容并提取文本（用于深度阅读新闻文章）
+
+    使用场景：
+    - search_news 返回的新闻标题和摘要不够详细时
+    - 需要了解新闻事件的完整背景和详情
+    - 用户要求查看某个具体网址的内容
+    - 需要验证或深入了解某条新闻的细节
+
+    Args:
+        url: 网页URL（完整的 http:// 或 https:// 地址）
+
+    Returns:
+        网页的文本内容（已移除HTML标签、脚本和样式，最多3000字符）
+
+    示例：
+    - fetch_webpage("https://finance.sina.com.cn/news/xxx")
+    - fetch_webpage("https://www.eastmoney.com/article/xxx")
+
+    注意：
+    - 先用 search_news 找到相关新闻链接，再用此工具获取完整内容
+    - 适合获取详细的新闻报道、分析文章等
+    """
+    try:
+        # 解析参数（支持直接传入字符串或JSON字符串）
+        import json
+        if isinstance(url, str):
+            if url.strip().startswith('{'):
+                # 如果是JSON格式: {"url": "https://..."}
+                try:
+                    parsed = json.loads(url)
+                    url = parsed.get('url', '')
+                except:
+                    pass  # 保持原始url
+
+        headers = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+        }
+
+        import urllib3
+        urllib3.disable_warnings()
+
+        response = requests.get(url, headers=headers, timeout=10, verify=False)
+        response.encoding = response.apparent_encoding
+
+        soup = BeautifulSoup(response.text, 'lxml')
+
+        # 移除script和style标签
+        for script in soup(["script", "style"]):
+            script.decompose()
+
+        # 提取文本
+        text = soup.get_text()
+
+        # 清理文本
+        lines = (line.strip() for line in text.splitlines())
+        chunks = (phrase.strip() for line in lines for phrase in line.split("  "))
+        text = '\n'.join(chunk for chunk in chunks if chunk)
+
+        # 限制长度
+        if len(text) > 3000:
+            text = text[:3000] + "...(内容过长已截断)"
+
+        return f"网页内容：\n{text}"
+    except Exception as e:
+        return f"获取网页失败: {str(e)}"
 
 class AIAnalyzer:
     """AI分析器，提供基于LangChain的市场分析功能"""
@@ -558,15 +643,16 @@ class AIAnalyzer:
 💡 **提示**：以上分析由AI生成，仅供参考，不构成投资建议。投资有风险，入市需谨慎。
 """
 
-            # # 保存markdown文件
-            # if not os.path.exists(report_dir):
-            #     os.makedirs(report_dir, exist_ok=True)
+            # 保存markdown文件（仅当指定了 report_dir 时）
+            if report_dir is not None:
+                if not os.path.exists(report_dir):
+                    os.makedirs(report_dir, exist_ok=True)
 
-            # report_filename = f"{report_dir}/AI市场分析报告{time.strftime('%Y%m%d_%H%M%S')}.md"
-            # with open(report_filename, "w", encoding="utf-8") as f:
-            #     f.write(markdown_content)
-            #
-            # logger.info(f"✅ AI分析报告已保存至：{report_filename}")
+                report_filename = f"{report_dir}/AI市场分析报告{time.strftime('%Y%m%d_%H%M%S')}.md"
+                with open(report_filename, "w", encoding="utf-8") as f:
+                    f.write(markdown_content)
+
+                logger.info(f"✅ AI分析报告已保存至：{report_filename}")
 
             # 输出完整的AI分析报告
             logger.critical(f"{time.strftime('%Y-%m-%d %H:%M')} 📊 AI市场深度分析报告")
@@ -731,15 +817,16 @@ class AIAnalyzer:
 💡 **提示**：快速分析模式，仅供参考，不构成投资建议。投资有风险，入市需谨慎。
 """
 
-            # # 保存markdown文件
-            # if not os.path.exists(report_dir):
-            #     os.makedirs(report_dir, exist_ok=True)
-            #
-            # report_filename = f"{report_dir}/AI快速分析报告{time.strftime('%Y%m%d_%H%M%S')}.md"
-            # with open(report_filename, "w", encoding="utf-8") as f:
-            #     f.write(markdown_content)
-            #
-            # logger.info(f"✅ 快速分析报告已保存至：{report_filename}")
+            # 保存markdown文件（仅当指定了 report_dir 时）
+            if report_dir is not None:
+                if not os.path.exists(report_dir):
+                    os.makedirs(report_dir, exist_ok=True)
+
+                report_filename = f"{report_dir}/AI快速分析报告{time.strftime('%Y%m%d_%H%M%S')}.md"
+                with open(report_filename, "w", encoding="utf-8") as f:
+                    f.write(markdown_content)
+
+                logger.info(f"✅ 快速分析报告已保存至：{report_filename}")
 
             # 输出分析报告
             logger.critical(f"{time.strftime('%Y-%m-%d %H:%M')} 📊 AI快速市场分析报告")
@@ -877,6 +964,51 @@ class AIAnalyzer:
                     return f"获取金价数据失败: {str(e)}"
 
             @tool
+            def get_realtime_precious_metals() -> str:
+                """获取实时贵金属价格数据（黄金9999、现货黄金、现货白银）
+
+                返回实时贵金属详细数据，包括：
+                - 黄金9999（中国黄金基础金价）
+                - 现货黄金（国际金价，美元/盎司）
+                - 现货白银（国际银价，美元/盎司）
+
+                每个品种包含：最新价、涨跌额、涨跌幅、开盘价、最高价、最低价、昨收价、更新时间、单位
+                """
+                try:
+                    realtime_gold_data = data_collector.real_time_gold(is_return=True)
+
+                    if not realtime_gold_data or len(realtime_gold_data) != 3:
+                        return "实时贵金属数据获取失败或数据不完整"
+
+                    # 构建详细表格
+                    result = "实时贵金属价格（详细数据）：\n\n"
+                    columns = ["名称", "最新价", "涨跌额", "涨跌幅", "开盘价", "最高价", "最低价", "昨收价", "更新时间", "单位"]
+
+                    # 表头
+                    result += "| " + " | ".join(columns) + " |\n"
+                    result += "|" + "|".join(["---" for _ in columns]) + "|\n"
+
+                    # 数据行
+                    for row in realtime_gold_data:
+                        if row and len(row) == len(columns):
+                            result += "| " + " | ".join(str(cell) for cell in row) + " |\n"
+
+                    result += "\n"
+
+                    # 添加简要分析
+                    result += "当前市场状态：\n"
+                    for row in realtime_gold_data:
+                        if row:
+                            name = row[0]
+                            change_pct = row[3]
+                            trend = "上涨" if "-" not in str(change_pct) and str(change_pct) != "0%" else "下跌" if "-" in str(change_pct) else "平稳"
+                            result += f"- {name}: {change_pct} ({trend})\n"
+
+                    return result
+                except Exception as e:
+                    return f"获取实时贵金属数据失败: {str(e)}"
+
+            @tool
             def get_trading_volume() -> str:
                 """获取近7日市场成交量数据"""
                 try:
@@ -1000,6 +1132,7 @@ class AIAnalyzer:
                 get_news_flash,
                 get_sector_performance,
                 get_gold_prices,
+                get_realtime_precious_metals,
                 get_trading_volume,
                 get_shanghai_intraday,
                 get_fund_portfolio,
@@ -1019,6 +1152,14 @@ class AIAnalyzer:
 - 📰 **get_news_flash**：获取7×24快讯列表（包含标题和摘要）
 - 🔍 **search_news**：根据关键词搜索快讯的详细内容和相关报道
 - 📄 **fetch_webpage**：获取完整新闻文章的详细内容
+- 📈 **get_market_indices**：获取市场指数数据（上证、深证、纳指、道指等）
+- 📊 **get_sector_performance**：获取行业板块表现（涨跌幅、资金流向等）
+- 💰 **get_gold_prices**：获取黄金价格数据（近期金价和实时金价）
+- 🥇 **get_realtime_precious_metals**：获取实时贵金属详细数据（黄金9999、现货黄金、现货白银，含开盘价、最高价、最低价等完整信息）
+- 📉 **get_trading_volume**：获取近7日市场成交量数据
+- 📊 **get_shanghai_intraday**：获取上证指数近30分钟分时数据
+- 📋 **get_fund_portfolio**：获取自选基金组合的详细数据
+- 🕐 **get_current_time**：获取当前日期和时间
 - 💡 **建议流程**：先用get_news_flash获取快讯列表，再针对重要事件用search_news和fetch_webpage获取详情
 
 **研究流程建议**：
@@ -1173,15 +1314,16 @@ Thought: {agent_scratchpad}""")
 💡 **提示**：本报告由AI深度研究生成，Agent自主决定数据收集策略。仅供参考，不构成投资建议。投资有风险，入市需谨慎。
 """
 
-            # # 保存markdown文件
-            # if not os.path.exists(report_dir):
-            #     os.makedirs(report_dir, exist_ok=True)
-            #
-            # report_filename = f"{report_dir}/AI市场深度研究报告{time.strftime('%Y%m%d_%H%M%S')}.md"
-            # with open(report_filename, "w", encoding="utf-8") as f:
-            #     f.write(markdown_content)
-            #
-            # logger.info(f"✅ 深度研究报告已保存至：{report_filename}")
+            # 保存markdown文件（仅当指定了 report_dir 时）
+            if report_dir is not None:
+                if not os.path.exists(report_dir):
+                    os.makedirs(report_dir, exist_ok=True)
+
+                report_filename = f"{report_dir}/AI市场深度研究报告{time.strftime('%Y%m%d_%H%M%S')}.md"
+                with open(report_filename, "w", encoding="utf-8") as f:
+                    f.write(markdown_content)
+
+                logger.info(f"✅ 深度研究报告已保存至：{report_filename}")
 
             # 输出报告到控制台
             logger.critical(f"{time.strftime('%Y-%m-%d %H:%M')} 🔬 AI深度研究报告")

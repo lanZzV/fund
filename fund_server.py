@@ -403,7 +403,12 @@ def get_fund():
     results = {}
 
     def fetch_html(_name, _func):
-        results[_name] = _func()
+        try:
+            results[_name] = _func()
+            logger.debug(f"✓ Successfully fetched {_name}")
+        except Exception as e:
+            logger.error(f"✗ Failed to fetch {_name}: {e}")
+            results[_name] = f"<p style='color:#f44336;'>数据加载失败: {str(e)}</p>"
 
     threads = []
     tasks = {
@@ -417,12 +422,18 @@ def get_fund():
         "kx": my_fund.kx_html,
     }
     for name, func in tasks.items():
-        func = tasks[name]
         thread = threading.Thread(target=fetch_html, args=(name, func))
         thread.start()
         threads.append(thread)
     for thread in threads:
         thread.join()
+
+    # Ensure all keys exist with fallback content
+    for name in tasks.keys():
+        if name not in results:
+            logger.warning(f"⚠️ Missing result for {name}, using fallback")
+            results[name] = f"<p style='color:#ff9800;'>数据未加载</p>"
+
     tabs_data = [
         {"id": "kx", "title": "7*24快讯", "content": results["kx"]},
         {"id": "marker", "title": "全球指数", "content": results["marker"]},

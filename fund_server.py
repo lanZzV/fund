@@ -167,120 +167,51 @@ def chat():
             llm_with_tools = llm.bind_tools(tools)
 
             messages = [
-                SystemMessage(content="""You are a professional financial analyst assistant in a Bloomberg-like terminal Pro-Chat.
+                SystemMessage(content="""Financial analyst assistant. Answer questions directly with analysis.
 
-YOUR PRIMARY ROLE: ANALYZE & SUMMARIZE, NOT JUST DISPLAY DATA
-- The user can already see all raw data on the page (tables, charts, prices)
-- Your value is in ANALYSIS, INSIGHTS, and RECOMMENDATIONS
-- DO NOT simply repeat table data unless user explicitly asks for specific data
-- Instead, provide: trends, comparisons, opportunities, risks, actionable insights
+⛔ FORBIDDEN - Never output these:
+"正在搜索" "正在分析" "正在获取" "正在查询"
+<div>正在...</div> ← THIS BREAKS EVERYTHING!
 
-AVAILABLE DATA IN CONTEXT:
-The CONTEXT contains real-time data from relevant market modules:
-1. 📰 7*24快讯 (kx) - Financial news (look for market-moving events)
-2. 🌍 全球指数 (marker) - Global indices (analyze trends across markets)
-3. 💰 实时贵金属 (real_time_gold) - Precious metals (identify price movements)
-4. 📊 历史金价 (gold) - Historical gold trends
-5. 📈 成交量趋势 (seven_A) - Trading volume trends
-6. 🇨🇳 上证分时 (A) - Shanghai Composite intraday
-7. 🎯 自选基金 (fund) - User's fund watchlist **← Analyze performance, winners/losers**
-8. 🏭 行业板块 (bk) - Sector performance **← Identify hot/cold sectors**
+✅ CORRECT output example:
+<p style='color:#e0e0e0;margin:1px 0;line-height:1.2'>国金量化基金配置科技和医药板块，今日涨<span style='color:#4caf50;font-weight:bold'>+0.5%</span></p>
 
-HOW TO RESPOND BASED ON QUESTION TYPE:
+❌ WRONG output example:
+<div>正在搜索基金信息...</div> ← NEVER DO THIS!
 
-1. GENERAL QUESTIONS (e.g., "今天市场怎么样？", "自选基金表现如何？"):
-   ✓ DO: Provide high-level summary with key insights
-   ✓ DO: Highlight top performers and underperformers
-   ✓ DO: Mention noteworthy trends or patterns
-   ✗ DON'T: List all funds/sectors in a table
+Your FIRST word must be actual content, not status!
 
-2. SPECIFIC DATA REQUESTS (e.g., "xxx基金今天涨了多少？", "电子板块数据"):
-   ✓ DO: Provide the specific data requested
-   ✓ DO: Add context (e.g., how it compares to others)
-   ✗ DON'T: Ignore the request and give general summary
+Format (dark theme, compact):
+- Text: <p style="color:#e0e0e0;margin:1px 0;line-height:1.2">
+- Good: <span style="color:#4caf50;font-weight:bold">
+- Bad: <span style="color:#f44336;font-weight:bold">
+- List: <ul style="margin:1px 0;padding-left:14px;line-height:1.2"><li style="margin:0">
 
-3. ANALYTICAL QUESTIONS (e.g., "哪些基金值得关注？", "为什么黄金涨了？"):
-   ✓ DO: Deep analysis using CONTEXT data
-   ✓ DO: Cross-reference news with price movements
-   ✓ DO: Provide reasoning and evidence
-   ✗ DON'T: Give shallow or generic answers
+Context has: 基金(fund), 板块(bk), 快讯(kx), 指数, 金价
 
-EXAMPLE RESPONSES:
-
-❌ BAD (just repeating data):
-"自选基金数据如下：
-易方达消费行业 +1.2%
-招商中证白酒 -0.8%
-..."
-
-✅ GOOD (analysis & insights):
-"<p style='color: #e0e0e0;'>今日 <span style='color: #42a5f5;'>自选基金</span> 整体表现分化：</p>
-<ul style='margin: 4px 0; padding-left: 20px; color: #e0e0e0;'>
-  <li><span style='color: #4caf50; font-weight: bold;'>消费板块基金领涨</span>（易方达消费行业 +1.2%），受益于消费数据回暖</li>
-  <li><span style='color: #f44336;'>白酒板块承压</span>（招商中证白酒 -0.8%），与7*24快讯中提到的调控政策相关</li>
-</ul>
-<p style='color: #ffa726;'>建议：关注消费复苏趋势，白酒短期谨慎</p>"
-
-RESPONSE STRUCTURE GUIDELINES:
-- Start with a clear summary (1-2 sentences)
-- Provide 2-4 key insights with evidence from CONTEXT
-- Use bullet points for clarity
-- End with actionable suggestion (if appropriate)
-- Keep total response under 300 words unless deep analysis requested
-
-WHEN TO USE TOOLS:
-- User explicitly asks to "search online" or "find latest news from internet"
-- Question about events/companies NOT in CONTEXT at all
-- CONTEXT data is insufficient to answer
-
-WHEN NOT TO USE TOOLS:
-- User asks about "自选基金", "行业板块", "黄金" - data is in CONTEXT!
-- General market questions answerable from CONTEXT
-- Avoid over-reliance on external searches
-
-RESPONSE FORMATTING (DARK THEME - ULTRA COMPACT):
-Use BRIGHT colors on dark background with MINIMAL spacing:
-- Default text: <p style="color: #e0e0e0; margin: 1px 0; line-height: 1.2;">
-- Headers: <h4 style="color: #ffffff; margin: 2px 0 1px 0; font-size: 0.95em; font-weight: 600; line-height: 1.1;">
-- Positive: <span style="color: #4caf50; font-weight: bold;">
-- Negative: <span style="color: #f44336; font-weight: bold;">
-- Highlights: <span style="color: #ffa726;">
-- Module names: <span style="color: #42a5f5;">
-
-Use COMPACT lists/bullets:
-- <ul style="margin: 1px 0; padding-left: 14px; color: #e0e0e0; line-height: 1.2;">
-- <li style="margin: 0;">
-
-CRITICAL HTML RULES:
-- ALWAYS close all HTML tags properly (</p>, </ul>, </span>, etc.)
-- Keep HTML structure simple and valid
-- Avoid deeply nested tags
-- Complete your entire response - don't cut off mid-sentence
-
-CRITICAL SPACING RULES:
-- margin: 1px (极致紧凑)
-- line-height: 1.2 (极紧行高)
-- Minimize empty <p> tags between sections
-- Use inline <span> instead of separate <p> when possible
-- NO extra spacing between elements
-
-Only use tables if user asks for specific data comparison.
-
-NEVER use white backgrounds (#fff) or dark text (#000) - invisible on dark theme!
-
-Remember: You are an ANALYST, not a data displayer. Keep responses CONCISE and COMPACT. Provide insights, not raw tables.""")
+Provide insights, not raw tables. Use context data. If user says "它", check history.""")
             ]
 
-            # Add history (last 5 messages)
-            for msg in history[-5:]:
+            # Add history - preserve FULL context including user's original question
+            # This helps AI understand "它" or "这个" references
+            for msg in history[-10:]:  # Increased from 5 to 10 to preserve more context
                 content = msg.get('content', '')
                 if not content or not content.strip():
                     continue
 
-                if msg.get('role') == 'user':
+                # Filter out system messages like loading indicators
+                if 'AI Analyst is thinking' in content or 'typing-indicator' in content:
+                    continue
+                if '<div style="display: flex; align-items: center; gap: 8px' in content:
+                    continue  # Skip step status indicators
+
+                role = msg.get('role', '')
+                if role == 'user':
                     messages.append(HumanMessage(content=content))
-                else:
-                    messages.append(AIMessage(content=content))
+                elif role == 'assistant':
+                    # Only add substantive assistant messages, not empty divs
+                    if content and '<div id="typewriter-' not in content:
+                        messages.append(AIMessage(content=content))
 
             # Add current context and user message
             combined_input = f"CONTEXT FROM PAGE (后端实时数据):\n{backend_context}\n\nUSER QUESTION: {user_message}"
@@ -341,10 +272,30 @@ Remember: You are an ANALYST, not a data displayer. Keep responses CONCISE and C
                     # No more tool calls, stream the final answer
                     logger.debug(f"\n[Iteration {iteration}] LLM generated final answer")
 
-                    # Stream the content with dynamic chunk size based on length
+                    # Validate that the response is not a status message
                     content = response.content
                     content_length = len(content)
 
+                    # Check if AI output contains forbidden status messages
+                    forbidden_phrases = ['正在搜索', '正在分析', '正在获取', '正在查询', '正在调用']
+                    is_status_message = any(phrase in content for phrase in forbidden_phrases)
+
+                    if is_status_message and iteration < max_iterations:
+                        logger.warning(f"⚠️ AI output contains status message, rejecting and requesting proper analysis")
+                        # Add a strong correction message
+                        messages.append(AIMessage(content=content))
+                        messages.append(HumanMessage(content="""STOP! Your previous response contained status messages like "正在搜索..." which is FORBIDDEN.
+                        
+You must provide ACTUAL ANALYSIS, not status messages. 
+
+Example of what you should output:
+<p style='color: #e0e0e0; margin: 1px 0; line-height: 1.2;'>国金量化基金今日表现稳健，主要配置电子、医药等成长板块...</p>
+
+Now provide your REAL analysis without any status messages."""))
+                        # Force one more iteration
+                        continue
+
+                    # Content is valid, proceed with streaming
                     # Dynamic chunk size: longer content = larger chunks
                     if content_length < 500:
                         chunk_size = 30  # Small content, smaller chunks for effect

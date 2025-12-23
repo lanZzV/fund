@@ -809,11 +809,44 @@ def get_javascript_code():
             console.log("Raw History from QuikChat:", rawHistory);
 
             const history = rawHistory
-                .map(msg => ({
-                    role: (msg.name === 'You' || msg.sender === 'You') ? 'user' : 'assistant',
-                    content: msg.body || msg.content || msg.text || ""
-                }))
+                .map((msg, index) => {
+                    const content = msg.body || msg.content || msg.text || "";
+                    
+                    // Determine role based on multiple criteria
+                    let role = 'assistant'; // default
+                    
+                    // Check 1: name or sender field
+                    const name = msg.name || msg.sender || '';
+                    if (name === 'You' || name === 'User') {
+                        role = 'user';
+                    }
+                    
+                    // Check 2: position/alignment (user messages are usually 'right')
+                    if (msg.position === 'right' || msg.align === 'right') {
+                        role = 'user';
+                    }
+                    
+                    // Check 3: If this is our just-sent message (last in array before we added loading)
+                    // Actually, we should exclude the just-sent message since we'll add it to combined_input
+                    
+                    console.log(`Message ${index}: name="${name}", role="${role}", content="${content.substring(0, 50)}..."`);
+                    
+                    return {
+                        role: role,
+                        content: content
+                    };
+                })
                 .filter(msg => msg.content && msg.content.trim() !== '');
+            
+            // Remove the last message (the one we just sent) from history
+            // It will be added as part of the combined_input in backend
+            if (history.length > 0) {
+                const lastMsg = history[history.length - 1];
+                if (lastMsg.content === message) {
+                    history.pop();
+                    console.log("Removed duplicate user message from history");
+                }
+            }
             
             console.log("Processed History to Send:", history);
 

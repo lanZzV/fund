@@ -48,7 +48,7 @@ class MaYiFund:
         self.session = requests.Session()
         self.baidu_session = requests.Session()
         self._csrf = ""
-        self.report_dir = "reports"  # 默认报告目录
+        self.report_dir = None  # 默认不输出报告文件（需通过 -o 参数指定）
         self.load_cache()
         self.init()
         self.result = []
@@ -319,9 +319,9 @@ class MaYiFund:
             sortable_columns=[3, 4, 5, 6, 7, 8]
         )
 
-    def run(self, is_add=False, is_delete=False, is_hold=False, is_not_hold=False, report_dir="reports",
+    def run(self, is_add=False, is_delete=False, is_hold=False, is_not_hold=False, report_dir=None,
             deep_mode=False, fast_mode=False, with_ai=False):
-        # 存储报告目录到实例属性
+        # 存储报告目录到实例属性（None 表示不保存报告文件）
         self.report_dir = report_dir
 
         if not self.CACHE_MAP:
@@ -914,11 +914,14 @@ if __name__ == '__main__':
     parser.add_argument("-d", "--delete", action="store_true", help="删除基金代码")
     parser.add_argument("-c", "--hold", action="store_true", help="添加持有基金标注")
     parser.add_argument("-b", "--not_hold", action="store_true", help="删除持有基金标注")
-    # parser.add_argument("-r", "--report-dir", type=str, default="reports", help="AI分析报告输出目录（默认: reports）")
+    parser.add_argument("-o", "--output", type=str, nargs='?', const="reports", default=None,
+                        help="输出AI分析报告到指定目录（默认: reports）。只有使用此参数时才会保存报告文件")
     parser.add_argument("-f", "--fast", action="store_true", help="启用快速分析模式")
     parser.add_argument("-D", "--deep", action="store_true", help="启用深度研究模式")
     parser.add_argument("-W", "--with-ai", action="store_true", help="AI分析")
     args = parser.parse_args()
 
     mayi_fund = MaYiFund()
-    mayi_fund.run(args.add, args.delete, args.hold, args.not_hold, "", args.deep, args.fast, args.with_ai)
+    # 只有指定了 -o 参数时才传入 report_dir，否则传入 None 表示不保存报告
+    report_dir = args.output if args.output is not None else None
+    mayi_fund.run(args.add, args.delete, args.hold, args.not_hold, report_dir, args.deep, args.fast, args.with_ai)

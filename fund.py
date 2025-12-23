@@ -557,15 +557,11 @@ class MaYiFund:
             sortable_columns=[1, 2, 3, 4, 5]
         )
 
-    @staticmethod
-    def kx(is_return=False, count=10):
+    def kx(self, is_return=False, count=10):
         url = f"https://finance.pae.baidu.com/selfselect/expressnews?rn={count}&pn=0&tag=A股&finClientType=pc"
-        headers = {
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36"
-        }
         kx_list = []
         try:
-            response = requests.get(url, headers=headers, timeout=10, verify=False)
+            response = self.baidu_session.get(url, timeout=10, verify=False)
             if response.json()["ResultCode"] == "0":
                 kx_list = response.json()["Result"]["content"]["list"]
         except:

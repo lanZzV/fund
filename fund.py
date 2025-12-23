@@ -399,7 +399,6 @@ class MaYiFund:
                 self.ai_analysis(deep_mode=deep_mode, fast_mode=fast_mode)
 
     def get_market_info(self, is_return=False):
-        target_matket = ["上证指数", "深证指数", "纳斯达克", "道琼斯"]
         result = []
         try:
             markets = ["asia", "america"]
@@ -435,9 +434,7 @@ class MaYiFund:
                 "name": "创业板指",
                 "finClientType": "pc"
             }
-            response = requests.get(url, params=params, timeout=10, headers={
-                "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36"
-            }, verify=False)
+            response = self.baidu_session.get(url, params=params, timeout=10, verify=False)
             if str(response.json()["ResultCode"]) == "0":
                 cur = response.json()["Result"]["cur"]
                 ratio = cur["ratio"]

@@ -796,59 +796,24 @@ def get_javascript_code():
         // Initialize Auto Colorize
         autoColorize();
         
+        // 🔧 独立的对话历史管理 - 不依赖 QuikChat 内部状态
+        let conversationHistory = [];
+        
         // Initialize QuikChat
         const chat = new quikchat('#pro-chat-root', async (instance, message) => {
             // Display user message immediately
             instance.messageAddNew(message, 'You', 'right');
             
+            // 🔧 添加用户消息到独立历史
+            conversationHistory.push({
+                role: 'user',
+                content: message
+            });
+            
+            console.log("💬 Current conversation history:", conversationHistory);
+            
             // 不再收集前端context，所有数据由后端获取
             console.log("Sending message to backend (context will be fetched by backend)");
-            
-            // Extract history from instance
-            const rawHistory = instance.historyGetAllCopy();
-            console.log("Raw History from QuikChat:", rawHistory);
-
-            const history = rawHistory
-                .map((msg, index) => {
-                    const content = msg.body || msg.content || msg.text || "";
-                    
-                    // Determine role based on multiple criteria
-                    let role = 'assistant'; // default
-                    
-                    // Check 1: name or sender field
-                    const name = msg.name || msg.sender || '';
-                    if (name === 'You' || name === 'User') {
-                        role = 'user';
-                    }
-                    
-                    // Check 2: position/alignment (user messages are usually 'right')
-                    if (msg.position === 'right' || msg.align === 'right') {
-                        role = 'user';
-                    }
-                    
-                    // Check 3: If this is our just-sent message (last in array before we added loading)
-                    // Actually, we should exclude the just-sent message since we'll add it to combined_input
-                    
-                    console.log(`Message ${index}: name="${name}", role="${role}", content="${content.substring(0, 50)}..."`);
-                    
-                    return {
-                        role: role,
-                        content: content
-                    };
-                })
-                .filter(msg => msg.content && msg.content.trim() !== '');
-            
-            // Remove the last message (the one we just sent) from history
-            // It will be added as part of the combined_input in backend
-            if (history.length > 0) {
-                const lastMsg = history[history.length - 1];
-                if (lastMsg.content === message) {
-                    history.pop();
-                    console.log("Removed duplicate user message from history");
-                }
-            }
-            
-            console.log("Processed History to Send:", history);
 
             // Create loading indicator
             const loadingHtml = '<div class="ai-loading-indicator" style="display: flex; align-items: center; gap: 10px;"><div class="typing-indicator"><span></span><span></span><span></span></div><span style="color: #999;">AI Analyst is thinking...</span></div>';
@@ -916,7 +881,7 @@ def get_javascript_code():
                     },
                     body: JSON.stringify({
                         message: message,
-                        history: history
+                        history: conversationHistory.slice(0, -1)  // 🔧 使用独立历史，排除刚添加的当前消息
                     })
                 });
 
@@ -962,6 +927,14 @@ def get_javascript_code():
                     if (contentDisplayed) return; // Prevent duplicate display
                     contentDisplayed = true;
                     
+                    // 🔧 重要：将AI的真实回复保存到独立历史中
+                    conversationHistory.push({
+                        role: 'assistant',
+                        content: content  // 保存原始内容（HTML格式）
+                    });
+                    console.log('✅ AI response saved to conversation history');
+                    console.log('💬 Updated conversation history:', conversationHistory);
+                    
                     const uniqueId = 'typewriter-' + Date.now();
                     instance.messageAddNew(`<div id="${uniqueId}"></div>`, 'AI Analyst', 'left');
                     
@@ -984,12 +957,12 @@ def get_javascript_code():
                             }
                             
                             console.log(`Typewriter: ${contentLength} chars, speed=${speed}, interval=${interval}ms`);
-                            
+
                             const typewriterInterval = setInterval(() => {
                                 if (currentIndex < contentLength) {
                                     currentIndex += speed;
                                     typewriterDiv.textContent = content.substring(0, Math.min(currentIndex, contentLength));
-                                    
+
                                     // Auto-scroll to keep the message visible
                                     typewriterDiv.scrollIntoView({ behavior: 'smooth', block: 'end' });
                                 } else {
@@ -997,7 +970,7 @@ def get_javascript_code():
                                     typewriterDiv.innerHTML = renderedContent;
                                     typewriterDiv.removeAttribute('id');
                                     clearInterval(typewriterInterval);
-                                    
+
                                     // Final scroll to ensure full content is visible
                                     typewriterDiv.scrollIntoView({ behavior: 'smooth', block: 'end' });
                                     console.log('Content rendered');
@@ -1097,7 +1070,15 @@ def get_javascript_code():
 
         // Add welcome message
         setTimeout(() => {
-            chat.messageAddNew("Welcome to MaYi Fund Pro Terminal. Connected to market data stream.", 'System', 'left');
+            const welcomeMsg = "Welcome to MaYi Fund Pro Terminal. Connected to market data stream.";
+            chat.messageAddNew(welcomeMsg, 'System', 'left');
+            
+            // 🔧 将欢迎消息也添加到历史中（作为 assistant 消息）
+            conversationHistory.push({
+                role: 'assistant',
+                content: welcomeMsg
+            });
+            console.log('💬 Initialized conversation history with welcome message');
         }, 500);
 
         // Initialize resize functionality

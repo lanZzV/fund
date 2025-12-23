@@ -32,13 +32,13 @@ app = Flask(__name__)
 analyzer = AIAnalyzer()
 
 
-def get_real_time_data_context(user_message):
-    """后端智能获取相关数据，根据用户问题判断需要哪些板块"""
+def get_real_time_data_context(user_message, history):
+    """后端智能获取相关数据，优先从历史对话中提取上下文主题"""
     try:
         my_fund = fund.MaYiFund()
         context_parts = []
 
-        # 定义所有数据模块及其关键词
+        # 定义所有数据模块
         data_modules = {
             'kx': {
                 'name': '7*24快讯',
@@ -82,31 +82,17 @@ def get_real_time_data_context(user_message):
             },
         }
 
-        # 智能判断需要获取哪些模块
-        modules_to_fetch = []
-        user_lower = user_message.lower()
+        # 从历史对话中提取主题关键词（最近5条）
+        history_text = ""
+        user_questions = []  # 保存用户历史问题
 
-        for module_id, module_info in data_modules.items():
-            # 检查用户问题是否包含该模块的关键词
-            if any(keyword in user_lower for keyword in module_info['keywords']):
-                modules_to_fetch.append((module_id, module_info))
-
-        # 如果没有匹配到任何关键词，获取快讯和基金数据作为默认
-        if not modules_to_fetch:
-            modules_to_fetch = [
-                ('kx', data_modules['kx']),
-                ('fund', data_modules['fund']),
-            ]
-            logger.info(f"未匹配到特定关键词，获取默认模块: 快讯、自选基金")
-        else:
-            logger.info(f"根据问题匹配到模块: {[m[0] for m in modules_to_fetch]}")
-
-        # 获取匹配的模块数据
-        for module_id, module_info in modules_to_fetch:
-            try:
-                html_content = module_info['func']()
-
-                # 提取HTML中的文本内容
+        for msg in history[-5:]:
+            content = msg.get('content', '')
+            if msg.get('role') == 'user':
+                user_questions.append(content)
+                history_text += " " + content
+            elif msg.get('role') == 'assistant':
+                # 从HTML中提取纯文本
                 from html.parser import HTMLParser
 
                 class HTMLTextExtractor(HTMLParser):
@@ -119,17 +105,65 @@ def get_real_time_data_context(user_message):
                             self.text.append(data.strip())
 
                     def get_text(self):
-                        return '\n'.join(self.text)
+                        return ' '.join(self.text)
 
+                parser = HTMLTextExtractor()
+                try:
+                    parser.feed(content)
+                    extracted = parser.get_text()
+                    # 过滤掉状态消息
+                    if len(extracted) > 50 and not any(word in extracted for word in ['AI Analyst is thinking', '⏳', 'Processing']):
+                        history_text += " " + extracted
+                except:
+                    pass
+
+        # 合并当前问题和历史文本进行分析
+        combined_text = (history_text + " " + user_message).lower()
+
+        logger.debug(f"Combined text for keyword matching: {combined_text[:200]}...")
+
+
+        # 智能判断需要获取哪些模块
+        modules_to_fetch = []
+        for module_id, module_info in data_modules.items():
+            # 从历史+当前问题中检查关键词
+            if any(keyword in combined_text for keyword in module_info['keywords']):
+                modules_to_fetch.append((module_id, module_info))
+
+        # 如果没有匹配到任何关键词，获取核心模块
+        if not modules_to_fetch:
+            modules_to_fetch = [
+                ('kx', data_modules['kx']),
+                ('bk', data_modules['bk']),
+                ('fund', data_modules['fund']),
+            ]
+            logger.info(f"未从历史匹配到关键词，获取核心模块")
+        else:
+            logger.info(f"从历史+当前问题匹配到模块: {[m[0] for m in modules_to_fetch]}")
+
+        # 获取匹配的模块数据
+        from html.parser import HTMLParser
+
+        class HTMLTextExtractor(HTMLParser):
+            def __init__(self):
+                super().__init__()
+                self.text = []
+
+            def handle_data(self, data):
+                if data.strip():
+                    self.text.append(data.strip())
+
+            def get_text(self):
+                return '\n'.join(self.text)
+
+        for module_id, module_info in modules_to_fetch:
+            try:
+                html_content = module_info['func']()
                 parser = HTMLTextExtractor()
                 parser.feed(html_content)
                 text_content = parser.get_text()
-
-                # 添加到context，使用标记格式
                 context_parts.append(f"\n=== {module_info['name']} ({module_id}) ===\n{text_content}")
-
                 logger.debug(f"✓ 获取 {module_info['name']} 数据成功 ({len(text_content)} chars)")
-
             except Exception as e:
                 logger.error(f"✗ 获取 {module_info['name']} 数据失败: {e}")
                 context_parts.append(f"\n=== {module_info['name']} ({module_id}) ===\n数据获取失败")
@@ -160,7 +194,7 @@ def chat():
 
             # 后端智能获取相关数据
             yield f"data: {json.dumps({'type': 'status', 'message': '正在获取相关数据...'}, ensure_ascii=False)}\n\n"
-            backend_context = get_real_time_data_context(user_message)
+            backend_context = get_real_time_data_context(user_message, history)
 
             # Bind tools to LLM
             tools = [search_news, fetch_webpage]
@@ -192,26 +226,54 @@ Context has: 基金(fund), 板块(bk), 快讯(kx), 指数, 金价
 Provide insights, not raw tables. Use context data. If user says "它", check history.""")
             ]
 
-            # Add history - preserve FULL context including user's original question
-            # This helps AI understand "它" or "这个" references
-            for msg in history[-10:]:  # Increased from 5 to 10 to preserve more context
+            # 处理历史消息 - 前端现在会发送正确的内容
+            logger.debug(f"Processing {len(history)} history messages")
+
+            from html.parser import HTMLParser
+
+            class HTMLTextExtractor(HTMLParser):
+                def __init__(self):
+                    super().__init__()
+                    self.text = []
+
+                def handle_data(self, data):
+                    if data.strip():
+                        self.text.append(data.strip())
+
+                def get_text(self):
+                    return ' '.join(self.text)
+
+            # 直接处理历史消息，提取HTML为纯文本
+            for idx, msg in enumerate(history[-10:]):  # 取最近10条
+                role = msg.get('role', '')
                 content = msg.get('content', '')
+
                 if not content or not content.strip():
                     continue
 
-                # Filter out system messages like loading indicators
-                if 'AI Analyst is thinking' in content or 'typing-indicator' in content:
-                    continue
-                if '<div style="display: flex; align-items: center; gap: 8px' in content:
-                    continue  # Skip step status indicators
-
-                role = msg.get('role', '')
                 if role == 'user':
                     messages.append(HumanMessage(content=content))
+                    logger.debug(f"[{idx}] Added user: {content[:50]}...")
+
                 elif role == 'assistant':
-                    # Only add substantive assistant messages, not empty divs
-                    if content and '<div id="typewriter-' not in content:
-                        messages.append(AIMessage(content=content))
+                    # 如果是HTML，提取纯文本；否则直接使用
+                    clean_content = content
+                    if '<' in content and '>' in content:
+                        parser = HTMLTextExtractor()
+                        try:
+                            parser.feed(content)
+                            extracted = parser.get_text()
+                            if extracted and len(extracted) > 10:
+                                clean_content = extracted
+                        except:
+                            pass  # 保留原始内容
+
+                    messages.append(AIMessage(content=clean_content))
+                    logger.debug(f"[{idx}] Added assistant: {clean_content[:50]}...")
+
+            logger.info(f"📊 Loaded {len([m for m in messages if isinstance(m, HumanMessage)])} user messages, "
+                       f"{len([m for m in messages if isinstance(m, AIMessage)])} assistant messages")
+
 
             # Add current context and user message
             combined_input = f"CONTEXT FROM PAGE (后端实时数据):\n{backend_context}\n\nUSER QUESTION: {user_message}"

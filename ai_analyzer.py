@@ -72,7 +72,7 @@ def search_news(query: str) -> str:
             url = result.get("href", "")
             output += f"{i}. {title}\n{body}\n来源: {url}\n\n"
 
-        print(output)
+        logger.debug(output)
         return output
     except Exception as e:
         return f"搜索失败: {str(e)}"
@@ -174,26 +174,24 @@ class AIAnalyzer:
 
             # 根据模式调整参数
             if fast_mode:
-                max_tokens = 1000
+                # 快速模式：用于聊天，不限制max_tokens让AI完整回答
                 temperature = 0.2
-                timeout = 30
+                timeout = 60
             elif deep_mode:
-                # 深度研究模式：支持生成10,000+字的长报告
-                max_tokens = 16000
+                # 深度研究模式：支持生成长报告
                 temperature = 0.2
                 timeout = 120
             else:
-                max_tokens = 2000
                 temperature = 0.2
                 timeout = 60
 
-            # 创建ChatOpenAI实例
+            # 创建ChatOpenAI实例（不设置max_tokens，让AI自由发挥）
             llm = ChatOpenAI(
                 model=model,
                 openai_api_key=api_key,
                 openai_api_base=api_base,
                 temperature=temperature,
-                max_tokens=max_tokens,
+                # max_tokens 不设置，让模型自行决定输出长度
                 request_timeout=timeout
             )
 

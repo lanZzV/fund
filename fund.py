@@ -8,6 +8,8 @@ import re
 import threading
 import time
 
+from curl_cffi import requests as curl_requests
+
 import requests
 import urllib3
 from dotenv import load_dotenv
@@ -46,7 +48,7 @@ class MaYiFund:
 
     def __init__(self):
         self.session = requests.Session()
-        self.baidu_session = requests.Session()
+        self.baidu_session = curl_requests.Session()
         self._csrf = ""
         self.report_dir = None  # 默认不输出报告文件（需通过 -o 参数指定）
         self.load_cache()
@@ -72,12 +74,12 @@ class MaYiFund:
             "Accept-Language": "zh-CN,zh;q=0.9",
             "Connection": "keep-alive",
             "Upgrade-Insecure-Requests": "1",
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36"
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
         }, timeout=10, verify=False)
         self._csrf = re.findall('\"csrf\":\"(.*?)\"', res.text)[0]
 
         self.baidu_session.get("https://gushitong.baidu.com/index/ab-000001", headers={
-            "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36",
+            "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36",
             "referer": "https://gushitong.baidu.com/"
         }, timeout=10, verify=False)
         self.baidu_session.cookies.update({

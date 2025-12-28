@@ -70,7 +70,7 @@ def search_news(query: str) -> str:
             title = result.get("title", "无标题")
             body = result.get("body", "无内容")
             url = result.get("href", "")
-            output += f"{i}. {title}\n{body}\n来源: {url}\n\n"
+            output += f"{i}. 标题: {title}\n摘要: {body}\n来源链接: [{title}]({url})\n\n"
 
         logger.debug(output)
         return output
@@ -1183,6 +1183,7 @@ class AIAnalyzer:
 2. 📊 **内容必须详实深入** - 每个分析点都要展开详细论述，不能浅尝辄止
 3. 🔍 **数据支撑充分** - 所有判断必须有具体数据和案例支持
 4. 📈 **格式丰富清晰** - 使用表格、列表、加粗等Markdown格式增强可读性
+5. 🔗 **引用来源** - 对于来自网络搜索的信息，必须以Markdown链接格式 `[标题](URL)` 注明来源
 
 **深度解读建议**：
 - 针对7×24快讯中的重要事件，可使用 search_news 搜索相关详细报道
@@ -1220,6 +1221,7 @@ class AIAnalyzer:
 - 可以使用 search_news 和 fetch_webpage 获取7×24快讯的详细内容
 - 确保报告**字数达到10000字以上**，内容详实、数据充分、建议具体
 - 充分提示风险，避免过度乐观或悲观
+- 对于网络搜索获得的信息，要以markdown格式给出来源地址 `[标题](URL)`，以增强可信性
 
 使用以下格式：
 
@@ -1266,6 +1268,9 @@ Thought: {agent_scratchpad}""")
 2. 行业板块机会分析（包含领涨/跌板块表格）
 3. 基金组合投资建议（包含持仓表格、调仓建议列表）
 4. 风险提示与应对（包含风险表格，含信息来源说明）
+
+【引用规范】
+- 对于网络搜索获得的信息，务必以Markdown格式 `[标题](URL)` 在文中或段落末尾注明来源地址，以增强可信性。
 
 【深度解读建议】针对7×24快讯中的重要事件：
 - 可使用 search_news 搜索相关详细报道（如："政策名称 详情"、"事件名 分析"）

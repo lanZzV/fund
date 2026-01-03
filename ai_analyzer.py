@@ -1124,6 +1124,145 @@ class AIAnalyzer:
                 """获取当前日期和时间"""
                 return f"当前时间: {datetime.datetime.now().strftime('%Y年%m月%d日 %H:%M:%S')}"
 
+            @tool
+            def analyze_holdings_news() -> str:
+                """分析持仓基金（打星基金）相关的最新新闻
+
+                自动获取所有打星基金，搜索每只基金的相关新闻（基金名称+行业主题），
+                并返回汇总分析。适合了解持仓基金的最新市场动态和风险提示。
+
+                Returns:
+                    持仓基金的新闻汇总，包括：
+                    - 每只基金的相关新闻（按基金名称搜索）
+                    - 相关行业/主题的市场动态
+                """
+                try:
+                    # 构建 fund_code -> fund 的字典，避免 O(n²) 嵌套循环
+                    result_dict = {fund[0]: fund for fund in data_collector.result}
+
+                    # 获取打星基金列表
+                    hold_funds = []
+                    missing_funds = []
+
+                    for fund_code, fund_info in data_collector.CACHE_MAP.items():
+                        if fund_info.get("is_hold", False):
+                            if fund_code in result_dict:
+                                fund = result_dict[fund_code]
+                                fund_name = AIAnalyzer.clean_ansi_codes(fund[1].replace("⭐ ", ""))
+                                hold_funds.append({
+                                    "code": fund_code,
+                                    "name": fund_name
+                                })
+                            else:
+                                missing_funds.append(fund_code)
+
+                    # 记录未找到的基金
+                    if missing_funds:
+                        logger.warning(f"持仓基金中有 {len(missing_funds)} 只在result中未找到: {missing_funds}")
+
+                    if not hold_funds:
+                        return "当前没有打星/持仓基金，无法分析持仓新闻。请先通过 get_fund_portfolio 查看基金组合。"
+
+                    result = f"## 持仓基金新闻分析\n\n**持仓基金数量**：{len(hold_funds)}只\n\n"
+
+                    for fund in hold_funds:
+                        fund_name = fund["name"]
+                        fund_code = fund["code"]
+
+                        result += f"### 📌 {fund_name}（{fund_code}）\n\n"
+
+                        # 为每只基金创建新的 DDGS 实例，避免资源累积
+                        try:
+                            ddgs = DDGS(verify=False)
+                        except Exception as e:
+                            result += f"**搜索服务暂时不可用**: {str(e)}\n\n---\n\n"
+                            continue
+
+                        # 1. 按基金名称搜索
+                        try:
+                            # 提取基金名称中的关键词（去掉后缀如"混合C"、"股票A"等）
+                            search_name = re.sub(r'(混合|股票|债券|指数|ETF联接|联接)?[A-Z]?$', '', fund_name).strip()
+                            news_results = ddgs.text(
+                                query=f"{search_name} 基金 最新",
+                                region="cn-zh",
+                                safesearch="off",
+                                timelimit="w",
+                                max_results=5,
+                            )
+
+                            if news_results:
+                                result += "**基金相关新闻**：\n\n"
+                                for i, news in enumerate(news_results, 1):
+                                    title = news.get("title", "无标题")
+                                    body = news.get("body", "无内容")
+                                    url = news.get("href", "")
+                                    result += f"{i}. [{title}]({url})\n   > {body[:100]}...\n\n"
+                            else:
+                                result += "**基金相关新闻**：暂无相关新闻\n\n"
+                        except Exception as e:
+                            result += f"**基金相关新闻**：搜索失败 - {str(e)}\n\n"
+
+                        # 2. 按行业主题搜索
+                        try:
+                            # 提取行业关键词
+                            industry_keywords = []
+                            name_lower = fund_name.lower()
+
+                            # 常见行业/主题关键词映射
+                            keyword_map = {
+                                "量化": "量化投资",
+                                "制造": "制造业",
+                                "先进制造": "先进制造业",
+                                "智选": "智能制造",
+                                "创新": "科技创新",
+                                "成长": "成长股",
+                                "科技": "科技股",
+                                "半导体": "半导体芯片",
+                                "芯片": "半导体芯片",
+                                "新能源": "新能源",
+                                "医药": "医药生物",
+                                "消费": "消费行业",
+                                "白酒": "白酒行业",
+                                "光伏": "光伏产业",
+                                "军工": "军工国防",
+                                "人工智能": "人工智能",
+                                "机器人": "机器人",
+                                "纳斯达克": "美股科技",
+                                "恒生": "港股",
+                            }
+
+                            for keyword, search_term in keyword_map.items():
+                                if keyword in name_lower or keyword in fund_name:
+                                    industry_keywords.append(search_term)
+
+                            if industry_keywords:
+                                industry_query = " ".join(industry_keywords[:2])  # 最多取2个关键词
+                                industry_results = ddgs.text(
+                                    query=f"{industry_query} 市场动态 投资",
+                                    region="cn-zh",
+                                    safesearch="off",
+                                    timelimit="w",
+                                    max_results=3,
+                                )
+
+                                if industry_results:
+                                    result += f"**行业动态**（{industry_query}）：\n\n"
+                                    for i, news in enumerate(industry_results, 1):
+                                        title = news.get("title", "无标题")
+                                        body = news.get("body", "无内容")
+                                        url = news.get("href", "")
+                                        result += f"{i}. [{title}]({url})\n   > {body[:100]}...\n\n"
+                        except Exception as e:
+                            result += f"**行业动态**：搜索失败 - {str(e)}\n\n"
+
+                        result += "---\n\n"
+
+                    result += "\n💡 **提示**：以上新闻来自网络搜索，请结合市场数据综合判断。\n"
+                    return result
+
+                except Exception as e:
+                    return f"分析持仓基金新闻失败: {str(e)}"
+
             # 组装工具列表
             tools = [
                 get_market_indices,
@@ -1136,7 +1275,8 @@ class AIAnalyzer:
                 get_fund_portfolio,
                 search_news,
                 fetch_webpage,
-                get_current_time
+                get_current_time,
+                analyze_holdings_news
             ]
 
             # 创建ReAct Agent的prompt
@@ -1158,6 +1298,7 @@ class AIAnalyzer:
 - 📊 **get_shanghai_intraday**：获取上证指数近30分钟分时数据
 - 📋 **get_fund_portfolio**：获取自选基金组合的详细数据
 - 🕐 **get_current_time**：获取当前日期和时间
+- ⭐ **analyze_holdings_news**：【重要】分析持仓基金（打星基金）相关的最新新闻，自动搜索每只持仓基金的相关报道和行业动态
 - 💡 **建议流程**：先用get_news_flash获取快讯列表，再针对重要事件用search_news和fetch_webpage获取详情
 
 **研究流程建议**：
@@ -1167,7 +1308,8 @@ class AIAnalyzer:
 4. **【可选步骤 - 深度解读】** 针对快讯中的重要事件：
    - 使用 search_news 搜索相关的详细报道（如："政策名称 详情"、"事件名 市场影响"）
    - 使用 fetch_webpage 获取完整文章内容，深入了解事件背景
-5. 综合所有数据，生成**数据详实、分析深入、风险充分提示**的报告
+5. **【推荐步骤 - 持仓分析】** 调用 analyze_holdings_news 获取持仓基金的相关新闻和行业动态，了解持仓基金的最新市场消息和风险提示
+6. 综合所有数据，生成**数据详实、分析深入、风险充分提示**的报告
 
 **可用工具**：
 {tools}
@@ -1189,12 +1331,14 @@ class AIAnalyzer:
 - 针对7×24快讯中的重要事件，可使用 search_news 搜索相关详细报道
 - 对搜索到的重要文章，可使用 fetch_webpage 获取原文完整内容
 - 结合快讯信息和详细报道，提供更深入的分析和解读
+- **【持仓分析】** 使用 analyze_holdings_news 获取持仓基金的最新新闻，结合基金表现和行业动态给出投资建议
 
 **报告内容建议**（你可以自由发挥，不必严格遵循）：
 - 宏观市场环境（全球市场联动、A股技术面、成交量分析、市场情绪）
 - 重大事件深度解读（每个重要快讯都要详细分析500-1000字：事件背景+市场影响+投资启示）
 - 行业板块机会挖掘（强势板块的驱动因素、持续性判断、龙头标的分析，每个板块300-500字）
 - 弱势板块风险提示（下跌原因、底部判断、反弹时机）
+- **持仓基金新闻解读**（根据 analyze_holdings_news 返回的新闻，分析每只持仓基金的最新动态、行业趋势和风险提示）
 - 基金组合诊断（每只持仓基金的详细分析：业绩、持仓、风险、操作建议，每只500-800字）
 - 调仓建议（推荐基金+理由+风险提示，每个推荐300-500字）
 - 多维度风险分析（系统性风险、政策风险、市场情绪、行业风险，每类风险300-500字）
@@ -1219,6 +1363,7 @@ class AIAnalyzer:
 **重要提示**：
 - 每次只调用一个工具，观察结果后再决定下一步
 - 可以使用 search_news 和 fetch_webpage 获取7×24快讯的详细内容
+- **建议使用 analyze_holdings_news 分析持仓基金的相关新闻和行业动态，为投资决策提供参考**
 - 确保报告**字数达到10000字以上**，内容详实、数据充分、建议具体
 - 充分提示风险，避免过度乐观或悲观
 - 对于网络搜索获得的信息，要以markdown格式给出来源地址 `[标题](URL)`，以增强可信性

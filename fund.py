@@ -48,7 +48,7 @@ class MaYiFund:
 
     def __init__(self):
         self.session = requests.Session()
-        self.baidu_session = curl_requests.Session()
+        self.baidu_session = curl_requests.Session(impersonate="chrome")
         self._csrf = ""
         self.report_dir = None  # 默认不输出报告文件（需通过 -o 参数指定）
         self.load_cache()
@@ -82,10 +82,10 @@ class MaYiFund:
             "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36",
             "referer": "https://gushitong.baidu.com/"
         }, timeout=10, verify=False)
-        self.baidu_session.cookies.update({
-            "BDUSS": "3hJYkhPNEM3Z2xOeH5TLVU4OEhhU1hPUFYxdVV3V0pkd1VEMEhCTEgxRENMWEJsSVFBQUFBJCQAAAAAAAAAAAEAAAAVl0lPamRrZGpiZGIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAMKgSGXCoEhlM",
-            "BDUSS_BFESS": "3hJYkhPNEM3Z2xOeH5TLVU4OEhhU1hPUFYxdVV3V0pkd1VEMEhCTEgxRENMWEJsSVFBQUFBJCQAAAAAAAAAAAEAAAAVl0lPamRrZGpiZGIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAMKgSGXCoEhlM",
-        })
+        # self.baidu_session.cookies.update({
+        #     "BDUSS": "3hJYkhPNEM3Z2xOeH5TLVU4OEhhU1hPUFYxdVV3V0pkd1VEMEhCTEgxRENMWEJsSVFBQUFBJCQAAAAAAAAAAAEAAAAVl0lPamRrZGpiZGIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAMKgSGXCoEhlM",
+        #     "BDUSS_BFESS": "3hJYkhPNEM3Z2xOeH5TLVU4OEhhU1hPUFYxdVV3V0pkd1VEMEhCTEgxRENMWEJsSVFBQUFBJCQAAAAAAAAAAAEAAAAVl0lPamRrZGpiZGIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAMKgSGXCoEhlM",
+        # })
 
     def add_code(self, codes):
         codes = codes.split(",")
@@ -792,38 +792,41 @@ class MaYiFund:
             "finClientType": "pc"
         }
         response = self.baidu_session.get(url, params=params, timeout=10, verify=False)
-        if str(response.json()["ResultCode"]) == "0":
-            marketData = response.json()["Result"]["newMarketData"]["marketData"][0]["p"]
-            if not is_return:
-                marketData = marketData.split(";")[-30:]
-            else:
-                marketData = marketData.split(";")[-15:]
-            marketData = [x.split(",")[1:] for x in marketData]
-            if marketData:
-                result = []
-                for i in marketData:
-                    if not is_return:
-                        if "+" in i[2]:
-                            i[1] = "\033[1;31m" + i[1]
-                        else:
-                            i[1] = "\033[1;32m" + i[1]
-                    i[3] = i[3] + "%"
-                    try:
-                        i[4] = str(round(float(float(i[4]) / 10000), 2)) + "万手"
-                        i[5] = str(round(float(float(i[5]) / 10000 / 10000), 2)) + "亿"
-                    except:
-                        pass
-                    result.append(i[:-2])
-                if is_return:
-                    return result
-                logger.critical(f"{time.strftime('%Y-%m-%d %H:%M')} 近 30 分钟上证指数:")
-                for line_msg in format_table_msg([
-                    [
-                        "时间", "指数", "涨跌额", "涨跌幅", "成交量", "成交额"
-                    ],
-                    *result
-                ]).split("\n"):
-                    logger.info(line_msg)
+        try:
+            if str(response.json()["ResultCode"]) == "0":
+                marketData = response.json()["Result"]["newMarketData"]["marketData"][0]["p"]
+                if not is_return:
+                    marketData = marketData.split(";")[-30:]
+                else:
+                    marketData = marketData.split(";")[-15:]
+                marketData = [x.split(",")[1:] for x in marketData]
+                if marketData:
+                    result = []
+                    for i in marketData:
+                        if not is_return:
+                            if "+" in i[2]:
+                                i[1] = "\033[1;31m" + i[1]
+                            else:
+                                i[1] = "\033[1;32m" + i[1]
+                        i[3] = i[3] + "%"
+                        try:
+                            i[4] = str(round(float(float(i[4]) / 10000), 2)) + "万手"
+                            i[5] = str(round(float(float(i[5]) / 10000 / 10000), 2)) + "亿"
+                        except:
+                            pass
+                        result.append(i[:-2])
+                    if is_return:
+                        return result
+                    logger.critical(f"{time.strftime('%Y-%m-%d %H:%M')} 近 30 分钟上证指数:")
+                    for line_msg in format_table_msg([
+                        [
+                            "时间", "指数", "涨跌额", "涨跌幅", "成交量", "成交额"
+                        ],
+                        *result
+                    ]).split("\n"):
+                        logger.info(line_msg)
+        except Exception as e:
+            logger.error(f"获取上证指数信息失败: {e}")
 
     def A_html(self):
         result = self.A(True)

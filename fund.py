@@ -49,6 +49,21 @@ class MaYiFund:
     def __init__(self):
         self.session = requests.Session()
         self.baidu_session = curl_requests.Session(impersonate="chrome")
+        self.baidu_session.headers = {
+            "accept": "application/vnd.finance-web.v1+json",
+            "accept-language": "zh-CN,zh;q=0.9",
+            "acs-token": "1767852006302_1767922774428_a5+nkAvkUigC1QCMVgphVfGSz3uvhigDZkrDM9ew7wjpNrUkQBUNgD3XpM57f2mcq/IePhZEI0fKkiKL/rXshBM3uF81xTcvjPL2PJay3YltapNyRHEYepcudaTSLNXVISph2tImkqnH1JNad7RLtMr2hm8AJJ+vhxll2W7WfAVn0E+PWLFAPJFlOXmuhwETtOtD+gKWTCEPavgdP7hrdfKtIUC8Cty6G96gY+5o9w/VYOdGnqyX8fUOV1i5ieJRaGP9N16M/nSxa5+y0oMluHENQs4DtkKzZdVgG16K8tobJVNk0Gq/kd+q782nVNrulOZn1qhNVGH6uTJUnZwnmyhnlimAtOB7vzSri3r5ut38GAeb6Svp4kw4M6lQZE6LUlNm9ZStZV1QPEmoS9l3ow==",
+            "origin": "https://gushitong.baidu.com",
+            "priority": "u=1, i",
+            "referer": "https://gushitong.baidu.com/",
+            "sec-ch-ua": "\"Google Chrome\";v=\"143\", \"Chromium\";v=\"143\", \"Not A(Brand\";v=\"24\"",
+            "sec-ch-ua-mobile": "?0",
+            "sec-ch-ua-platform": "\"Windows\"",
+            "sec-fetch-dest": "empty",
+            "sec-fetch-mode": "cors",
+            "sec-fetch-site": "same-site",
+            "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+        }
         self._csrf = ""
         self.report_dir = None  # 默认不输出报告文件（需通过 -o 参数指定）
         self.load_cache()

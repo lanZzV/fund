@@ -121,6 +121,9 @@ def get_full_page_html(tabs_data):
             <div class="navbar-brand">MaYi Fund 蚂蚁基金助手</div>
             <div class="navbar-menu">
                 <span class="navbar-item">实时行情</span>
+                <button id="toggle-chat-btn" class="navbar-item" style="background: none; border: none; cursor: pointer; color: #fff; font-weight: 700; font-size: 0.9rem; text-transform: uppercase; letter-spacing: 0.05em; padding: 0 15px;" onclick="toggleChatSidebar()">
+                    <span id="chat-toggle-icon">◀</span> AI助手
+                </button>
             </div>
         </nav>
         
@@ -361,15 +364,6 @@ def get_css_style():
             overflow: hidden; /* Prevent body scroll */
         }
 
-        .main-content {
-            padding: 2rem;
-            flex: 1;
-            margin: 0;
-            overflow-y: auto;
-            height: calc(100vh - 60px);
-            background-color: #f5f5f5; /* Light grey for content area */
-        }
-
         .tabs-header {
             display: flex;
             border-bottom: 2px solid #e0e0e0;
@@ -469,6 +463,24 @@ def get_css_style():
             z-index: 10;
             min-width: 300px;
             max-width: 800px;
+            transition: transform 0.3s ease, width 0.3s ease;
+        }
+
+        .pro-chat-sidebar.hidden {
+            transform: translateX(100%);
+            width: 0;
+            min-width: 0;
+            border-left: none;
+        }
+
+        .main-content {
+            padding: 2rem;
+            flex: 1;
+            margin: 0;
+            overflow-y: auto;
+            height: calc(100vh - 60px);
+            background-color: #f5f5f5;
+            transition: margin-right 0.3s ease;
         }
 
         /* Resize Handle */
@@ -795,10 +807,10 @@ def get_javascript_code():
     document.addEventListener('DOMContentLoaded', function() {
         // Initialize Auto Colorize
         autoColorize();
-        
+
         // 🔧 独立的对话历史管理 - 不依赖 QuikChat 内部状态
         let conversationHistory = [];
-        
+
         // Initialize QuikChat
         const chat = new quikchat('#pro-chat-root', async (instance, message) => {
             // Display user message immediately
@@ -1121,6 +1133,20 @@ def get_javascript_code():
             }
         });
     });
+
+    // Toggle chat sidebar function
+    function toggleChatSidebar() {
+        const chatSidebar = document.getElementById('chat-sidebar');
+        const toggleIcon = document.getElementById('chat-toggle-icon');
+
+        if (chatSidebar.classList.contains('hidden')) {
+            chatSidebar.classList.remove('hidden');
+            toggleIcon.textContent = '◀';
+        } else {
+            chatSidebar.classList.add('hidden');
+            toggleIcon.textContent = '▶';
+        }
+    }
     </script>
 
 
@@ -1193,7 +1219,7 @@ def get_javascript_code():
     }
 
     function parseValue(val) {
-        if (val === 'N/A' || val === '--' || val === '') {
+        if (val === 'N/A' || val === '--' || val === '---' || val === '') {
             return -Infinity;
         }
         const cleanedVal = val.replace(/%|亿|万|元\/克|手/g, '').replace(/,/g, '');

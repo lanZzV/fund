@@ -390,6 +390,15 @@ Now provide your REAL analysis without any status messages."""))
     })
 
 
+@app.route('/fund/sector', methods=['GET'])
+def get_sector_funds():
+    """获取指定板块的基金列表"""
+    bk_id = request.args.get("bk_id")
+    importlib.reload(fund)
+    my_fund = fund.MaYiFund()
+    return my_fund.select_fund_html(bk_id=bk_id)
+
+
 @app.route('/fund', methods=['GET'])
 def get_fund():
     add = request.args.get("add")
@@ -420,6 +429,7 @@ def get_fund():
         "seven_A": my_fund.seven_A_html,
         "bk": my_fund.bk_html,
         "kx": my_fund.kx_html,
+        "select_fund": my_fund.select_fund_html,
     }
     for name, func in tasks.items():
         thread = threading.Thread(target=fetch_html, args=(name, func))
@@ -443,6 +453,7 @@ def get_fund():
         {"id": "A", "title": "上证分时", "content": results["A"]},
         {"id": "fund", "title": "自选基金", "content": results["fund"]},
         {"id": "bk", "title": "行业板块", "content": results["bk"]},
+        {"id": "select_fund", "title": "板块基金查询", "content": results["select_fund"]},
     ]
     html = get_full_page_html(tabs_data)
     return html

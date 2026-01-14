@@ -530,8 +530,8 @@ class MaYiFund:
 
         results = []
         id_map = {}
-        for i in range(0, len(bk_list), 10):
-            tmp = bk_list[i:i + 10]
+        for i in range(0, len(bk_list), 5):
+            tmp = bk_list[i:i + 5]
             tmp = [str(i + 1 + j) + ". " + tmp[j] for j in range(len(tmp))]
             for j in range(len(tmp)):
                 id_map[str(i + 1 + j)] = bk_map[bk_list[i + j]]

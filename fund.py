@@ -1208,19 +1208,60 @@ class MaYiFund:
             data = self.select_fund(is_return=True)
             bk_list = data["bk_list"]
 
-            # 生成板块按钮网格
-            buttons_html = '<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; padding: 20px;">'
-            for idx, bk_name in enumerate(bk_list, 1):
-                buttons_html += f'''
-                <button onclick="loadSectorFunds('{idx}')"
-                        style="padding: 12px; background: #fff; border: 2px solid #000;
-                               cursor: pointer; font-weight: 600; transition: all 0.2s;
-                               text-align: center;"
-                        onmouseover="this.style.background='#0070e0'; this.style.color='#fff'; this.style.borderColor='#0070e0'"
-                        onmouseout="this.style.background='#fff'; this.style.color='#000'; this.style.borderColor='#000'">
-                    {bk_name}
-                </button>
-                '''
+            # 定义大板块分类（仅用于展示）
+            major_categories = {
+                "科技": ["人工智能", "半导体", "云计算", "5G", "光模块", "CPO", "F5G", "通信设备", "PCB", "消费电子",
+                        "计算机", "软件开发", "信创", "网络安全", "IT服务", "国产软件", "计算机设备", "光通信",
+                        "算力", "脑机接口", "通信", "电子", "光学光电子", "元件", "存储芯片", "第三代半导体",
+                        "光刻胶", "电子化学品", "LED", "毫米波", "智能穿戴", "东数西算", "数据要素", "国资云",
+                        "Web3.0", "AIGC", "AI应用", "AI手机", "AI眼镜", "DeepSeek", "TMT", "科技"],
+                "医药健康": ["医药生物", "医疗器械", "生物疫苗", "CRO", "创新药", "精准医疗", "医疗服务", "中药",
+                            "化学制药", "生物制品", "基因测序", "超级真菌"],
+                "消费": ["食品饮料", "白酒", "家用电器", "纺织服饰", "商贸零售", "新零售", "家居用品", "文娱用品",
+                        "婴童", "养老产业", "体育", "教育", "在线教育", "社会服务", "轻工制造", "新消费",
+                        "可选消费", "消费", "家电零部件", "智能家居"],
+                "金融": ["银行", "证券", "保险", "非银金融", "国有大型银行", "股份制银行", "城商行", "金融"],
+                "能源": ["新能源", "煤炭", "石油石化", "电力", "绿色电力", "氢能源", "储能", "锂电池", "电池",
+                        "光伏设备", "风电设备", "充电桩", "固态电池", "能源", "煤炭开采", "公用事业", "锂矿"],
+                "工业制造": ["机械设备", "汽车", "新能源车", "工程机械", "高端装备", "电力设备", "专用设备",
+                            "通用设备", "自动化设备", "机器人", "人形机器人", "汽车零部件", "汽车服务",
+                            "汽车热管理", "尾气治理", "特斯拉", "无人驾驶", "智能驾驶", "电网设备", "电机",
+                            "高端制造", "工业4.0", "工业互联", "低空经济", "通用航空"],
+                "材料": ["有色金属", "黄金股", "贵金属", "基础化工", "钢铁", "建筑材料", "稀土永磁", "小金属",
+                        "工业金属", "材料", "大宗商品", "资源"],
+                "军工": ["国防军工", "航天装备", "航空装备", "航海装备", "军工电子", "军民融合", "商业航天",
+                        "卫星互联网", "航母", "航空机场"],
+                "基建地产": ["建筑装饰", "房地产", "房地产开发", "房地产服务", "交通运输", "物流"],
+                "环保": ["环保", "环保设备", "环境治理", "垃圾分类", "碳中和", "可控核聚变", "液冷"],
+                "传媒": ["传媒", "游戏", "影视", "元宇宙", "超清视频", "数字孪生"],
+                "主题": ["国企改革", "一带一路", "中特估", "中字头", "并购重组", "华为", "新兴产业",
+                        "国家安防", "安全主题", "农牧主题", "农林牧渔", "养殖业", "猪肉", "高端装备"]
+            }
+
+            # 生成分类板块按钮
+            buttons_html = '<div style="padding: 20px;">'
+            for category, sectors in major_categories.items():
+                # 过滤出属于当前大类的板块
+                category_sectors = [(idx+1, name) for idx, name in enumerate(bk_list) if name in sectors]
+                if not category_sectors:
+                    continue
+
+                buttons_html += f'<div style="margin-bottom: 25px;">'
+                buttons_html += f'<h4 style="margin: 0 0 10px 0; color: #666; font-size: 14px; font-weight: 600;">{category}</h4>'
+                buttons_html += '<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 8px;">'
+
+                for idx, bk_name in category_sectors:
+                    buttons_html += f'''
+                    <button onclick="loadSectorFunds('{idx}')"
+                            style="padding: 10px; background: #fff; border: 1px solid #ddd;
+                                   cursor: pointer; font-weight: 500; transition: all 0.2s;
+                                   text-align: center; font-size: 13px; border-radius: 4px;"
+                            onmouseover="this.style.background='#0070e0'; this.style.color='#fff'; this.style.borderColor='#0070e0'"
+                            onmouseout="this.style.background='#fff'; this.style.color='#000'; this.style.borderColor='#ddd'">
+                        {bk_name}
+                    </button>
+                    '''
+                buttons_html += '</div></div>'
             buttons_html += '</div>'
 
             return f'''

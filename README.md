@@ -89,6 +89,19 @@ python fund.py -b
 # 移除基金的持有标记
 ```
 
+**标记基金板块**（独立功能）
+```bash
+python fund.py -e
+# 为基金添加板块标签，独立于持有标记
+# 标记后会在基金名称中显示板块信息
+```
+
+**删除板块标记**
+```bash
+python fund.py -u
+# 删除基金的板块标签
+```
+
 ### Web服务器模式
 
 #### 启动服务
@@ -326,6 +339,8 @@ AI分析完成后会生成两种输出：
 | `init()` | 初始化会话，获取CSRF令牌 |
 | `add_code(codes)` | 添加基金到自选列表 |
 | `delete_code(codes)` | 从自选列表删除基金 |
+| `mark_fund_sector()` | 标记基金板块（独立功能） |
+| `unmark_fund_sector()` | 删除基金板块标记 |
 | `search_code()` | 查询所有自选基金数据（多线程） |
 | `search_one_code()` | 查询单个基金（线程执行） |
 | `bk()` | 获取行业板块数据 |
@@ -365,12 +380,14 @@ AI分析完成后会生成两种输出：
   "001618": {
     "fund_key": "JJ_001618",
     "fund_name": "天弘中证电子ETF联接C",
-    "is_hold": true
+    "is_hold": true,
+    "sectors": ["人工智能", "半导体"]
   },
   "161725": {
     "fund_key": "JJ_161725",
     "fund_name": "招商中证白酒指数分级",
-    "is_hold": false
+    "is_hold": false,
+    "sectors": []
   }
 }
 ```

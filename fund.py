@@ -185,6 +185,96 @@ class MaYiFund:
                 logger.error(f"删除基金代码【{code}】失败: {e}")
         self.save_cache()
 
+    def mark_fund_sector(self):
+        """标记基金板块（独立功能）"""
+        now_codes = list(self.CACHE_MAP.keys())
+        logger.debug(f"当前缓存基金代码: {now_codes}")
+        logger.info("请输入基金代码, 多个基金代码以英文逗号分隔:")
+        codes = input()
+        codes = codes.split(",")
+        codes = [code.strip() for code in codes if code.strip()]
+
+        # 构建板块序号到名称的映射
+        all_sectors = []
+        for category, sectors in self.MAJOR_CATEGORIES.items():
+            for sector in sectors:
+                all_sectors.append(sector)
+
+        # 表格形式展示板块分类
+        logger.info("板块分类列表:")
+        results = []
+        for i in range(0, len(all_sectors), 5):
+            tmp = all_sectors[i:i + 5]
+            tmp = [f"{i + 1 + j}. {tmp[j]}" for j in range(len(tmp))]
+            results.append(tmp)
+        for line_msg in format_table_msg(results).split("\n"):
+            logger.info(line_msg)
+
+        for code in codes:
+            try:
+                if code not in self.CACHE_MAP:
+                    logger.warning(f"标记板块【{code}】失败: 不存在该基金代码, 请先添加该基金代码")
+                    continue
+
+                # 选择板块
+                logger.info(f"为基金 【{code} {self.CACHE_MAP[code]['fund_name']}】 选择板块:")
+                logger.info("请输入板块序号 (多个用逗号分隔, 如: 1,3,5):")
+                sector_input = input().strip()
+
+                if sector_input:
+                    sector_indices = [s.strip() for s in sector_input.split(",")]
+                    selected_sectors = []
+                    for idx_str in sector_indices:
+                        try:
+                            idx = int(idx_str)
+                            if 1 <= idx <= len(all_sectors):
+                                selected_sectors.append(all_sectors[idx - 1])
+                        except ValueError:
+                            pass
+
+                    if selected_sectors:
+                        self.CACHE_MAP[code]["sectors"] = selected_sectors
+                        logger.info(f"✓ 已绑定板块: {', '.join(selected_sectors)}")
+                    else:
+                        logger.info("未选择任何板块")
+                else:
+                    logger.info("未选择任何板块")
+
+                logger.info(f"标记板块【{code}】成功")
+
+            except Exception as e:
+                logger.error(f"标记板块【{code}】失败: {e}")
+        self.save_cache()
+
+    def unmark_fund_sector(self):
+        """删除基金板块标记（独立功能）"""
+        # 找出所有有板块标记的基金
+        marked_codes = [code for code, data in self.CACHE_MAP.items() if data.get("sectors", [])]
+        if not marked_codes:
+            logger.warning("暂无板块标记的基金代码")
+            return
+
+        logger.debug(f"当前有板块标记的基金代码: {marked_codes}")
+        logger.debug("请输入基金代码, 多个基金代码以英文逗号分隔:")
+        codes = input()
+        codes = codes.split(",")
+        codes = [code.strip() for code in codes if code.strip()]
+
+        for code in codes:
+            try:
+                if code in self.CACHE_MAP:
+                    if self.CACHE_MAP[code].get("sectors", []):
+                        self.CACHE_MAP[code]["sectors"] = []
+                        logger.info(f"删除板块标记【{code}】成功")
+                    else:
+                        logger.warning(f"删除板块标记【{code}】失败: 该基金没有板块标记")
+                else:
+                    logger.warning(f"删除板块标记【{code}】失败: 不存在该基金代码")
+            except Exception as e:
+                logger.error(f"删除板块标记【{code}】失败: {e}")
+        self.save_cache()
+
+
     def search_one_code(self, fund, fund_data, is_return):
         with sem:
             try:
@@ -316,12 +406,16 @@ class MaYiFund:
                             sectors = self.CACHE_MAP[fund].get("sectors", [])
                             if sectors:
                                 sector_str = ",".join(sectors)
-                                fund_name = f"⭐({sector_str}) {fund_name}"
+                                fund_name = f"⭐ ({sector_str}) {fund_name}"
                             else:
                                 fund_name = "⭐ " + fund_name
+                    # 合并连涨天数和连涨幅
+                    consecutive_info = f"{consecutive_count}天 {consecutive_growth}"
+                    # 合并近30天涨跌和总涨幅
+                    monthly_info = f"{montly_growth_day}/{montly_growth_day_count} {montly_growth_rate}"
+
                     self.result.append([
-                        fund, fund_name, now_time, forecastGrowth, dayOfGrowth, consecutive_count, consecutive_growth,
-                        f"{montly_growth_day} / {montly_growth_day_count}", montly_growth_rate
+                        fund, fund_name, now_time, forecastGrowth, dayOfGrowth, consecutive_info, monthly_info
                     ])
                 else:
                     logger.error(f"查询基金代码【{fund}】失败: {response.text.strip()}")
@@ -356,7 +450,7 @@ class MaYiFund:
             logger.critical(f"{time.strftime('%Y-%m-%d %H:%M')} 基金估值信息:")
             for line_msg in format_table_msg([
                 [
-                    "基金代码", "基金名称", "估值时间", "估值", "日涨幅", "连涨天数", "连涨幅", "涨/总 (近30天)", "总涨幅"
+                    "基金代码", "基金名称", "估值时间", "估值", "日涨幅", "连涨/跌", "近30天"
                 ],
                 *self.result
             ]).split("\n"):
@@ -366,10 +460,10 @@ class MaYiFund:
         result = self.search_code(True)
         return get_table_html(
             [
-                "基金代码", "基金名称", "估值时间", "估值", "日涨幅", "连涨天数", "连涨幅", "涨/总 (近30天)", "总涨幅"
+                "基金代码", "基金名称", "估值时间", "估值", "日涨幅", "连涨/跌", "近30天"
             ],
             result,
-            sortable_columns=[3, 4, 5, 6, 7, 8]
+            sortable_columns=[3, 4, 5, 6]
         )
 
     @staticmethod
@@ -663,10 +757,20 @@ class MaYiFund:
             logger.info(line_msg)
 
     def run(self, is_add=False, is_delete=False, is_hold=False, is_not_hold=False, report_dir=None,
-            deep_mode=False, fast_mode=False, with_ai=False, select_mode=False):
+            deep_mode=False, fast_mode=False, with_ai=False, select_mode=False, mark_sector=False, unmark_sector=False):
 
         if select_mode:
             self.select_fund()
+            return
+
+        # 处理标记板块功能
+        if mark_sector:
+            self.mark_fund_sector()
+            return
+
+        # 处理删除标记板块功能
+        if unmark_sector:
+            self.unmark_fund_sector()
             return
 
         # 存储报告目录到实例属性（None 表示不保存报告文件）
@@ -692,7 +796,6 @@ class MaYiFund:
                 try:
                     if code in self.CACHE_MAP:
                         self.CACHE_MAP[code]["is_hold"] = False
-                        self.CACHE_MAP[code]["sectors"] = []  # 同时清除板块绑定
                         logger.info(f"删除持有标注【{code}】成功")
                     else:
                         logger.warning(f"删除持有标注【{code}】失败: 不存在该基金代码")
@@ -708,22 +811,6 @@ class MaYiFund:
             codes = codes.split(",")
             codes = [code.strip() for code in codes if code.strip()]
 
-            # 构建板块序号到名称的映射
-            all_sectors = []
-            for category, sectors in self.MAJOR_CATEGORIES.items():
-                for sector in sectors:
-                    all_sectors.append(sector)
-
-            # 表格形式展示板块分类
-            logger.info("板块分类列表:")
-            results = []
-            for i in range(0, len(all_sectors), 5):
-                tmp = all_sectors[i:i + 5]
-                tmp = [f"{i + 1 + j}. {tmp[j]}" for j in range(len(tmp))]
-                results.append(tmp)
-            for line_msg in format_table_msg(results).split("\n"):
-                logger.info(line_msg)
-
             for code in codes:
                 try:
                     if code not in self.CACHE_MAP:
@@ -731,32 +818,6 @@ class MaYiFund:
                         continue
 
                     self.CACHE_MAP[code]["is_hold"] = True
-
-                    # 第二步：选择板块
-                    logger.info(f"为基金 【{code} {self.CACHE_MAP[code]['fund_name']}】 选择板块:")
-                    logger.info("请输入板块序号 (多个用逗号分隔, 如: 1,3,5):")
-                    sector_input = input().strip()
-
-                    if sector_input:
-                        sector_indices = [s.strip() for s in sector_input.split(",")]
-                        selected_sectors = []
-                        for idx_str in sector_indices:
-                            try:
-                                idx = int(idx_str)
-                                if 1 <= idx <= len(all_sectors):
-                                    selected_sectors.append(all_sectors[idx - 1])
-                            except ValueError:
-                                pass
-
-                        if selected_sectors:
-                            self.CACHE_MAP[code]["sectors"] = selected_sectors
-                            logger.info(f"✓ 已绑定板块: {', '.join(selected_sectors)}")
-                        else:
-                            self.CACHE_MAP[code]["sectors"] = []
-                            logger.info("未选择任何板块")
-                    else:
-                        self.CACHE_MAP[code]["sectors"] = []
-
                     logger.info(f"添加持有标注【{code}】成功")
 
                 except Exception as e:
@@ -1382,6 +1443,8 @@ if __name__ == '__main__':
     parser.add_argument("-d", "--delete", action="store_true", help="删除基金代码")
     parser.add_argument("-c", "--hold", action="store_true", help="添加持有基金标注")
     parser.add_argument("-b", "--not_hold", action="store_true", help="删除持有基金标注")
+    parser.add_argument("-e", "--mark_sector", action="store_true", help="标记板块")
+    parser.add_argument("-u", "--unmark_sector", action="store_true", help="删除标记板块")
     parser.add_argument("-s", "--select", action="store_true", help="选择板块查看基金列表")
     parser.add_argument("-o", "--output", type=str, nargs='?', const="reports", default=None,
                         help="输出AI分析报告到指定目录（默认: reports）。只有使用此参数时才会保存报告文件")
@@ -1393,4 +1456,4 @@ if __name__ == '__main__':
     mayi_fund = MaYiFund()
     # 只有指定了 -o 参数时才传入 report_dir，否则传入 None 表示不保存报告
     report_dir = args.output if args.output is not None else None
-    mayi_fund.run(args.add, args.delete, args.hold, args.not_hold, report_dir, args.deep, args.fast, args.with_ai, args.select)
+    mayi_fund.run(args.add, args.delete, args.hold, args.not_hold, report_dir, args.deep, args.fast, args.with_ai, args.select, args.mark_sector, args.unmark_sector)

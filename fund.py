@@ -47,6 +47,36 @@ def format_table_msg(table, tablefmt="pretty"):
 class MaYiFund:
     CACHE_MAP = {}
 
+    # 板块分类映射
+    MAJOR_CATEGORIES = {
+        "科技": ["人工智能", "半导体", "云计算", "5G", "光模块", "CPO", "F5G", "通信设备", "PCB", "消费电子",
+                "计算机", "软件开发", "信创", "网络安全", "IT服务", "国产软件", "计算机设备", "光通信",
+                "算力", "脑机接口", "通信", "电子", "光学光电子", "元件", "存储芯片", "第三代半导体",
+                "光刻胶", "电子化学品", "LED", "毫米波", "智能穿戴", "东数西算", "数据要素", "国资云",
+                "Web3.0", "AIGC", "AI应用", "AI手机", "AI眼镜", "DeepSeek", "TMT", "科技"],
+        "医药健康": ["医药生物", "医疗器械", "生物疫苗", "CRO", "创新药", "精准医疗", "医疗服务", "中药",
+                    "化学制药", "生物制品", "基因测序", "超级真菌"],
+        "消费": ["食品饮料", "白酒", "家用电器", "纺织服饰", "商贸零售", "新零售", "家居用品", "文娱用品",
+                "婴童", "养老产业", "体育", "教育", "在线教育", "社会服务", "轻工制造", "新消费",
+                "可选消费", "消费", "家电零部件", "智能家居"],
+        "金融": ["银行", "证券", "保险", "非银金融", "国有大型银行", "股份制银行", "城商行", "金融"],
+        "能源": ["新能源", "煤炭", "石油石化", "电力", "绿色电力", "氢能源", "储能", "锂电池", "电池",
+                "光伏设备", "风电设备", "充电桩", "固态电池", "能源", "煤炭开采", "公用事业", "锂矿"],
+        "工业制造": ["机械设备", "汽车", "新能源车", "工程机械", "高端装备", "电力设备", "专用设备",
+                    "通用设备", "自动化设备", "机器人", "人形机器人", "汽车零部件", "汽车服务",
+                    "汽车热管理", "尾气治理", "特斯拉", "无人驾驶", "智能驾驶", "电网设备", "电机",
+                    "高端制造", "工业4.0", "工业互联", "低空经济", "通用航空"],
+        "材料": ["有色金属", "黄金股", "贵金属", "基础化工", "钢铁", "建筑材料", "稀土永磁", "小金属",
+                "工业金属", "材料", "大宗商品", "资源"],
+        "军工": ["国防军工", "航天装备", "航空装备", "航海装备", "军工电子", "军民融合", "商业航天",
+                "卫星互联网", "航母", "航空机场"],
+        "基建地产": ["建筑装饰", "房地产", "房地产开发", "房地产服务", "交通运输", "物流"],
+        "环保": ["环保", "环保设备", "环境治理", "垃圾分类", "碳中和", "可控核聚变", "液冷"],
+        "传媒": ["传媒", "游戏", "影视", "元宇宙", "超清视频", "数字孪生"],
+        "主题": ["国企改革", "一带一路", "中特估", "中字头", "并购重组", "华为", "新兴产业",
+                "国家安防", "安全主题", "农牧主题", "农林牧渔", "养殖业", "猪肉", "高端装备"]
+    }
+
     def __init__(self):
         self.session = requests.Session()
         self.baidu_session = curl_requests.Session(impersonate="chrome")
@@ -283,7 +313,12 @@ class MaYiFund:
                             dayOfGrowth = "\033[1;31m" + dayOfGrowth
                     if not is_return:
                         if self.CACHE_MAP[fund].get("is_hold", False):
-                            fund_name = "⭐ " + fund_name
+                            sectors = self.CACHE_MAP[fund].get("sectors", [])
+                            if sectors:
+                                sector_str = ",".join(sectors)
+                                fund_name = f"⭐({sector_str}) {fund_name}"
+                            else:
+                                fund_name = "⭐ " + fund_name
                     self.result.append([
                         fund, fund_name, now_time, forecastGrowth, dayOfGrowth, consecutive_count, consecutive_growth,
                         f"{montly_growth_day} / {montly_growth_day_count}", montly_growth_rate
@@ -657,6 +692,7 @@ class MaYiFund:
                 try:
                     if code in self.CACHE_MAP:
                         self.CACHE_MAP[code]["is_hold"] = False
+                        self.CACHE_MAP[code]["sectors"] = []  # 同时清除板块绑定
                         logger.info(f"删除持有标注【{code}】成功")
                     else:
                         logger.warning(f"删除持有标注【{code}】失败: 不存在该基金代码")
@@ -667,17 +703,62 @@ class MaYiFund:
         if is_hold:
             now_codes = list(self.CACHE_MAP.keys())
             logger.debug(f"当前缓存基金代码: {now_codes}")
-            logger.debug("请输入基金代码, 多个基金代码以英文逗号分隔:")
+            logger.info("请输入基金代码, 多个基金代码以英文逗号分隔:")
             codes = input()
             codes = codes.split(",")
             codes = [code.strip() for code in codes if code.strip()]
+
+            # 构建板块序号到名称的映射
+            all_sectors = []
+            for category, sectors in self.MAJOR_CATEGORIES.items():
+                for sector in sectors:
+                    all_sectors.append(sector)
+
+            # 表格形式展示板块分类
+            logger.info("板块分类列表:")
+            results = []
+            for i in range(0, len(all_sectors), 5):
+                tmp = all_sectors[i:i + 5]
+                tmp = [f"{i + 1 + j}. {tmp[j]}" for j in range(len(tmp))]
+                results.append(tmp)
+            for line_msg in format_table_msg(results).split("\n"):
+                logger.info(line_msg)
+
             for code in codes:
                 try:
-                    if code in self.CACHE_MAP:
-                        self.CACHE_MAP[code]["is_hold"] = True
-                        logger.info(f"添加持有标注【{code}】成功")
-                    else:
+                    if code not in self.CACHE_MAP:
                         logger.warning(f"添加持有标注【{code}】失败: 不存在该基金代码, 请先添加该基金代码")
+                        continue
+
+                    self.CACHE_MAP[code]["is_hold"] = True
+
+                    # 第二步：选择板块
+                    logger.info(f"为基金 【{code} {self.CACHE_MAP[code]['fund_name']}】 选择板块:")
+                    logger.info("请输入板块序号 (多个用逗号分隔, 如: 1,3,5):")
+                    sector_input = input().strip()
+
+                    if sector_input:
+                        sector_indices = [s.strip() for s in sector_input.split(",")]
+                        selected_sectors = []
+                        for idx_str in sector_indices:
+                            try:
+                                idx = int(idx_str)
+                                if 1 <= idx <= len(all_sectors):
+                                    selected_sectors.append(all_sectors[idx - 1])
+                            except ValueError:
+                                pass
+
+                        if selected_sectors:
+                            self.CACHE_MAP[code]["sectors"] = selected_sectors
+                            logger.info(f"✓ 已绑定板块: {', '.join(selected_sectors)}")
+                        else:
+                            self.CACHE_MAP[code]["sectors"] = []
+                            logger.info("未选择任何板块")
+                    else:
+                        self.CACHE_MAP[code]["sectors"] = []
+
+                    logger.info(f"添加持有标注【{code}】成功")
+
                 except Exception as e:
                     logger.error(f"添加持有标注【{code}】失败: {e}")
             self.save_cache()
@@ -1208,35 +1289,8 @@ class MaYiFund:
             data = self.select_fund(is_return=True)
             bk_list = data["bk_list"]
 
-            # 定义大板块分类（仅用于展示）
-            major_categories = {
-                "科技": ["人工智能", "半导体", "云计算", "5G", "光模块", "CPO", "F5G", "通信设备", "PCB", "消费电子",
-                        "计算机", "软件开发", "信创", "网络安全", "IT服务", "国产软件", "计算机设备", "光通信",
-                        "算力", "脑机接口", "通信", "电子", "光学光电子", "元件", "存储芯片", "第三代半导体",
-                        "光刻胶", "电子化学品", "LED", "毫米波", "智能穿戴", "东数西算", "数据要素", "国资云",
-                        "Web3.0", "AIGC", "AI应用", "AI手机", "AI眼镜", "DeepSeek", "TMT", "科技"],
-                "医药健康": ["医药生物", "医疗器械", "生物疫苗", "CRO", "创新药", "精准医疗", "医疗服务", "中药",
-                            "化学制药", "生物制品", "基因测序", "超级真菌"],
-                "消费": ["食品饮料", "白酒", "家用电器", "纺织服饰", "商贸零售", "新零售", "家居用品", "文娱用品",
-                        "婴童", "养老产业", "体育", "教育", "在线教育", "社会服务", "轻工制造", "新消费",
-                        "可选消费", "消费", "家电零部件", "智能家居"],
-                "金融": ["银行", "证券", "保险", "非银金融", "国有大型银行", "股份制银行", "城商行", "金融"],
-                "能源": ["新能源", "煤炭", "石油石化", "电力", "绿色电力", "氢能源", "储能", "锂电池", "电池",
-                        "光伏设备", "风电设备", "充电桩", "固态电池", "能源", "煤炭开采", "公用事业", "锂矿"],
-                "工业制造": ["机械设备", "汽车", "新能源车", "工程机械", "高端装备", "电力设备", "专用设备",
-                            "通用设备", "自动化设备", "机器人", "人形机器人", "汽车零部件", "汽车服务",
-                            "汽车热管理", "尾气治理", "特斯拉", "无人驾驶", "智能驾驶", "电网设备", "电机",
-                            "高端制造", "工业4.0", "工业互联", "低空经济", "通用航空"],
-                "材料": ["有色金属", "黄金股", "贵金属", "基础化工", "钢铁", "建筑材料", "稀土永磁", "小金属",
-                        "工业金属", "材料", "大宗商品", "资源"],
-                "军工": ["国防军工", "航天装备", "航空装备", "航海装备", "军工电子", "军民融合", "商业航天",
-                        "卫星互联网", "航母", "航空机场"],
-                "基建地产": ["建筑装饰", "房地产", "房地产开发", "房地产服务", "交通运输", "物流"],
-                "环保": ["环保", "环保设备", "环境治理", "垃圾分类", "碳中和", "可控核聚变", "液冷"],
-                "传媒": ["传媒", "游戏", "影视", "元宇宙", "超清视频", "数字孪生"],
-                "主题": ["国企改革", "一带一路", "中特估", "中字头", "并购重组", "华为", "新兴产业",
-                        "国家安防", "安全主题", "农牧主题", "农林牧渔", "养殖业", "猪肉", "高端装备"]
-            }
+            # 使用类属性的大板块分类
+            major_categories = self.MAJOR_CATEGORIES
 
             # 生成分类板块按钮
             buttons_html = '<div style="padding: 20px;">'

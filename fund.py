@@ -218,19 +218,25 @@ class MaYiFund:
 
                 # 选择板块
                 logger.info(f"为基金 【{code} {self.CACHE_MAP[code]['fund_name']}】 选择板块:")
-                logger.info("请输入板块序号 (多个用逗号分隔, 如: 1,3,5):")
+                logger.info("请输入板块序号或自定义板块名称 (多个用逗号分隔, 如: 1,3,5 或 新能源,医药 或 1,新能源):")
                 sector_input = input().strip()
 
                 if sector_input:
-                    sector_indices = [s.strip() for s in sector_input.split(",")]
+                    sector_items = [s.strip() for s in sector_input.split(",")]
                     selected_sectors = []
-                    for idx_str in sector_indices:
+                    for item in sector_items:
+                        # 尝试解析为序号
                         try:
-                            idx = int(idx_str)
+                            idx = int(item)
                             if 1 <= idx <= len(all_sectors):
+                                # 是有效序号，从板块列表中获取
                                 selected_sectors.append(all_sectors[idx - 1])
+                            else:
+                                # 序号超出范围，当作自定义板块名称
+                                selected_sectors.append(item)
                         except ValueError:
-                            pass
+                            # 不是数字，直接作为自定义板块名称
+                            selected_sectors.append(item)
 
                     if selected_sectors:
                         self.CACHE_MAP[code]["sectors"] = selected_sectors

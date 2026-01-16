@@ -402,13 +402,14 @@ class MaYiFund:
                         else:
                             dayOfGrowth = "\033[1;31m" + dayOfGrowth
                     if not is_return:
+                        # 处理持有标记
                         if self.CACHE_MAP[fund].get("is_hold", False):
-                            sectors = self.CACHE_MAP[fund].get("sectors", [])
-                            if sectors:
-                                sector_str = ",".join(sectors)
-                                fund_name = f"⭐ ({sector_str}) {fund_name}"
-                            else:
-                                fund_name = "⭐ " + fund_name
+                            fund_name = "⭐ " + fund_name
+                        # 处理板块标记（独立于持有状态）
+                        sectors = self.CACHE_MAP[fund].get("sectors", [])
+                        if sectors:
+                            sector_str = ",".join(sectors)
+                            fund_name = f"({sector_str}) {fund_name}"
                     # 合并连涨天数和连涨幅
                     consecutive_info = f"{consecutive_count}天 {consecutive_growth}"
                     # 合并近30天涨跌和总涨幅

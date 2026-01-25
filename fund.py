@@ -1114,12 +1114,12 @@ class MaYiFund:
             gold = data[i]
             t = gold["time"]
             date = datetime.datetime.fromtimestamp(t / 1000).strftime("%Y-%m-%d")
-            radio = str(gold["q70"])
+            radio = str(gold.get("q70", "N/A"))
             radio2 = "N/A"
             gold2 = {}
             if len(data2) > i:
                 gold2 = data2[i]
-                radio2 = str(gold2["q70"])
+                radio2 = str(gold.get("q70", "N/A"))
             if not is_return:
                 if "-" in radio:
                     radio = "\033[1;32m" + radio

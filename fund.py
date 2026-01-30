@@ -931,10 +931,11 @@ class MaYiFund:
 
     def gold_html(self):
         result = self.gold(True)
-        return get_table_html(
-            ["日期", "中国黄金基础金价", "周大福金价", "中国黄金基础金价涨跌", "周大福金价涨跌"],
-            result
-        )
+        if result:
+            return get_table_html(
+                ["日期", "中国黄金基础金价", "周大福金价", "中国黄金基础金价涨跌", "周大福金价涨跌"],
+                result
+            )
 
     @staticmethod
     def bk(is_return=False):
@@ -1072,81 +1073,84 @@ class MaYiFund:
 
     @staticmethod
     def gold(is_return=False):
-        headers = {
-            "accept": "*/*",
-            "accept-language": "zh-CN,zh;q=0.9",
-            "referer": "https://quote.cngold.org/gjs/swhj_zghj.html",
-            "sec-ch-ua": "\"Chromium\";v=\"128\", \"Not;A=Brand\";v=\"24\", \"Google Chrome\";v=\"128\"",
-            "sec-ch-ua-mobile": "?0",
-            "sec-ch-ua-platform": "\"Windows\"",
-            "sec-fetch-dest": "script",
-            "sec-fetch-mode": "no-cors",
-            "sec-fetch-site": "cross-site",
-            "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36"
-        }
-        url = "https://api.jijinhao.com/quoteCenter/history.htm"
-        params = {
-            "code": "JO_52683",
-            "style": "3",
-            "pageSize": "10",
-            "needField": "128,129,70",
-            "currentPage": "1",
-            "_": int(time.time() * 1000)
-        }
-        response = requests.get(url, headers=headers, params=params, timeout=10, verify=False)
-        data = json.loads(response.text.replace("var quote_json = ", ""))["data"]
+        try:
+            headers = {
+                "accept": "*/*",
+                "accept-language": "zh-CN,zh;q=0.9",
+                "referer": "https://quote.cngold.org/gjs/swhj_zghj.html",
+                "sec-ch-ua": "\"Chromium\";v=\"128\", \"Not;A=Brand\";v=\"24\", \"Google Chrome\";v=\"128\"",
+                "sec-ch-ua-mobile": "?0",
+                "sec-ch-ua-platform": "\"Windows\"",
+                "sec-fetch-dest": "script",
+                "sec-fetch-mode": "no-cors",
+                "sec-fetch-site": "cross-site",
+                "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36"
+            }
+            url = "https://api.jijinhao.com/quoteCenter/history.htm"
+            params = {
+                "code": "JO_52683",
+                "style": "3",
+                "pageSize": "10",
+                "needField": "128,129,70",
+                "currentPage": "1",
+                "_": int(time.time() * 1000)
+            }
+            response = requests.get(url, headers=headers, params=params, timeout=10, verify=False)
+            data = json.loads(response.text.replace("var quote_json = ", ""))["data"]
 
-        url = "https://api.jijinhao.com/quoteCenter/history.htm"
-        params = {
-            "code": "JO_42660",
-            "style": "3",
-            "pageSize": "10",
-            "needField": "128,129,70",
-            "currentPage": "1",
-            "_": int(time.time() * 1000)
-        }
-        response = requests.get(url, headers=headers, params=params, timeout=10, verify=False)
-        data2 = json.loads(response.text.replace("var quote_json = ", ""))["data"]
+            url = "https://api.jijinhao.com/quoteCenter/history.htm"
+            params = {
+                "code": "JO_42660",
+                "style": "3",
+                "pageSize": "10",
+                "needField": "128,129,70",
+                "currentPage": "1",
+                "_": int(time.time() * 1000)
+            }
+            response = requests.get(url, headers=headers, params=params, timeout=10, verify=False)
+            data2 = json.loads(response.text.replace("var quote_json = ", ""))["data"]
 
-        gold_list = []
+            gold_list = []
 
-        for i in range(len(data)):
-            gold = data[i]
-            t = gold["time"]
-            date = datetime.datetime.fromtimestamp(t / 1000).strftime("%Y-%m-%d")
-            radio = str(gold.get("q70", "N/A"))
-            radio2 = "N/A"
-            gold2 = {}
-            if len(data2) > i:
-                gold2 = data2[i]
-                radio2 = str(gold.get("q70", "N/A"))
-            if not is_return:
-                if "-" in radio:
-                    radio = "\033[1;32m" + radio
-                else:
-                    radio = "\033[1;31m" + radio
-                if "-" in radio2:
-                    radio2 = "\033[1;32m" + radio2
-                else:
-                    radio2 = "\033[1;31m" + radio2
-            gold_list.append([
-                date,
-                gold["q1"],
-                gold2.get("q1", "N/A"),
-                radio,
-                radio2
-            ])
-        if is_return:
-            return gold_list[::-1]
-        if gold_list:
-            logger.critical(f"{time.strftime('%Y-%m-%d %H:%M')} 金价:")
-            for line_msg in format_table_msg([
-                [
-                    "日期", "中国黄金基础金价", "周大福金价", "中国黄金基础金价涨跌", "周大福金价涨跌"
-                ],
-                *gold_list[::-1]
-            ]).split("\n"):
-                logger.info(line_msg)
+            for i in range(len(data)):
+                gold = data[i]
+                t = gold["time"]
+                date = datetime.datetime.fromtimestamp(t / 1000).strftime("%Y-%m-%d")
+                radio = str(gold.get("q70", "N/A"))
+                radio2 = "N/A"
+                gold2 = {}
+                if len(data2) > i:
+                    gold2 = data2[i]
+                    radio2 = str(gold.get("q70", "N/A"))
+                if not is_return:
+                    if "-" in radio:
+                        radio = "\033[1;32m" + radio
+                    else:
+                        radio = "\033[1;31m" + radio
+                    if "-" in radio2:
+                        radio2 = "\033[1;32m" + radio2
+                    else:
+                        radio2 = "\033[1;31m" + radio2
+                gold_list.append([
+                    date,
+                    gold["q1"],
+                    gold2.get("q1", "N/A"),
+                    radio,
+                    radio2
+                ])
+            if is_return:
+                return gold_list[::-1]
+            if gold_list:
+                logger.critical(f"{time.strftime('%Y-%m-%d %H:%M')} 金价:")
+                for line_msg in format_table_msg([
+                    [
+                        "日期", "中国黄金基础金价", "周大福金价", "中国黄金基础金价涨跌", "周大福金价涨跌"
+                    ],
+                    *gold_list[::-1]
+                ]).split("\n"):
+                    logger.info(line_msg)
+        except Exception as e:
+            logger.error(f"获取贵金属价格失败: {e}")
 
     @staticmethod
     def real_time_gold(is_return=False):
@@ -1163,79 +1167,83 @@ class MaYiFund:
             "sec-fetch-storage-access": "active",
             "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36"
         }
-        url = "https://api.jijinhao.com/quoteCenter/realTime.htm"
-        params = {
-            "codes": "JO_71,JO_92233,JO_92232,JO_75",
-            "_": str(int(time.time() * 1000))
-        }
-        response = requests.get(url, headers=headers, params=params, timeout=10, verify=False)
-        data = json.loads(response.text.replace("var quote_json = ", ""))
-        result = [[], [], []]
-        columns = ["名称", "最新价", "涨跌额", "涨跌幅", "开盘价", "最高价", "最低价", "昨收价", "更新时间", "单位"]
-        if data:
-            data1 = data["JO_71"]
-            data2 = data["JO_92233"]
-            data3 = data["JO_92232"]
-            keys = ["showName", "q63", "q70", "q80", "q1", "q3", "q4", "q2", "time", "unit"]
-            for key in keys:
-                if key == "time":
-                    for i, t in enumerate([data1[key], data2[key], data3[key]]):
-                        date = datetime.datetime.fromtimestamp(t / 1000).strftime("%Y-%m-%d %H:%M:%S")
-                        result[i].append(date)
+        try:
+            url = "https://api.jijinhao.com/quoteCenter/realTime.htm"
+            params = {
+                "codes": "JO_71,JO_92233,JO_92232,JO_75",
+                "_": str(int(time.time() * 1000))
+            }
+            response = requests.get(url, headers=headers, params=params, timeout=10, verify=False)
+            data = json.loads(response.text.replace("var quote_json = ", ""))
+            result = [[], [], []]
+            columns = ["名称", "最新价", "涨跌额", "涨跌幅", "开盘价", "最高价", "最低价", "昨收价", "更新时间", "单位"]
+            if data:
+                data1 = data["JO_71"]
+                data2 = data["JO_92233"]
+                data3 = data["JO_92232"]
+                keys = ["showName", "q63", "q70", "q80", "q1", "q3", "q4", "q2", "time", "unit"]
+                for key in keys:
+                    if key == "time":
+                        for i, t in enumerate([data1[key], data2[key], data3[key]]):
+                            date = datetime.datetime.fromtimestamp(t / 1000).strftime("%Y-%m-%d %H:%M:%S")
+                            result[i].append(date)
 
-                else:
-                    value1 = data1.get(key, "N/A")
-                    value2 = data2.get(key, "N/A")
-                    value3 = data3.get(key, "N/A")
-                    if not isinstance(value1, str):
-                        value1 = round(value1, 2)
-                    if not isinstance(value2, str):
-                        value2 = round(value2, 2)
-                    if not isinstance(value3, str):
-                        value3 = round(value3, 2)
-                    value1 = str(value1)
-                    value2 = str(value2)
-                    value3 = str(value3)
-                    if key == "q70":
-                        if not is_return:
-                            if "-" in value1:
-                                value1 = "\033[1;32m" + value1
-                            else:
-                                value1 = "\033[1;31m" + value1
-                            if "-" in value2:
-                                value2 = "\033[1;32m" + value2
-                            else:
-                                value2 = "\033[1;31m" + value2
-                            if "-" in value3:
-                                value3 = "\033[1;32m" + value3
-                            else:
-                                value3 = "\033[1;31m" + value3
-                    if key == "q80":
-                        value1 = value1 + "%"
-                        value2 = value2 + "%"
-                        value3 = value3 + "%"
-                    result[0].append(value1)
-                    result[1].append(value2)
-                    result[2].append(value3)
+                    else:
+                        value1 = data1.get(key, "N/A")
+                        value2 = data2.get(key, "N/A")
+                        value3 = data3.get(key, "N/A")
+                        if not isinstance(value1, str):
+                            value1 = round(value1, 2)
+                        if not isinstance(value2, str):
+                            value2 = round(value2, 2)
+                        if not isinstance(value3, str):
+                            value3 = round(value3, 2)
+                        value1 = str(value1)
+                        value2 = str(value2)
+                        value3 = str(value3)
+                        if key == "q70":
+                            if not is_return:
+                                if "-" in value1:
+                                    value1 = "\033[1;32m" + value1
+                                else:
+                                    value1 = "\033[1;31m" + value1
+                                if "-" in value2:
+                                    value2 = "\033[1;32m" + value2
+                                else:
+                                    value2 = "\033[1;31m" + value2
+                                if "-" in value3:
+                                    value3 = "\033[1;32m" + value3
+                                else:
+                                    value3 = "\033[1;31m" + value3
+                        if key == "q80":
+                            value1 = value1 + "%"
+                            value2 = value2 + "%"
+                            value3 = value3 + "%"
+                        result[0].append(value1)
+                        result[1].append(value2)
+                        result[2].append(value3)
 
-        if is_return:
-            return result
-        if result and result[0] and result[1] and result[2]:
-            logger.critical(f"{time.strftime('%Y-%m-%d %H:%M')} 实时贵金属价:")
-            for line_msg in format_table_msg([
-                columns,
-                result[0],
-                result[1],
-                result[2]
-            ]).split("\n"):
-                logger.info(line_msg)
+            if is_return:
+                return result
+            if result and result[0] and result[1] and result[2]:
+                logger.critical(f"{time.strftime('%Y-%m-%d %H:%M')} 实时贵金属价:")
+                for line_msg in format_table_msg([
+                    columns,
+                    result[0],
+                    result[1],
+                    result[2]
+                ]).split("\n"):
+                    logger.info(line_msg)
+        except Exception as e:
+            logger.error(f"获取实时贵金属价格失败: {e}")
 
     def real_time_gold_html(self):
         result = self.real_time_gold(True)
-        return get_table_html(
-            ["名称", "最新价", "涨跌额", "涨跌幅", "开盘价", "最高价", "最低价", "昨收价", "更新时间", "单位"],
-            result
-        )
+        if result:
+            return get_table_html(
+                ["名称", "最新价", "涨跌额", "涨跌幅", "开盘价", "最高价", "最低价", "昨收价", "更新时间", "单位"],
+                result
+            )
 
     def A(self, is_return=False):
         url = "https://finance.pae.baidu.com/vapi/v1/getquotation"

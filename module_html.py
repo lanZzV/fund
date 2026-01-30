@@ -554,6 +554,7 @@ def get_css_style():
             border-top: 4px solid #000000;
             border-bottom: 1px solid #000000;
             overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
             margin-bottom: 1rem;
         }
 
@@ -627,6 +628,27 @@ def get_css_style():
             font-family: var(--font-mono); /* 使用等宽字体显示数字 */
             font-variant-numeric: tabular-nums; /* 确保数字对齐 */
         }
+
+        /* Sticky first column for mobile/tablet */
+        @media (max-width: 1024px) {
+            .style-table th:first-child,
+            .style-table td:first-child {
+                position: sticky;
+                left: 0;
+                background-color: #ffffff;
+                z-index: 10;
+                box-shadow: 2px 0 4px rgba(0,0,0,0.1);
+            }
+
+            .style-table th:first-child {
+                z-index: 20;
+                background-color: #ffffff;
+            }
+
+            .style-table tbody tr:hover td:first-child {
+                background-color: #f8f8f8;
+            }
+        }
         
         /* Colors */
         .positive {
@@ -641,24 +663,144 @@ def get_css_style():
         
         /* Specific tweaks for small screens */
         @media (max-width: 768px) {
+            body {
+                font-size: 14px;
+            }
+
+            /* Navbar */
+            .navbar {
+                padding: 0.75rem 1rem;
+                flex-wrap: wrap;
+                gap: 0.5rem;
+            }
+
+            .navbar-brand {
+                font-size: 1rem;
+                flex: 1;
+                min-width: 150px;
+            }
+
+            .navbar-menu {
+                display: flex;
+                align-items: center;
+                gap: 0.5rem;
+            }
+
+            .navbar-item {
+                font-size: 0.75rem;
+            }
+
+            #toggle-chat-btn {
+                font-size: 0.75rem !important;
+                padding: 0 8px !important;
+            }
+
+            /* App container */
             .app-container {
                 flex-direction: column;
+                overflow: visible;
             }
+
             .main-content {
                 height: auto;
-                min-height: 50vh;
+                min-height: calc(100vh - 100px);
+                padding: 1rem;
+                overflow-y: visible;
             }
+
+            .dashboard-grid {
+                max-width: 100%;
+                padding-bottom: 20px;
+            }
+
+            /* Tabs */
+            .tabs-header {
+                padding: 0;
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+                scrollbar-width: none;
+            }
+
+            .tabs-header::-webkit-scrollbar {
+                display: none;
+            }
+
+            .tab-button {
+                padding: 10px 12px;
+                font-size: 0.8rem;
+                white-space: nowrap;
+                flex: 0 0 auto;
+                min-width: 80px;
+            }
+
+            /* Tables - Enable horizontal scroll */
+            .table-container {
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+                border-radius: 0;
+            }
+
+            .style-table {
+                font-size: 0.75rem;
+                min-width: 100%;
+            }
+
+            .style-table th {
+                padding: 8px 10px;
+                font-size: 0.75rem;
+                white-space: nowrap;
+            }
+
+            .style-table td {
+                padding: 8px 10px;
+                font-size: 0.75rem;
+            }
+
+            /* Make numeric columns more compact on mobile */
+            .style-table th:nth-child(n+4),
+            .style-table td:nth-child(n+4) {
+                padding: 8px 6px;
+                font-size: 0.7rem;
+            }
+
+            /* Hide less important columns on very small screens */
+            @media (max-width: 480px) {
+                .style-table td:nth-child(n+7),
+                .style-table th:nth-child(n+7) {
+                    display: none;
+                }
+            }
+
+            /* Chat sidebar */
             .pro-chat-sidebar {
                 width: 100%;
-                height: 600px;
+                height: 500px;
                 border-left: none;
                 border-top: 1px solid #e0e0e0;
+                min-width: 100%;
+                max-width: 100%;
             }
-            .navbar {
+
+            .pro-chat-sidebar.hidden {
+                display: none;
+            }
+
+            /* Resize handle - hide on mobile */
+            .resize-handle {
+                display: none;
+            }
+
+            /* Loading page adjustments */
+            .loading-container {
                 padding: 1rem;
             }
-            .style-table {
-                font-size: 0.8rem;
+
+            .task-list {
+                max-width: 100%;
+            }
+
+            .task-item {
+                font-size: 0.85rem;
             }
         }
 

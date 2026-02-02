@@ -299,10 +299,10 @@ class MaYiFund:
                 }
                 url = f"https://www.fund123.cn/matiaria?fundCode={fund}"
                 response = self.session.get(url, headers=headers, timeout=10, verify=False)
-                dayOfGrowth = re.findall('\"dayOfGrowth\"\:\"(.*?)\"', response.text)[0]
+                dayOfGrowth = re.findall(r'"dayOfGrowth":"(.*?)"', response.text)[0]
                 dayOfGrowth = str(round(float(dayOfGrowth), 2)) + "%"
 
-                netValueDate = re.findall('\"netValueDate\"\:\"(.*?)\"', response.text)[0]
+                netValueDate = re.findall(r'"netValueDate":"(.*?)"', response.text)[0]
                 if is_return:
                     dayOfGrowth = f"{dayOfGrowth}({netValueDate})"
 
@@ -407,15 +407,14 @@ class MaYiFund:
                             dayOfGrowth = "\033[1;32m" + dayOfGrowth
                         else:
                             dayOfGrowth = "\033[1;31m" + dayOfGrowth
-                    if not is_return:
-                        # 处理持有标记
-                        if self.CACHE_MAP[fund].get("is_hold", False):
-                            fund_name = "⭐ " + fund_name
-                        # 处理板块标记（独立于持有状态）
-                        sectors = self.CACHE_MAP[fund].get("sectors", [])
-                        if sectors:
-                            sector_str = ",".join(sectors)
-                            fund_name = f"({sector_str}) {fund_name}"
+                    # 处理持有标记和板块标记（Web 和 CLI 模式都显示）
+                    if self.CACHE_MAP[fund].get("is_hold", False):
+                        fund_name = "⭐ " + fund_name
+                    # 处理板块标记（独立于持有状态）
+                    sectors = self.CACHE_MAP[fund].get("sectors", [])
+                    if sectors:
+                        sector_str = ",".join(sectors)
+                        fund_name = f"({sector_str}) {fund_name}"
                     # 合并连涨天数和连涨幅
                     consecutive_info = f"{consecutive_count}天 {consecutive_growth}"
                     # 合并近30天涨跌和总涨幅

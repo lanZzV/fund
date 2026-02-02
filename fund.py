@@ -83,7 +83,7 @@ class MaYiFund:
         self.baidu_session.headers = {
             "accept": "application/vnd.finance-web.v1+json",
             "accept-language": "zh-CN,zh;q=0.9",
-            "acs-token": "1767852006302_1767922774428_a5+nkAvkUigC1QCMVgphVfGSz3uvhigDZkrDM9ew7wjpNrUkQBUNgD3XpM57f2mcq/IePhZEI0fKkiKL/rXshBM3uF81xTcvjPL2PJay3YltapNyRHEYepcudaTSLNXVISph2tImkqnH1JNad7RLtMr2hm8AJJ+vhxll2W7WfAVn0E+PWLFAPJFlOXmuhwETtOtD+gKWTCEPavgdP7hrdfKtIUC8Cty6G96gY+5o9w/VYOdGnqyX8fUOV1i5ieJRaGP9N16M/nSxa5+y0oMluHENQs4DtkKzZdVgG16K8tobJVNk0Gq/kd+q782nVNrulOZn1qhNVGH6uTJUnZwnmyhnlimAtOB7vzSri3r5ut38GAeb6Svp4kw4M6lQZE6LUlNm9ZStZV1QPEmoS9l3ow==",
+            "acs-token": "1769925606098_1770001866425_B6lkFxZg0PzQhmCXjMfTJUxYBn+en+J7W6a8XGyGMqfxPfIv2RgeZG8wimRzlhAxlZlErxq7wN5rVnCfPj6s/UNiA1a1hfyItpnMrru1lzDxUcicsi2ngKjmVCdUfqRZTcHPnfDWrt4phJcS7Ue+Sh6Ru/GVG+1McDUmf/d52zDv5Q6QM7CAJfHDqsCMP65SNjo63Xljm+aAIzDzKErfG+LOR706MJaZGY2o/hGcESyOy3FcWv+pYNFUjpV3M5sMFNEDa50fWh4J9PZpQDxDQLNhr9LSYunQUxe6wtNEGds85p9V6/yU6v+jA9q0h9/OyQJ/ZuD1lP0VPEACEc4qJvfItxhuK9MfKM+j6Spc/N6Qomh6pZYt6iLJjJp652xIqZurCmxem2Z3Vqu+mcZ9FN1l0qU6dx4hkaTZk3850FE/n6YW+HL74Mp8L+YR/Q2VMV3ARkSzPHgOS9iA6rBAaBiJf2Ni/BTHNSyFxJJjazI=",
             "origin": "https://gushitong.baidu.com",
             "priority": "u=1, i",
             "referer": "https://gushitong.baidu.com/",
@@ -1313,50 +1313,54 @@ class MaYiFund:
             "metric": "amount",
             "finClientType": "pc"
         }
-        response = self.baidu_session.get(url, params=params, timeout=10, verify=False)
-        if str(response.json()["ResultCode"]) == "0":
-            trend = response.json()["Result"]["trend"]
-            result = []
-            # 近七天的日期
-            today = datetime.datetime.now()
-            dates = [(today - datetime.timedelta(days=i)).strftime("%Y-%m-%d") for i in range(8)]
-            for i in dates:
-                total = trend[0]
-                ss = trend[1]
-                sz = trend[2]
-                bj = trend[3]
-                total_data = [x for x in total["content"] if x["marketDate"] == i]
-                ss_data = [x for x in ss["content"] if x["marketDate"] == i]
-                sz_data = [x for x in sz["content"] if x["marketDate"] == i]
-                bj_data = [x for x in bj["content"] if x["marketDate"] == i]
-                if total_data and ss_data and sz_data and bj_data:
-                    total_amount = total_data[0]["data"]["amount"] + "亿"
-                    ss_amount = ss_data[0]["data"]["amount"] + "亿"
-                    sz_amount = sz_data[0]["data"]["amount"] + "亿"
-                    bj_amount = bj_data[0]["data"]["amount"] + "亿"
-                    result.append([
-                        i, total_amount, ss_amount, sz_amount, bj_amount
-                    ])
+        try:
+            response = self.baidu_session.get(url, params=params, timeout=10, verify=False)
+            if str(response.json()["ResultCode"]) == "0":
+                trend = response.json()["Result"]["trend"]
+                result = []
+                # 近七天的日期
+                today = datetime.datetime.now()
+                dates = [(today - datetime.timedelta(days=i)).strftime("%Y-%m-%d") for i in range(8)]
+                for i in dates:
+                    total = trend[0]
+                    ss = trend[1]
+                    sz = trend[2]
+                    bj = trend[3]
+                    total_data = [x for x in total["content"] if x["marketDate"] == i]
+                    ss_data = [x for x in ss["content"] if x["marketDate"] == i]
+                    sz_data = [x for x in sz["content"] if x["marketDate"] == i]
+                    bj_data = [x for x in bj["content"] if x["marketDate"] == i]
+                    if total_data and ss_data and sz_data and bj_data:
+                        total_amount = total_data[0]["data"]["amount"] + "亿"
+                        ss_amount = ss_data[0]["data"]["amount"] + "亿"
+                        sz_amount = sz_data[0]["data"]["amount"] + "亿"
+                        bj_amount = bj_data[0]["data"]["amount"] + "亿"
+                        result.append([
+                            i, total_amount, ss_amount, sz_amount, bj_amount
+                        ])
 
-            if is_return:
-                return result
-            if result:
-                logger.critical(f"{time.strftime('%Y-%m-%d %H:%M')} 近 7 日成交量:")
-                for line_msg in format_table_msg([
-                    [
-                        "日期", "总成交额", "上交所", "深交所", "北交所"
-                    ],
-                    *result
-                ]).split("\n"):
-                    logger.info(line_msg)
+                if is_return:
+                    return result
+                if result:
+                    logger.critical(f"{time.strftime('%Y-%m-%d %H:%M')} 近 7 日成交量:")
+                    for line_msg in format_table_msg([
+                        [
+                            "日期", "总成交额", "上交所", "深交所", "北交所"
+                        ],
+                        *result
+                    ]).split("\n"):
+                        logger.info(line_msg)
+        except Exception as e:
+            logger.error(f"获取近七日成交量信息失败: {e}")
 
     def seven_A_html(self):
         result = self.seven_A(True)
-        return get_table_html(
-            ["日期", "总成交额", "上交所", "深交所", "北交所"],
-            result,
-            [1, 2, 3, 4]
-        )
+        if result:
+            return get_table_html(
+                ["日期", "总成交额", "上交所", "深交所", "北交所"],
+                result,
+                [1, 2, 3, 4]
+            )
 
     def select_fund_html(self, bk_id=None):
         """生成板块基金查询的HTML"""

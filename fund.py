@@ -14,11 +14,10 @@ import urllib3
 from curl_cffi import requests as curl_requests
 from dotenv import load_dotenv
 from loguru import logger
-from lxml import etree
 from tabulate import tabulate
 
-from ai_analyzer import AIAnalyzer
-from module_html import get_table_html
+from src.ai_analyzer import AIAnalyzer
+from src.module_html import get_table_html
 
 # 加载环境变量
 load_dotenv()
@@ -50,34 +49,37 @@ class MaYiFund:
     # 板块分类映射
     MAJOR_CATEGORIES = {
         "科技": ["人工智能", "半导体", "云计算", "5G", "光模块", "CPO", "F5G", "通信设备", "PCB", "消费电子",
-                "计算机", "软件开发", "信创", "网络安全", "IT服务", "国产软件", "计算机设备", "光通信",
-                "算力", "脑机接口", "通信", "电子", "光学光电子", "元件", "存储芯片", "第三代半导体",
-                "光刻胶", "电子化学品", "LED", "毫米波", "智能穿戴", "东数西算", "数据要素", "国资云",
-                "Web3.0", "AIGC", "AI应用", "AI手机", "AI眼镜", "DeepSeek", "TMT", "科技"],
+                 "计算机", "软件开发", "信创", "网络安全", "IT服务", "国产软件", "计算机设备", "光通信",
+                 "算力", "脑机接口", "通信", "电子", "光学光电子", "元件", "存储芯片", "第三代半导体",
+                 "光刻胶", "电子化学品", "LED", "毫米波", "智能穿戴", "东数西算", "数据要素", "国资云",
+                 "Web3.0", "AIGC", "AI应用", "AI手机", "AI眼镜", "DeepSeek", "TMT", "科技"],
         "医药健康": ["医药生物", "医疗器械", "生物疫苗", "CRO", "创新药", "精准医疗", "医疗服务", "中药",
-                    "化学制药", "生物制品", "基因测序", "超级真菌"],
+                     "化学制药", "生物制品", "基因测序", "超级真菌"],
         "消费": ["食品饮料", "白酒", "家用电器", "纺织服饰", "商贸零售", "新零售", "家居用品", "文娱用品",
-                "婴童", "养老产业", "体育", "教育", "在线教育", "社会服务", "轻工制造", "新消费",
-                "可选消费", "消费", "家电零部件", "智能家居"],
+                 "婴童", "养老产业", "体育", "教育", "在线教育", "社会服务", "轻工制造", "新消费",
+                 "可选消费", "消费", "家电零部件", "智能家居"],
         "金融": ["银行", "证券", "保险", "非银金融", "国有大型银行", "股份制银行", "城商行", "金融"],
         "能源": ["新能源", "煤炭", "石油石化", "电力", "绿色电力", "氢能源", "储能", "锂电池", "电池",
-                "光伏设备", "风电设备", "充电桩", "固态电池", "能源", "煤炭开采", "公用事业", "锂矿"],
+                 "光伏设备", "风电设备", "充电桩", "固态电池", "能源", "煤炭开采", "公用事业", "锂矿"],
         "工业制造": ["机械设备", "汽车", "新能源车", "工程机械", "高端装备", "电力设备", "专用设备",
-                    "通用设备", "自动化设备", "机器人", "人形机器人", "汽车零部件", "汽车服务",
-                    "汽车热管理", "尾气治理", "特斯拉", "无人驾驶", "智能驾驶", "电网设备", "电机",
-                    "高端制造", "工业4.0", "工业互联", "低空经济", "通用航空"],
+                     "通用设备", "自动化设备", "机器人", "人形机器人", "汽车零部件", "汽车服务",
+                     "汽车热管理", "尾气治理", "特斯拉", "无人驾驶", "智能驾驶", "电网设备", "电机",
+                     "高端制造", "工业4.0", "工业互联", "低空经济", "通用航空"],
         "材料": ["有色金属", "黄金股", "贵金属", "基础化工", "钢铁", "建筑材料", "稀土永磁", "小金属",
-                "工业金属", "材料", "大宗商品", "资源"],
+                 "工业金属", "材料", "大宗商品", "资源"],
         "军工": ["国防军工", "航天装备", "航空装备", "航海装备", "军工电子", "军民融合", "商业航天",
-                "卫星互联网", "航母", "航空机场"],
+                 "卫星互联网", "航母", "航空机场"],
         "基建地产": ["建筑装饰", "房地产", "房地产开发", "房地产服务", "交通运输", "物流"],
         "环保": ["环保", "环保设备", "环境治理", "垃圾分类", "碳中和", "可控核聚变", "液冷"],
         "传媒": ["传媒", "游戏", "影视", "元宇宙", "超清视频", "数字孪生"],
         "主题": ["国企改革", "一带一路", "中特估", "中字头", "并购重组", "华为", "新兴产业",
-                "国家安防", "安全主题", "农牧主题", "农林牧渔", "养殖业", "猪肉", "高端装备"]
+                 "国家安防", "安全主题", "农牧主题", "农林牧渔", "养殖业", "猪肉", "高端装备"]
     }
 
-    def __init__(self):
+    def __init__(self, user_id=None, db=None):
+        self.user_id = user_id  # 用户ID，如果为None则使用文件模式
+        self.db = db  # 数据库实例，从外部传入
+
         self.session = requests.Session()
         self.baidu_session = curl_requests.Session(impersonate="chrome")
         self.baidu_session.headers = {
@@ -102,17 +104,29 @@ class MaYiFund:
         self.result = []
 
     def load_cache(self):
-        if not os.path.exists("cache"):
-            os.mkdir("cache")
-        if os.path.exists("cache/fund_map.json"):
-            with open("cache/fund_map.json", "r", encoding="gbk") as f:
-                self.CACHE_MAP = json.load(f)
+        """加载缓存数据，优先从数据库加载（如果有user_id），否则从文件加载"""
+        if self.user_id is not None and self.db is not None:
+            # 从数据库加载
+            self.CACHE_MAP = self.db.get_user_funds(self.user_id)
+        else:
+            # 从文件加载（CLI模式）
+            if not os.path.exists("cache"):
+                os.mkdir("cache")
+            if os.path.exists("cache/fund_map.json"):
+                with open("cache/fund_map.json", "r", encoding="gbk") as f:
+                    self.CACHE_MAP = json.load(f)
         # if self.CACHE_MAP:
         #     logger.debug(f"加载 {len(self.CACHE_MAP)} 个基金代码缓存成功")
 
     def save_cache(self):
-        with open("cache/fund_map.json", "w", encoding="gbk") as f:
-            json.dump(self.CACHE_MAP, f, ensure_ascii=False, indent=4)
+        """保存缓存数据，优先保存到数据库（如果有user_id），否则保存到文件"""
+        if self.user_id is not None and self.db is not None:
+            # 保存到数据库
+            self.db.save_user_funds(self.user_id, self.CACHE_MAP)
+        else:
+            # 保存到文件（CLI模式）
+            with open("cache/fund_map.json", "w", encoding="gbk") as f:
+                json.dump(self.CACHE_MAP, f, ensure_ascii=False, indent=4)
 
     def init(self):
         res = self.session.get("https://www.fund123.cn/fund", headers={
@@ -162,7 +176,8 @@ class MaYiFund:
                     self.CACHE_MAP[code] = {
                         "fund_key": fund_key,
                         "fund_name": fund_name,
-                        "is_hold": False
+                        "is_hold": False,
+                        "shares": 0
                     }
                     logger.info(f"添加基金代码【{code}】成功")
                 else:
@@ -252,6 +267,35 @@ class MaYiFund:
                 logger.error(f"标记板块【{code}】失败: {e}")
         self.save_cache()
 
+    def mark_fund_sector_web(self, codes, sectors):
+        """标记基金板块（Web API使用）
+
+        Args:
+            codes: list of str, 基金代码列表
+            sectors: list of str, 板块名称列表
+        """
+        for code in codes:
+            if code in self.CACHE_MAP:
+                self.CACHE_MAP[code]["sectors"] = sectors
+                logger.info(f"✓ 已为基金 {code} 绑定板块: {', '.join(sectors)}")
+            else:
+                logger.warning(f"基金代码 {code} 不存在")
+        self.save_cache()
+
+    def unmark_fund_sector_web(self, codes):
+        """删除基金板块标记（Web API使用）
+
+        Args:
+            codes: list of str, 基金代码列表
+        """
+        for code in codes:
+            if code in self.CACHE_MAP:
+                self.CACHE_MAP[code]["sectors"] = []
+                logger.info(f"✓ 已删除基金 {code} 的板块标记")
+            else:
+                logger.warning(f"基金代码 {code} 不存在")
+        self.save_cache()
+
     def unmark_fund_sector(self):
         """删除基金板块标记（独立功能）"""
         # 找出所有有板块标记的基金
@@ -280,7 +324,6 @@ class MaYiFund:
                 logger.error(f"删除板块标记【{code}】失败: {e}")
         self.save_cache()
 
-
     def search_one_code(self, fund, fund_data, is_return):
         with sem:
             try:
@@ -302,10 +345,9 @@ class MaYiFund:
                 dayOfGrowth = re.findall(r'"dayOfGrowth":"(.*?)"', response.text)[0]
                 dayOfGrowth = str(round(float(dayOfGrowth), 2)) + "%"
 
+                netValue = re.findall(r'"netValue":"(.*?)"', response.text)[0]
                 netValueDate = re.findall(r'"netValueDate":"(.*?)"', response.text)[0]
-                if is_return:
-                    dayOfGrowth = f"{dayOfGrowth}({netValueDate})"
-
+                netValue = netValue + f"({netValueDate})"
                 url = "https://www.fund123.cn/api/fund/queryFundQuotationCurves"
                 params = {
                     "_csrf": self._csrf
@@ -419,9 +461,8 @@ class MaYiFund:
                     consecutive_info = f"{consecutive_count}天 {consecutive_growth}"
                     # 合并近30天涨跌和总涨幅
                     monthly_info = f"{montly_growth_day}/{montly_growth_day_count} {montly_growth_rate}"
-
                     self.result.append([
-                        fund, fund_name, now_time, forecastGrowth, dayOfGrowth, consecutive_info, monthly_info
+                        fund, fund_name, now_time, netValue, forecastGrowth, dayOfGrowth, consecutive_info, monthly_info
                     ])
                 else:
                     logger.error(f"查询基金代码【{fund}】失败: {response.text.strip()}")
@@ -443,33 +484,254 @@ class MaYiFund:
         if is_return:
             self.result = sorted(
                 self.result,
-                key=lambda x: float(x[3].replace("%", "")) if x[3] != "N/A" else -99,
+                key=lambda x: float(x[4].replace("%", "")) if x[4] != "N/A" else -99,
                 reverse=True
             )
             return self.result
+
         if self.result:
             self.result = sorted(
                 self.result,
-                key=lambda x: float(x[3].split("m")[1].replace("%", "")) if x[3] != "N/A" else -99,
+                key=lambda x: float(x[4].split("m")[1].replace("%", "")) if x[4] != "N/A" else -99,
                 reverse=True
             )
+
+            # 计算并显示持仓统计
+            position_summary = self.calculate_position_summary()
+            if position_summary:
+                # 收益统计表格
+                logger.critical(f"{time.strftime('%Y-%m-%d %H:%M')} 收益统计:")
+
+                # 准备表格数据
+                total_value = position_summary['total_value']
+                est_gain = position_summary['estimated_gain']
+                est_gain_pct = position_summary['estimated_gain_pct']
+                act_gain = position_summary['actual_gain']
+                act_gain_pct = position_summary['actual_gain_pct']
+
+                est_color = '\033[1;31m' if est_gain >= 0 else '\033[1;32m'
+                act_color = '\033[1;31m' if act_gain >= 0 else '\033[1;32m'
+                est_sign = '+' if est_gain >= 0 else ''
+                act_sign = '+' if act_gain >= 0 else ''
+
+                summary_table = [
+                    ["总持仓金额", f"¥{total_value:,.2f}"],
+                    ["今日预估涨跌", f"{est_color}{est_sign}¥{est_gain:,.2f} ({est_sign}{est_gain_pct:.2f}%)\033[0m"],
+                    ["今日实际涨跌", f"{act_color}{act_sign}¥{act_gain:,.2f} ({act_sign}{act_gain_pct:.2f}%)\033[0m"],
+                ]
+
+                for line_msg in format_table_msg(summary_table).split("\n"):
+                    logger.info(line_msg)
+
+                # 显示每个基金的详细涨跌（表格格式）
+                if 'fund_details' in position_summary and position_summary['fund_details']:
+                    logger.critical(f"{time.strftime('%Y-%m-%d %H:%M')} 分基金涨跌明细:")
+
+                    # 准备表格数据
+                    table_data = []
+                    for detail in position_summary['fund_details']:
+                        est_color = '\033[1;31m' if detail['estimated_gain'] >= 0 else '\033[1;32m'
+                        act_color = '\033[1;31m' if detail['actual_gain'] >= 0 else '\033[1;32m'
+                        est_sign = '+' if detail['estimated_gain'] >= 0 else ''
+                        act_sign = '+' if detail['actual_gain'] >= 0 else ''
+
+                        table_data.append([
+                            detail['code'],
+                            detail['name'],
+                            f"{detail['shares']:,.2f}",
+                            f"¥{detail['position_value']:,.2f}",
+                            f"{est_color}{est_sign}¥{detail['estimated_gain']:,.2f}\033[0m",
+                            f"{est_color}{est_sign}{detail['estimated_gain_pct']:.2f}%\033[0m",
+                            f"{act_color}{act_sign}¥{detail['actual_gain']:,.2f}\033[0m",
+                            f"{act_color}{act_sign}{detail['actual_gain_pct']:.2f}%\033[0m",
+                        ])
+
+                    for line_msg in format_table_msg([
+                        ["基金代码", "基金名称", "持仓份额", "持仓市值", "预估收益", "预估涨跌", "实际收益", "实际涨跌"],
+                        *table_data
+                    ]).split("\n"):
+                        logger.info(line_msg)
+
             logger.critical(f"{time.strftime('%Y-%m-%d %H:%M')} 基金估值信息:")
             for line_msg in format_table_msg([
                 [
-                    "基金代码", "基金名称", "估值时间", "估值", "日涨幅", "连涨/跌", "近30天"
+                    "基金代码", "基金名称", "当前时间", "净值", "估值", "日涨幅", "连涨/跌", "近30天"
                 ],
                 *self.result
             ]).split("\n"):
                 logger.info(line_msg)
 
+    def calculate_position_summary(self):
+        """计算持仓统计信息
+
+        Returns:
+            dict: 持仓统计数据，如果没有持仓则返回None
+        """
+        total_value = 0
+        estimated_gain = 0
+        actual_gain = 0
+        settled_value = 0
+        today = datetime.datetime.now().strftime("%Y-%m-%d")
+
+        # 判断是否是9:30之前或今日净值未更新
+        now = datetime.datetime.now()
+        current_hour = now.hour
+        current_minute = now.minute
+        before_market_open = current_hour < 9 or (current_hour == 9 and current_minute < 30)
+
+        # 存储每个基金的详细涨跌信息
+        fund_details = []
+
+        for fund_data in self.result:
+            # fund_data format: [code, name, time, net_value, estimated_growth, day_growth, consecutive_info, monthly_info]
+            shares = self.CACHE_MAP.get(fund_data[0], {}).get('shares', 0)
+            if shares <= 0:
+                continue
+
+            try:
+                fund_code = fund_data[0]
+                fund_name = fund_data[1]
+
+                # 解析净值 "1.234(2025-02-02)"
+                net_value_str = fund_data[3]
+                net_value = float(net_value_str.split('(')[0])
+                net_value_date = net_value_str.split('(')[1].replace(')', '')
+
+                # 解析估值增长率 "+1.23%" or "N/A"
+                estimated_growth_str = fund_data[4]
+                if estimated_growth_str != "N/A":
+                    # 移除ANSI颜色代码
+                    estimated_growth_str = estimated_growth_str.replace('\033[1;31m', '').replace('\033[1;32m',
+                                                                                                  '').replace('%', '')
+                    estimated_growth = float(estimated_growth_str)
+                else:
+                    estimated_growth = 0
+
+                # 解析日涨幅 "+1.23%" or "N/A"
+                day_growth_str = fund_data[5]
+                if day_growth_str != "N/A":
+                    # 移除ANSI颜色代码
+                    day_growth_str = day_growth_str.replace('\033[1;31m', '').replace('\033[1;32m', '').replace('%', '')
+                    day_growth = float(day_growth_str)
+                else:
+                    day_growth = 0
+
+                # 计算持仓市值
+                position_value = shares * net_value
+                total_value += position_value
+                settled_value += position_value
+
+                # 计算预估涨跌（始终计算）
+                fund_est_gain = position_value * estimated_growth / 100
+                estimated_gain += fund_est_gain
+
+                # 计算实际涨跌
+                # 逻辑：9:30之前 或 今日净值未更新 → 用日涨幅（前一日的）计算
+                #      9:30之后且今日净值已更新 → 用今日日涨幅计算
+                if before_market_open or net_value_date != today:
+                    # 使用日涨幅（前一日）计算实际收益
+                    fund_act_gain = position_value * day_growth / 100
+                else:
+                    # 今日9:30后且净值已更新，使用今日日涨幅
+                    fund_act_gain = position_value * day_growth / 100
+
+                actual_gain += fund_act_gain
+
+                # 保存每个基金的详细信息
+                fund_details.append({
+                    'code': fund_code,
+                    'name': fund_name,
+                    'shares': shares,
+                    'position_value': position_value,
+                    'estimated_gain': fund_est_gain,
+                    'estimated_gain_pct': (fund_est_gain / position_value * 100) if position_value > 0 else 0,
+                    'actual_gain': fund_act_gain,
+                    'actual_gain_pct': (fund_act_gain / position_value * 100) if position_value > 0 else 0,
+                })
+
+            except (ValueError, IndexError, AttributeError) as e:
+                logger.warning(f"解析基金数据失败: {fund_data[0]}, {e}")
+                continue
+
+        # 如果没有持仓，返回None
+        if total_value == 0:
+            return None
+
+        return {
+            'total_value': total_value,
+            'estimated_gain': estimated_gain,
+            'estimated_gain_pct': (estimated_gain / total_value * 100) if total_value > 0 else 0,
+            'actual_gain': actual_gain,
+            'actual_gain_pct': (actual_gain / total_value * 100) if total_value > 0 else 0,
+            'settled_value': settled_value,
+            'fund_details': fund_details  # 新增：每个基金的详细涨跌信息
+        }
+
+    def modify_shares(self):
+        """CLI交互式修改基金持仓份额"""
+        now_codes = list(self.CACHE_MAP.keys())
+        if not now_codes:
+            logger.warning("暂无基金代码，请先添加基金")
+            return
+
+        logger.info("当前基金列表:")
+        for code, data in self.CACHE_MAP.items():
+            shares = data.get('shares', 0)
+            logger.info(f"  {code} - {data['fund_name']} (当前份额: {shares})")
+
+        logger.info("\n请输入基金代码, 多个基金代码以英文逗号分隔:")
+        codes = input()
+        codes = codes.split(",")
+        codes = [code.strip() for code in codes if code.strip()]
+
+        for code in codes:
+            try:
+                if code not in self.CACHE_MAP:
+                    logger.warning(f"修改份额【{code}】失败: 不存在该基金代码, 请先添加该基金代码")
+                    continue
+
+                fund_name = self.CACHE_MAP[code]['fund_name']
+                current_shares = self.CACHE_MAP[code].get('shares', 0)
+
+                logger.info(f"\n基金 【{code} {fund_name}】")
+                logger.info(f"当前份额: {current_shares}")
+                logger.info("请输入新的份额数量 (输入0表示清空):")
+                shares_input = input().strip()
+
+                if shares_input:
+                    try:
+                        shares = float(shares_input)
+                        if shares < 0:
+                            logger.warning("份额不能为负数")
+                            continue
+
+                        self.CACHE_MAP[code]['shares'] = shares
+
+                        # 如果份额>0，自动标记为持有
+                        if shares > 0:
+                            self.CACHE_MAP[code]['is_hold'] = True
+
+                        logger.info(f"✓ 已更新份额: {shares}")
+                    except ValueError:
+                        logger.warning("份额格式错误，请输入数字")
+                        continue
+                else:
+                    logger.info("未输入份额，跳过")
+
+            except Exception as e:
+                logger.error(f"修改份额【{code}】失败: {e}")
+
+        self.save_cache()
+        logger.info("\n份额修改完成")
+
     def fund_html(self):
         result = self.search_code(True)
         return get_table_html(
             [
-                "基金代码", "基金名称", "估值时间", "估值", "日涨幅", "连涨/跌", "近30天"
+                "基金代码", "基金名称", "当前时间", "净值", "估值", "日涨幅", "连涨/跌", "近30天"
             ],
             result,
-            sortable_columns=[3, 4, 5, 6]
+            sortable_columns=[5, 6, 7, 8]
         )
 
     @staticmethod
@@ -763,10 +1025,16 @@ class MaYiFund:
             logger.info(line_msg)
 
     def run(self, is_add=False, is_delete=False, is_hold=False, is_not_hold=False, report_dir=None,
-            deep_mode=False, fast_mode=False, with_ai=False, select_mode=False, mark_sector=False, unmark_sector=False):
+            deep_mode=False, fast_mode=False, with_ai=False, select_mode=False, mark_sector=False, unmark_sector=False,
+            modify_shares=False):
 
         if select_mode:
             self.select_fund()
+            return
+
+        # 处理修改份额功能
+        if modify_shares:
+            self.modify_shares()
             return
 
         # 处理标记板块功能
@@ -927,6 +1195,86 @@ class MaYiFund:
             ["指数名称", "指数", "涨跌幅"],
             result,
         )
+
+    def get_market_chart_data(self):
+        """返回全球指数图表数据（用于前端Chart.js）"""
+        result = self.get_market_info(True)
+        # result 格式: [[名称, 指数, 涨跌幅], ...]
+        labels = [item[0] for item in result] if result else []
+        prices = []
+        changes = []
+        for item in result:
+            try:
+                price = float(item[1]) if item[1] else 0
+                # 涨跌幅可能包含%和颜色代码，需要清理
+                change_str = item[2] if item[2] else "0%"
+                change_str = change_str.replace('%', '').replace('\033[1;31m', '').replace('\033[1;32m', '')
+                change = float(change_str)
+            except:
+                price = 0
+                change = 0
+            prices.append(price)
+            changes.append(change)
+        return {
+            'labels': labels,
+            'prices': prices,
+            'changes': changes
+        }
+
+    def get_volume_chart_data(self):
+        """返回成交量趋势图表数据（用于前端Chart.js）"""
+        result = self.seven_A(True)
+        # result 格式: [[日期, 总成交额, 上交所, 深交所, 北交所], ...]
+        labels = []
+        total_data = []
+        ss_data = []
+        sz_data = []
+        bj_data = []
+        for item in result:
+            try:
+                labels.append(item[0])  # 日期
+                # 清理数据，移除"亿"等字符
+                total = float(item[1].replace('亿', '')) if item[1] else 0
+                ss = float(item[2].replace('亿', '')) if item[2] else 0
+                sz = float(item[3].replace('亿', '')) if item[3] else 0
+                bj = float(item[4].replace('亿', '')) if item[4] else 0
+                total_data.append(total)
+                ss_data.append(ss)
+                sz_data.append(sz)
+                bj_data.append(bj)
+            except:
+                continue
+        return {
+            'labels': labels[::-1],  # 反转顺序，让日期从早到晚
+            'total': total_data[::-1],
+            'sh': ss_data[::-1],
+            'sz': sz_data[::-1],
+            'bj': bj_data[::-1]
+        }
+
+    def get_timing_chart_data(self):
+        """返回上证分时图表数据（用于前端Chart.js）"""
+        result = self.A(True)
+        # result 格式: [[时间, 指数, 涨跌额, 涨跌幅, 成交量, 成交额], ...]
+        labels = []
+        prices = []
+        volumes = []
+        for item in result:
+            try:
+                labels.append(item[0])  # 时间
+                price = float(item[1]) if item[1] else 0
+                # 成交量清理"万手"等字符
+                vol_str = item[4].replace('万手', '').replace(',', '') if len(item) > 4 and item[4] else '0'
+                volume = float(vol_str)
+                prices.append(price)
+                volumes.append(volume)
+            except:
+                continue
+        return {
+            'labels': labels,
+            'prices': prices,
+            'volumes': volumes
+        }
 
     def gold_html(self):
         result = self.gold(True)
@@ -1375,7 +1723,7 @@ class MaYiFund:
             buttons_html = '<div style="padding: 20px;">'
             for category, sectors in major_categories.items():
                 # 过滤出属于当前大类的板块
-                category_sectors = [(idx+1, name) for idx, name in enumerate(bk_list) if name in sectors]
+                category_sectors = [(idx + 1, name) for idx, name in enumerate(bk_list) if name in sectors]
                 if not category_sectors:
                     continue
 
@@ -1432,10 +1780,10 @@ class MaYiFund:
             <div style="padding: 20px;">
                 <h3 style="margin: 0 0 15px 0;">板块: {data["bk_name"]}</h3>
                 {get_table_html(
-                    ["基金代码", "基金名称", "基金类型", "日期", "净值|日增长率", "近1周", "近1月", "近3月", "近6月", "今年来", "近1年", "近2年", "近3年", "成立来"],
-                    data["results"],
-                    [4, 5, 6, 7, 8, 9, 10, 11, 12, 13]
-                )}
+                ["基金代码", "基金名称", "基金类型", "日期", "净值|日增长率", "近1周", "近1月", "近3月", "近6月", "今年来", "近1年", "近2年", "近3年", "成立来"],
+                data["results"],
+                [4, 5, 6, 7, 8, 9, 10, 11, 12, 13]
+            )}
             </div>
             '''
 
@@ -1464,6 +1812,7 @@ if __name__ == '__main__':
     parser.add_argument("-e", "--mark_sector", action="store_true", help="标记板块")
     parser.add_argument("-u", "--unmark_sector", action="store_true", help="删除标记板块")
     parser.add_argument("-s", "--select", action="store_true", help="选择板块查看基金列表")
+    parser.add_argument("-m", "--modify-shares", action="store_true", help="修改基金持仓份额")
     parser.add_argument("-o", "--output", type=str, nargs='?', const="reports", default=None,
                         help="输出AI分析报告到指定目录（默认: reports）。只有使用此参数时才会保存报告文件")
     parser.add_argument("-f", "--fast", action="store_true", help="启用快速分析模式")
@@ -1474,4 +1823,5 @@ if __name__ == '__main__':
     mayi_fund = MaYiFund()
     # 只有指定了 -o 参数时才传入 report_dir，否则传入 None 表示不保存报告
     report_dir = args.output if args.output is not None else None
-    mayi_fund.run(args.add, args.delete, args.hold, args.not_hold, report_dir, args.deep, args.fast, args.with_ai, args.select, args.mark_sector, args.unmark_sector)
+    mayi_fund.run(args.add, args.delete, args.hold, args.not_hold, report_dir, args.deep, args.fast, args.with_ai,
+                  args.select, args.mark_sector, args.unmark_sector, args.modify_shares)

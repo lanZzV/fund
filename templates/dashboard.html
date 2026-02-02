@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <title>MaYi Fund Dashboard</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="navbar-brand">MaYi Fund 蚂蚁基金助手</div>
+        <div class="navbar-menu">
+            <span class="navbar-item">实时行情</span>
+            {% if username %}
+            <span class="navbar-item" style="color: #667eea;">👤 {{ username }}</span>
+            <a href="/logout" class="navbar-item" style="color: #f85149; text-decoration: none;">退出登录</a>
+            {% endif %}
+        </div>
+    </nav>
+
+    <div class="app-container">
+        <div class="main-content">
+            <div class="tabs-header">
+                {% for tab in tabs_data %}
+                <button class="tab-button {% if loop.first %}active{% endif %}" onclick="openTab(event, '{{ tab.id }}')">
+                    {{ tab.title }}
+                </button>
+                {% endfor %}
+            </div>
+            <div class="dashboard-grid">
+                {% for tab in tabs_data %}
+                <div id="{{ tab.id }}" class="tab-content {% if loop.first %}active{% endif %}">
+                    {{ tab.content|safe }}
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <!-- 板块选择对话框 -->
+    <div class="sector-modal" id="sectorModal">
+        <div class="sector-modal-content">
+            <div class="sector-modal-header">选择板块</div>
+            <input type="text" class="sector-modal-search" id="sectorSearch" placeholder="搜索板块名称...">
+            <div id="sectorCategories">
+                <!-- 板块分类将通过JS动态生成 -->
+            </div>
+            <div class="sector-modal-footer">
+                <button class="btn btn-secondary" onclick="closeSectorModal()">取消</button>
+                <button class="btn btn-primary" onclick="confirmSector()">确定</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 基金选择对话框 -->
+    <div class="sector-modal" id="fundSelectionModal">
+        <div class="sector-modal-content">
+            <div class="sector-modal-header" id="fundSelectionTitle">选择基金</div>
+            <input type="text" class="sector-modal-search" id="fundSelectionSearch" placeholder="搜索基金代码或名称...">
+            <div id="fundSelectionList" style="max-height: 400px; overflow-y: auto;">
+                <!-- 基金列表将通过JS动态生成 -->
+            </div>
+            <div class="sector-modal-footer">
+                <button class="btn btn-secondary" onclick="closeFundSelectionModal()">取消</button>
+                <button class="btn btn-primary" id="fundSelectionConfirmBtn" onclick="confirmFundSelection()">确定</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 确认对话框 -->
+    <div class="confirm-dialog" id="confirmDialog">
+        <div class="confirm-dialog-content">
+            <h3 id="confirmTitle" class="confirm-title"></h3>
+            <p id="confirmMessage" class="confirm-message"></p>
+            <div class="confirm-actions">
+                <button class="btn btn-secondary" onclick="closeConfirmDialog()">取消</button>
+                <button class="btn btn-primary" id="confirmBtn">确定</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+</body>
+</html>

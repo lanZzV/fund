@@ -8,17 +8,17 @@ AI分析模块 - 使用LangChain进行基金市场深度分析
 - 风险提示分析
 """
 
-import os
-import time
 import datetime
+import os
 import re
-from loguru import logger
+import time
 
-
-from langchain.tools import tool
-from ddgs import DDGS
 import requests
 from bs4 import BeautifulSoup
+from ddgs import DDGS
+from langchain.tools import tool
+from loguru import logger
+
 
 @tool
 def search_news(query: str) -> str:
@@ -76,6 +76,7 @@ def search_news(query: str) -> str:
         return output
     except Exception as e:
         return f"搜索失败: {str(e)}"
+
 
 @tool
 def fetch_webpage(url: str) -> str:
@@ -144,6 +145,7 @@ def fetch_webpage(url: str) -> str:
         return f"网页内容：\n{text}"
     except Exception as e:
         return f"获取网页失败: {str(e)}"
+
 
 class AIAnalyzer:
     """AI分析器，提供基于LangChain的市场分析功能"""
@@ -357,11 +359,11 @@ class AIAnalyzer:
             bk_data = data_collector.bk(is_return=True)
             top_sectors = "涨幅前5板块：\n"
             for i, item in enumerate(bk_data[:5]):
-                top_sectors += f"{i+1}. {item[0]}: {item[1]}, 主力净流入{item[2]}, 主力流入占比{item[3]}\n"
+                top_sectors += f"{i + 1}. {item[0]}: {item[1]}, 主力净流入{item[2]}, 主力流入占比{item[3]}\n"
 
             bottom_sectors = "跌幅后5板块：\n"
             for i, item in enumerate(bk_data[-5:]):
-                bottom_sectors += f"{i+1}. {item[0]}: {item[1]}, 主力净流入{item[2]}, 主力流入占比{item[3]}\n"
+                bottom_sectors += f"{i + 1}. {item[0]}: {item[1]}, 主力净流入{item[2]}, 主力流入占比{item[3]}\n"
 
             # 收集基金数据
             fund_data = []
@@ -393,7 +395,9 @@ class AIAnalyzer:
                 fund_summary += "\n"
 
             # 表现最好的基金
-            top_funds = sorted(fund_data, key=lambda x: float(x["forecast"].replace("%", "")) if x["forecast"] != "N/A" else -999, reverse=True)[:5]
+            top_funds = sorted(fund_data,
+                               key=lambda x: float(x["forecast"].replace("%", "")) if x["forecast"] != "N/A" else -999,
+                               reverse=True)[:5]
             fund_summary += "今日涨幅前5的基金：\n"
             for i, f in enumerate(top_funds, 1):
                 hold_mark = "【持有】" if f["is_hold"] else ""
@@ -726,7 +730,7 @@ class AIAnalyzer:
             bk_data = data_collector.bk(is_return=True)
             top_sectors = "涨幅前5板块：\n"
             for i, item in enumerate(bk_data[:5]):
-                top_sectors += f"{i+1}. {item[0]}: {item[1]}, 主力净流入{item[2]}\n"
+                top_sectors += f"{i + 1}. {item[0]}: {item[1]}, 主力净流入{item[2]}\n"
 
             # 收集基金数据
             fund_data = []
@@ -749,7 +753,9 @@ class AIAnalyzer:
                 fund_summary += f"持有基金数: {len(hold_funds)}只\n"
 
             # 表现最好的基金
-            top_funds = sorted(fund_data, key=lambda x: float(x["forecast"].replace("%", "")) if x["forecast"] != "N/A" else -999, reverse=True)[:3]
+            top_funds = sorted(fund_data,
+                               key=lambda x: float(x["forecast"].replace("%", "")) if x["forecast"] != "N/A" else -999,
+                               reverse=True)[:3]
             fund_summary += "今日涨幅前3的基金：\n"
             for i, f in enumerate(top_funds, 1):
                 hold_mark = "【持有】" if f["is_hold"] else ""
@@ -913,7 +919,8 @@ class AIAnalyzer:
                         evaluate = v.get("evaluate", "")
                         evaluate_tag = f"【{evaluate}】" if evaluate else ""
                         title = v.get("title", v.get("content", {}).get("items", [{}])[0].get("data", ""))
-                        publish_time = datetime.datetime.fromtimestamp(int(v["publish_time"])).strftime("%Y-%m-%d %H:%M:%S")
+                        publish_time = datetime.datetime.fromtimestamp(int(v["publish_time"])).strftime(
+                            "%Y-%m-%d %H:%M:%S")
                         entity = v.get("entity", [])
                         if entity:
                             entity_str = ", ".join([f"{x['code']}-{x['name']}" for x in entity[:3]])
@@ -980,7 +987,8 @@ class AIAnalyzer:
 
                     # 构建详细表格
                     result = "实时贵金属价格（详细数据）：\n\n"
-                    columns = ["名称", "最新价", "涨跌额", "涨跌幅", "开盘价", "最高价", "最低价", "昨收价", "更新时间", "单位"]
+                    columns = ["名称", "最新价", "涨跌额", "涨跌幅", "开盘价", "最高价", "最低价", "昨收价", "更新时间",
+                               "单位"]
 
                     # 表头
                     result += "| " + " | ".join(columns) + " |\n"
@@ -999,7 +1007,8 @@ class AIAnalyzer:
                         if row:
                             name = row[0]
                             change_pct = row[3]
-                            trend = "上涨" if "-" not in str(change_pct) and str(change_pct) != "0%" else "下跌" if "-" in str(change_pct) else "平稳"
+                            trend = "上涨" if "-" not in str(change_pct) and str(
+                                change_pct) != "0%" else "下跌" if "-" in str(change_pct) else "平稳"
                             result += f"- {name}: {change_pct} ({trend})\n"
 
                     return result
@@ -1062,7 +1071,9 @@ class AIAnalyzer:
                         result += "\n"
 
                     # 表现最好的基金
-                    top_funds = sorted(fund_data, key=lambda x: float(x["forecast"].replace("%", "")) if x["forecast"] != "N/A" else -999, reverse=True)[:8]
+                    top_funds = sorted(fund_data, key=lambda x: float(x["forecast"].replace("%", "")) if x[
+                                                                                                             "forecast"] != "N/A" else -999,
+                                       reverse=True)[:8]
                     result += "今日涨幅前8的基金：\n"
                     for i, f in enumerate(top_funds, 1):
                         hold_mark = "【持有】" if f["is_hold"] else ""
@@ -1439,7 +1450,8 @@ Thought: {agent_scratchpad}""")
                     if len(step) >= 2:
                         action, observation = step[0], step[1]
                         if observation and isinstance(observation, str) and len(observation) > 50:
-                            collected_info.append(f"### {action.tool if hasattr(action, 'tool') else '数据收集'}\n\n{observation}\n")
+                            collected_info.append(
+                                f"### {action.tool if hasattr(action, 'tool') else '数据收集'}\n\n{observation}\n")
 
                 if collected_info:
                     final_report = "\n\n".join(collected_info)
@@ -1486,4 +1498,3 @@ Thought: {agent_scratchpad}""")
             logger.error(f"深度研究模式出错: {e}")
             import traceback
             logger.error(traceback.format_exc())
-

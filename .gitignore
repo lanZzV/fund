@@ -2,6 +2,6 @@
 build/
 # 环境变量文件（包含API密钥，不应提交）
 .env
-
-# claude code目录
-.claude/settings.local.json
+.claude
+CLAUDE.md
+cache/fund_data.db

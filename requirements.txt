@@ -5,6 +5,7 @@ wcwidth==0.2.5
 flask
 python-dotenv
 curl_cffi
+bcrypt==5.0.0
 
 # LangChain for AI analysis
 langchain>=0.3.27

@@ -3144,7 +3144,14 @@ def get_javascript_code():
                 if (!netValueMatch) return;
 
                 const netValue = parseFloat(netValueMatch[1]);
-                const netValueDate = netValueMatch[2];
+                let netValueDate = netValueMatch[2];
+
+                // 处理净值日期格式：API可能返回"MM-DD"或"YYYY-MM-DD"
+                // 如果是"MM-DD"格式，添加当前年份
+                if (netValueDate.length === 5) {  // 格式为"MM-DD"
+                    const currentYear = new Date().getFullYear();
+                    netValueDate = `${currentYear}-${netValueDate}`;
+                }
 
                 // 解析估值增长率
                 const estimatedGrowthText = cells[5].textContent.trim();

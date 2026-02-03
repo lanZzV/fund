@@ -606,10 +606,16 @@ class LanFund:
                 fund_code = fund_data[0]
                 fund_name = fund_data[1]
 
-                # 解析净值 "1.234(2025-02-02)"
+                # 解析净值 "1.234(2025-02-02)" or "1.234(02-03)"
                 net_value_str = fund_data[3]
                 net_value = float(net_value_str.split('(')[0])
                 net_value_date = net_value_str.split('(')[1].replace(')', '')
+
+                # 处理净值日期格式：API可能返回"MM-DD"或"YYYY-MM-DD"
+                # 如果是"MM-DD"格式，添加当前年份
+                if len(net_value_date) == 5:  # 格式为"MM-DD"
+                    current_year = datetime.datetime.now().year
+                    net_value_date = f"{current_year}-{net_value_date}"
 
                 # 解析估值增长率 "+1.23%" or "N/A"
                 estimated_growth_str = fund_data[4]

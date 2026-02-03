@@ -745,7 +745,14 @@
                     if (!netValueMatch) return;
 
                     const netValue = parseFloat(netValueMatch[1]);
-                    const netValueDate = netValueMatch[2];
+                    let netValueDate = netValueMatch[2];
+
+                    // 处理净值日期格式：API可能返回"MM-DD"或"YYYY-MM-DD"
+                    // 如果是"MM-DD"格式，添加当前年份
+                    if (netValueDate.length === 5) {  // 格式为"MM-DD"
+                        const currentYear = new Date().getFullYear();
+                        netValueDate = `${currentYear}-${netValueDate}`;
+                    }
 
                     // 解析估值增长率 (第五列，索引4)
                     const estimatedGrowthText = cells[4].textContent.trim();
@@ -1588,8 +1595,13 @@
         function getTop3Funds() {
             // 尝试从全局变量获取基金明细数据
             if (window.fundDetailsData && window.fundDetailsData.length > 0) {
-                // 按预估收益降序排序
-                const sorted = [...window.fundDetailsData].sort((a, b) => b.estimatedGain - a.estimatedGain);
+                // 按实际收益降序排序（如果有实际收益），否则按预估收益排序
+                const sorted = [...window.fundDetailsData].sort((a, b) => {
+                    // 优先使用实际收益
+                    const aGain = a.actualGain !== 0 ? a.actualGain : a.estimatedGain;
+                    const bGain = b.actualGain !== 0 ? b.actualGain : b.estimatedGain;
+                    return bGain - aGain;
+                });
                 return sorted.slice(0, 3);
             }
 
@@ -1607,7 +1619,8 @@
             }
 
             container.innerHTML = funds.map((fund, index) => {
-                const gain = fund.estimatedGain || 0;
+                // 优先使用实际收益，如果没有实际收益则使用预估收益
+                const gain = fund.actualGain !== 0 ? fund.actualGain : (fund.estimatedGain || 0);
                 const sign = gain >= 0 ? '+' : '';
                 const colorClass = gain >= 0 ? 'positive' : 'negative';
 

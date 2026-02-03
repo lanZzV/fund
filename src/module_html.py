@@ -89,6 +89,12 @@ def enhance_fund_tab_content(content, shares_map=None):
                 <!-- 关闭按钮 -->
                 <button class="showoff-close" onclick="closeShowoffCard()">✕</button>
 
+                <!-- 左上角品牌标识 -->
+                <div class="showoff-brand-corner">
+                    <img src="/static/1.ico" alt="Lan Fund" class="brand-logo" onerror="this.style.display='none'">
+                    <span class="brand-name">Lan Fund</span>
+                </div>
+
                 <!-- 卡片背景装饰 -->
                 <div class="showoff-bg-decoration">
                     <div class="bg-circle circle-1"></div>
@@ -132,12 +138,6 @@ def enhance_fund_tab_content(content, shares_map=None):
                     <div class="funds-list" id="showoffFundsList">
                         <!-- 动态生成 -->
                     </div>
-                </div>
-
-                <!-- 底部品牌 -->
-                <div class="showoff-footer">
-                    <span class="footer-brand">Lan Fund</span>
-                    <span class="footer-slogan">让理财更简单</span>
                 </div>
             </div>
         </div>

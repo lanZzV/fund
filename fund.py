@@ -564,12 +564,14 @@ class LanFund:
                     ]).split("\n"):
                         logger.info(line_msg)
 
+            # CLI模式删除净值列，避免表格过宽
+            cli_result = [[row[0], row[1], row[2], row[4], row[5], row[6], row[7]] for row in self.result]
             logger.critical(f"{time.strftime('%Y-%m-%d %H:%M')} 基金估值信息:")
             for line_msg in format_table_msg([
                 [
-                    "基金代码", "基金名称", "时间", "净值", "估值", "日涨幅", "连涨/跌", "近30天"
+                    "基金代码", "基金名称", "时间", "估值", "日涨幅", "连涨/跌", "近30天"
                 ],
-                *self.result
+                *cli_result
             ]).split("\n"):
                 logger.info(line_msg)
 

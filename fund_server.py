@@ -1,3 +1,7 @@
+import os
+
+os.makedirs("cache", exist_ok=True)
+
 import importlib
 import json
 
@@ -653,8 +657,8 @@ def api_sectors():
             sectors = []
             for bk in data["diff"]:
                 sectors.append({
-                    'code': bk["f12"],      # 板块代码
-                    'name': bk["f14"],     # 板块名称
+                    'code': bk["f12"],  # 板块代码
+                    'name': bk["f14"],  # 板块名称
                     'change': str(bk["f3"]) + "%",  # 涨跌幅
                     'main_inflow': str(round(bk["f62"] / 100000000, 2)) + "亿",  # 主力净流入
                     'main_inflow_pct': str(round(bk["f184"], 2)) + "%",  # 主力净流入占比

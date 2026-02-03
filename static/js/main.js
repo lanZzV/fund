@@ -795,6 +795,9 @@
                 }
             });
 
+            // 保存基金明细数据到全局变量，供炫耀卡片使用
+            window.fundDetailsData = fundDetailsData;
+
             // 显示或隐藏持仓统计区域 (旧版布局)
             const summaryDiv = document.getElementById('positionSummary');
             if (summaryDiv && totalValue > 0) {
@@ -1510,4 +1513,121 @@
 
         // 初始化敏感数值显示/隐藏功能
         initSensitiveValuesToggle();
+
+        // ==================== 炫耀卡片功能 ====================
+
+        // 打开炫耀卡片
+        window.openShowoffCard = function() {
+            // 检查是否有持仓数据
+            const totalValueEl = document.getElementById('totalValue');
+            if (!totalValueEl) {
+                alert('请先刷新页面加载数据');
+                return;
+            }
+
+            const realValueText = totalValueEl.querySelector('.real-value')?.textContent || '';
+            if (realValueText === '¥0.00' || realValueText === '') {
+                alert('暂无持仓数据，无法生成炫耀卡片');
+                return;
+            }
+
+            // 获取持仓统计数据
+            const totalValue = parseFloat(realValueText.replace(/[¥,]/g, '')) || 0;
+
+            const estimatedGainEl = document.getElementById('estimatedGain');
+            const estimatedGainText = estimatedGainEl?.querySelector('.real-value')?.textContent || '¥0.00';
+            const estimatedGain = parseFloat(estimatedGainText.replace(/[¥,]/g, '')) || 0;
+
+            const actualGainEl = document.getElementById('actualGain');
+            const actualGainText = actualGainEl?.querySelector('.real-value')?.textContent || '¥0.00';
+            const actualGain = actualGainText.includes('净值') ? 0 :
+                parseFloat(actualGainText.replace(/[¥,]/g, '')) || 0;
+
+            // 格式化日期
+            const today = new Date();
+            const dateStr = today.getFullYear() + '-' +
+                String(today.getMonth() + 1).padStart(2, '0') + '-' +
+                String(today.getDate()).padStart(2, '0');
+
+            // 更新卡片数据
+            document.getElementById('showoffDate').textContent = dateStr;
+            document.getElementById('showoffTotalValue').textContent =
+                '¥' + totalValue.toLocaleString('zh-CN', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+
+            const estGainEl = document.getElementById('showoffEstimatedGain');
+            const estSign = estimatedGain >= 0 ? '+' : '';
+            estGainEl.textContent = estSign + '¥' + Math.abs(estimatedGain).toLocaleString('zh-CN',
+                {minimumFractionDigits: 2, maximumFractionDigits: 2});
+            estGainEl.className = 'summary-value ' + (estimatedGain >= 0 ? 'positive' : 'negative');
+
+            const actGainEl = document.getElementById('showoffActualGain');
+            const actSign = actualGain >= 0 ? '+' : '';
+            actGainEl.textContent = actualGainText.includes('净值') ? '净值未更新' :
+                (actSign + '¥' + Math.abs(actualGain).toLocaleString('zh-CN',
+                {minimumFractionDigits: 2, maximumFractionDigits: 2}));
+            actGainEl.className = 'summary-value ' + (actualGain > 0 ? 'positive' :
+                (actualGain < 0 ? 'negative' : ''));
+
+            // 获取Top3基金
+            const top3Funds = getTop3Funds();
+            renderTop3Funds(top3Funds);
+
+            // 显示模态框
+            document.getElementById('showoffModal').classList.add('active');
+        };
+
+        // 关闭炫耀卡片
+        window.closeShowoffCard = function(event) {
+            // 如果没有传入event，或者点击的是遮罩层/关闭按钮，则关闭
+            if (!event || event.target.id === 'showoffModal' || event.target.classList.contains('showoff-close')) {
+                document.getElementById('showoffModal').classList.remove('active');
+            }
+        };
+
+        // 获取Top3基金（从已计算的数据中获取）
+        function getTop3Funds() {
+            // 尝试从全局变量获取基金明细数据
+            if (window.fundDetailsData && window.fundDetailsData.length > 0) {
+                // 按预估收益降序排序
+                const sorted = [...window.fundDetailsData].sort((a, b) => b.estimatedGain - a.estimatedGain);
+                return sorted.slice(0, 3);
+            }
+
+            // 如果没有全局数据，返回空数组
+            return [];
+        }
+
+        // 渲染Top3基金列表
+        function renderTop3Funds(funds) {
+            const container = document.getElementById('showoffFundsList');
+
+            if (!funds || funds.length === 0) {
+                container.innerHTML = '<div style="text-align: center; color: rgba(255,255,255,0.4); font-size: 13px;">暂无数据</div>';
+                return;
+            }
+
+            container.innerHTML = funds.map((fund, index) => {
+                const gain = fund.estimatedGain || 0;
+                const sign = gain >= 0 ? '+' : '';
+                const colorClass = gain >= 0 ? 'positive' : 'negative';
+
+                return `
+                    <div class="fund-item">
+                        <div class="fund-rank">${index + 1}</div>
+                        <div class="fund-info">
+                            <div class="fund-name">${fund.name}</div>
+                        </div>
+                        <div class="fund-gain ${colorClass}">${sign}¥${Math.abs(gain).toLocaleString('zh-CN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // 键盘ESC关闭
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                closeShowoffCard();
+            }
+        });
+
     });

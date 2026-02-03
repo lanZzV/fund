@@ -1754,3 +1754,56 @@
         font-size: 18px;
     }
 }
+/* ==================== 炫耀卡片样式 ==================== */
+.showoff-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.75); backdrop-filter: blur(8px); z-index: 9999; justify-content: center; align-items: center; animation: fadeIn 0.3s ease; }
+.showoff-modal.active { display: flex; }
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+.showoff-card { width: 375px; height: 667px; background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%); border-radius: 24px; position: relative; overflow: hidden; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.1); animation: cardSlideUp 0.4s cubic-bezier(0.34, 1.56, 0.64, 1); }
+@keyframes cardSlideUp { from { opacity: 0; transform: translateY(50px) scale(0.95); } to { opacity: 1; transform: translateY(0) scale(1); } }
+.showoff-close { position: absolute; top: 16px; right: 16px; width: 36px; height: 36px; border-radius: 50%; background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.2); color: rgba(255, 255, 255, 0.7); font-size: 18px; cursor: pointer; z-index: 10; transition: all 0.2s ease; display: flex; align-items: center; justify-content: center; }
+.showoff-close:hover { background: rgba(255, 255, 255, 0.2); color: white; transform: scale(1.1); }
+.showoff-bg-decoration { position: absolute; top: 0; left: 0; width: 100%; height: 100%; overflow: hidden; z-index: 0; }
+.bg-circle { position: absolute; border-radius: 50%; background: linear-gradient(135deg, rgba(102, 126, 234, 0.15), rgba(118, 75, 162, 0.1)); filter: blur(40px); animation: float 8s ease-in-out infinite; }
+.circle-1 { width: 200px; height: 200px; top: -50px; right: -50px; animation-delay: 0s; }
+.circle-2 { width: 150px; height: 150px; bottom: 100px; left: -30px; animation-delay: 2s; }
+.circle-3 { width: 120px; height: 120px; bottom: -30px; right: 50px; animation-delay: 4s; }
+@keyframes float { 0%, 100% { transform: translate(0, 0); } 33% { transform: translate(10px, -10px); } 66% { transform: translate(-10px, 10px); } }
+.bg-stars { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background-image: radial-gradient(2px 2px at 20px 30px, rgba(255, 255, 255, 0.3), transparent), radial-gradient(2px 2px at 40px 70px, rgba(255, 255, 255, 0.2), transparent), radial-gradient(1px 1px at 90px 40px, rgba(255, 255, 255, 0.4), transparent), radial-gradient(2px 2px at 130px 80px, rgba(255, 255, 255, 0.2), transparent), radial-gradient(1px 1px at 160px 30px, rgba(255, 255, 255, 0.3), transparent), radial-gradient(2px 2px at 200px 60px, rgba(255, 255, 255, 0.2), transparent), radial-gradient(1px 1px at 250px 90px, rgba(255, 255, 255, 0.3), transparent), radial-gradient(2px 2px at 300px 40px, rgba(255, 255, 255, 0.2), transparent), radial-gradient(1px 1px at 340px 70px, rgba(255, 255, 255, 0.4), transparent); animation: twinkle 4s ease-in-out infinite; }
+@keyframes twinkle { 0%, 100% { opacity: 0.5; } 50% { opacity: 1; } }
+.showoff-header { position: relative; z-index: 1; text-align: center; padding: 25px 20px 12px; }
+.showoff-icon { font-size: 48px; margin-bottom: 10px; animation: bounce 2s ease-in-out infinite; }
+@keyframes bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+.showoff-title { font-size: 28px; font-weight: 700; color: white; margin: 0 0 8px 0; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+.showoff-date { font-size: 14px; color: rgba(255, 255, 255, 0.5); font-family: var(--font-mono); margin: 0; }
+.showoff-summary { position: relative; z-index: 1; display: flex; flex-direction: column; gap: 10px; padding: 10px 20px; }
+.showoff-summary .summary-row { display: flex; gap: 10px; }
+.showoff-summary .summary-row-total { justify-content: center; }
+.showoff-summary .summary-row-total .summary-item { flex: 1; max-width: 200px; background: linear-gradient(135deg, rgba(102, 126, 234, 0.2), rgba(118, 75, 162, 0.15)); border-color: rgba(102, 126, 234, 0.3); }
+.showoff-summary .summary-row:not(.summary-row-total) { justify-content: center; }
+.showoff-summary .summary-row:not(.summary-row-total) .summary-item { flex: 1; max-width: 140px; }
+.showoff-summary .summary-item { background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 16px; padding: 14px 12px; text-align: center; backdrop-filter: blur(10px); transition: all 0.3s ease; }
+.showoff-summary .summary-item:hover { background: rgba(255, 255, 255, 0.08); transform: translateY(-2px); }
+.showoff-summary .summary-label { font-size: 11px; color: rgba(255, 255, 255, 0.5); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 6px; }
+.showoff-summary .summary-value { font-size: 16px; font-weight: 700; color: white; font-family: var(--font-mono); }
+.showoff-summary .summary-value.positive { color: #ff4757; }
+.showoff-summary .summary-value.negative { color: #2ed573; }
+.showoff-funds { position: relative; z-index: 1; padding: 0 20px; }
+.funds-header { display: flex; align-items: center; justify-content: center; margin-bottom: 16px; }
+.funds-title { font-size: 14px; font-weight: 600; color: rgba(255, 255, 255, 0.6); }
+.funds-list { display: flex; flex-direction: column; gap: 10px; }
+.fund-item { background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 12px; padding: 12px 16px; display: flex; align-items: center; gap: 12px; backdrop-filter: blur(10px); transition: all 0.2s ease; }
+.fund-item:hover { background: rgba(255, 255, 255, 0.08); border-color: rgba(102, 126, 234, 0.3); }
+.fund-rank { width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 700; flex-shrink: 0; }
+.fund-item:nth-child(1) .fund-rank { background: linear-gradient(135deg, #ffd700, #ffaa00); color: #1a1a2e; }
+.fund-item:nth-child(2) .fund-rank { background: linear-gradient(135deg, #c0c0c0, #a0a0a0); color: #1a1a2e; }
+.fund-item:nth-child(3) .fund-rank { background: linear-gradient(135deg, #cd7f32, #b87333); color: #1a1a2e; }
+.fund-info { flex: 1; min-width: 0; }
+.fund-name { font-size: 14px; font-weight: 600; color: white; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.fund-gain { font-size: 14px; font-weight: 700; font-family: var(--font-mono); white-space: nowrap; }
+.fund-gain.positive { color: #ff4757; }
+.fund-gain.negative { color: #2ed573; }
+.showoff-footer { position: absolute; bottom: 0; left: 0; right: 0; z-index: 1; display: flex; flex-direction: column; align-items: center; padding: 24px 20px; background: linear-gradient(to top, rgba(0, 0, 0, 0.3), transparent); }
+.footer-logo { width: 32px; height: 32px; margin-bottom: 8px; }
+.footer-brand { font-size: 16px; font-weight: 700; color: white; margin-bottom: 4px; }
+.footer-slogan { font-size: 12px; color: rgba(255, 255, 255, 0.4); }
+@media (max-width: 400px) { .showoff-card { width: calc(100vw - 40px); height: calc((100vw - 40px) * 667 / 375); } }

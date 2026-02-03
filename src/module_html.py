@@ -26,7 +26,18 @@ def enhance_fund_tab_content(content, shares_map=None):
         <div id="positionSummary" class="position-summary" style="display: none; background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px; padding: 20px; margin-bottom: 20px;">
             <h3 style="margin: 0 0 15px 0; font-size: 18px; font-weight: 600; color: var(--text-main); display: flex; justify-content: space-between; align-items: center;">
                 💰 持仓统计
-                <span id="toggleSensitiveValues" style="cursor: pointer; font-size: 18px; user-select: none;" title="显示 / 隐藏 收益明细">😀</span>
+                <div style="display: flex; gap: 10px; align-items: center;">
+                    <button id="showoffBtn" onclick="openShowoffCard()"
+                            style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                                   border: none; border-radius: 20px; padding: 6px 16px;
+                                   color: white; font-size: 14px; font-weight: 600;
+                                   cursor: pointer; display: flex; align-items: center; gap: 6px;
+                                   box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+                                   transition: all 0.3s ease; white-space: nowrap;">
+                        ✨ 一键炫耀
+                    </button>
+                    <span id="toggleSensitiveValues" style="cursor: pointer; font-size: 18px; user-select: none;" title="显示 / 隐藏 收益明细">😀</span>
+                </div>
             </h3>
             <div class="stats-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
                 <div class="stat-item">
@@ -69,6 +80,65 @@ def enhance_fund_tab_content(content, shares_map=None):
                     <tbody id="fundDetailsTableBody">
                     </tbody>
                 </table>
+            </div>
+        </div>
+
+        <!-- 炫耀卡片模态框 -->
+        <div id="showoffModal" class="showoff-modal" onclick="closeShowoffCard(event)">
+            <div class="showoff-card" onclick="event.stopPropagation()">
+                <!-- 关闭按钮 -->
+                <button class="showoff-close" onclick="closeShowoffCard()">✕</button>
+
+                <!-- 卡片背景装饰 -->
+                <div class="showoff-bg-decoration">
+                    <div class="bg-circle circle-1"></div>
+                    <div class="bg-circle circle-2"></div>
+                    <div class="bg-circle circle-3"></div>
+                    <div class="bg-stars"></div>
+                </div>
+
+                <!-- 卡片头部 -->
+                <div class="showoff-header">
+                    <div class="showoff-icon">💰</div>
+                    <h2 class="showoff-title">今日收益</h2>
+                    <p class="showoff-date" id="showoffDate">2026-02-03</p>
+                </div>
+
+                <!-- 持仓统计摘要 -->
+                <div class="showoff-summary">
+                    <div class="summary-row summary-row-total">
+                        <div class="summary-item">
+                            <div class="summary-label">总持仓</div>
+                            <div class="summary-value" id="showoffTotalValue">¥0.00</div>
+                        </div>
+                    </div>
+                    <div class="summary-row">
+                        <div class="summary-item">
+                            <div class="summary-label">今日预估</div>
+                            <div class="summary-value" id="showoffEstimatedGain">+¥0.00</div>
+                        </div>
+                        <div class="summary-item">
+                            <div class="summary-label">今日实际</div>
+                            <div class="summary-value" id="showoffActualGain">+¥0.00</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Top3基金明细 -->
+                <div class="showoff-funds">
+                    <div class="funds-header">
+                        <span class="funds-title">🏆 收益Top3</span>
+                    </div>
+                    <div class="funds-list" id="showoffFundsList">
+                        <!-- 动态生成 -->
+                    </div>
+                </div>
+
+                <!-- 底部品牌 -->
+                <div class="showoff-footer">
+                    <span class="footer-brand">Lan Fund</span>
+                    <span class="footer-slogan">让理财更简单</span>
+                </div>
             </div>
         </div>
     """

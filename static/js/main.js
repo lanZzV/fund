@@ -297,8 +297,9 @@
                 await unmarkHold(selectedFundsForOperation);
                 break;
             case 'sector':
+                const selectedCodes = selectedFundsForOperation; // 先保存选中的基金代码
                 closeFundSelectionModal();
-                openSectorModal(selectedFundsForOperation);
+                openSectorModal(selectedCodes);
                 return; // 不关闭，等待板块选择
             case 'unsector':
                 await removeSector(selectedFundsForOperation);
@@ -579,6 +580,11 @@
     }
 
     async function confirmSector() {
+        if (selectedCodesForSector.length === 0) {
+            alert('请先选择基金');
+            closeSectorModal();
+            return;
+        }
         if (selectedSectors.length === 0) {
             alert('请至少选择一个板块');
             return;
@@ -730,8 +736,8 @@
                 if (shares <= 0) return;
 
                 try {
-                    // 获取基金名称（第二列，索引1）
-                    const fundName = cells[1].textContent.trim();
+                    // 获取基金名称（第二列，索引1），使用 innerHTML 保留 HTML 标签（如板块标签样式）
+                    const fundName = cells[1].innerHTML.trim();
 
                     // 解析净值 "1.234(2025-02-02)" (第四列，索引3)
                     const netValueText = cells[3].textContent.trim();
@@ -769,6 +775,9 @@
                         settledValue += positionValue;
                     }
 
+                    // 获取板块数据
+                    const sectors = window.fundSectorsData && window.fundSectorsData[fundCode] ? window.fundSectorsData[fundCode] : [];
+
                     // 收集每个基金的详细涨跌信息
                     fundDetailsData.push({
                         code: fundCode,
@@ -778,7 +787,8 @@
                         estimatedGain: fundEstimatedGain,
                         estimatedGainPct: estimatedGrowth,
                         actualGain: fundActualGain,
-                        actualGainPct: netValueDate === today ? dayGrowth : 0
+                        actualGainPct: netValueDate === today ? dayGrowth : 0,
+                        sectors: sectors
                     });
                 } catch (e) {
                     console.warn('解析基金数据失败:', fundCode, e);
@@ -875,6 +885,7 @@
                         const actColor = fund.actualGain >= 0 ? '#f44336' : '#4caf50';
                         const estSign = fund.estimatedGain >= 0 ? '+' : '';
                         const actSign = fund.actualGain >= 0 ? '+' : '';
+                        // 基金名称中已包含板块标签，不再重复添加
                         return `
                             <tr style="border-bottom: 1px solid var(--border);">
                                 <td style="padding: 10px; color: var(--accent); font-weight: 500;">${fund.code}</td>
@@ -976,11 +987,16 @@
 
                     // 初始化全局份额数据存储
                     window.fundSharesData = {};
+                    window.fundSectorsData = {};  // 存储板块数据
 
                     // 填充份额数据到全局存储
                     for (const [code, data] of Object.entries(fundData)) {
                         if (data.shares !== undefined && data.shares !== null) {
                             window.fundSharesData[code] = parseFloat(data.shares) || 0;
+                        }
+                        // 存储板块数据
+                        if (data.sectors && data.sectors.length > 0) {
+                            window.fundSectorsData[code] = data.sectors;
                         }
 
                         // 如果有份额输入框，也填充（旧版页面兼容）
@@ -1311,7 +1327,7 @@
             // Update timing chart if chart instance exists
             if (window.timingChartInstance && data.labels && data.labels.length > 0) {
                 window.timingChartInstance.data.labels = data.labels;
-                window.timingChartInstance.data.datasets[0].data = data.prices;
+                window.timingChartInstance.data.datasets[0].data = data.change_pcts || data.prices;
                 window.timingChartInstance.update();
 
                 // Update title
@@ -1321,8 +1337,8 @@
                     const color = changePct >= 0 ? '#f44336' : '#4caf50';
                     titleEl.style.color = color;
                     titleEl.innerHTML = '📉 上证分时 <span style="font-size:0.9em;">' +
-                        data.current_price.toFixed(2) + ' (' +
-                        (changePct >= 0 ? '+' : '') + changePct.toFixed(2) + '%)</span>';
+                        (changePct >= 0 ? '+' : '') + changePct.toFixed(2) + '% (' +
+                        data.current_price.toFixed(2) + ')</span>';
                 }
             }
         }

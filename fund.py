@@ -43,7 +43,7 @@ def format_table_msg(table, tablefmt="pretty"):
     return tabulate(table, tablefmt=tablefmt, missingval="N/A")
 
 
-class MaYiFund:
+class LanFund:
     CACHE_MAP = {}
 
     # 板块分类映射
@@ -436,7 +436,7 @@ class MaYiFund:
                     else:
                         fund_info = response.json()["list"][-1]
                         now_time = datetime.datetime.fromtimestamp(fund_info["time"] / 1000).strftime(
-                            "%H:%M:%S"
+                            "%H:%M"
                         )
                         forecastGrowth = str(round(float(fund_info["forecastGrowth"]) * 100, 2)) + "%"
                         if not is_return:
@@ -567,7 +567,7 @@ class MaYiFund:
             logger.critical(f"{time.strftime('%Y-%m-%d %H:%M')} 基金估值信息:")
             for line_msg in format_table_msg([
                 [
-                    "基金代码", "基金名称", "当前时间", "净值", "估值", "日涨幅", "连涨/跌", "近30天"
+                    "基金代码", "基金名称", "时间", "净值", "估值", "日涨幅", "连涨/跌", "近30天"
                 ],
                 *self.result
             ]).split("\n"):
@@ -1270,6 +1270,7 @@ class MaYiFund:
         change_pcts = []  # 涨跌幅
         change_amounts = []  # 涨跌额（原始数据）
         volumes = []
+        amounts = []  # 成交额
         for item in result:
             try:
                 labels.append(item[0])  # 时间
@@ -1282,10 +1283,14 @@ class MaYiFund:
                 # 成交量清理"万手"等字符
                 vol_str = item[4].replace('万手', '').replace(',', '') if len(item) > 4 and item[4] else '0'
                 volume = float(vol_str)
+                # 成交额清理"亿"等字符
+                amt_str = item[5].replace('亿', '').replace(',', '') if len(item) > 5 and item[5] else '0'
+                amount = float(amt_str)
                 prices.append(price)
                 change_pcts.append(pct)
                 change_amounts.append(change_amt)
                 volumes.append(volume)
+                amounts.append(amount)
             except:
                 continue
         return {
@@ -1293,7 +1298,8 @@ class MaYiFund:
             'prices': prices,
             'change_pcts': change_pcts,
             'change_amounts': change_amounts,  # 涨跌额（原始数据）
-            'volumes': volumes
+            'volumes': volumes,
+            'amounts': amounts  # 成交额（亿）
         }
 
     def gold_html(self):
@@ -1824,7 +1830,7 @@ class MaYiFund:
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description='MaYiFund')
+    parser = argparse.ArgumentParser(description='LanFund')
     parser.add_argument('-a', '--add', action='store_true', help='添加基金代码')
     parser.add_argument("-d", "--delete", action="store_true", help="删除基金代码")
     parser.add_argument("-c", "--hold", action="store_true", help="添加持有基金标注")
@@ -1840,8 +1846,8 @@ if __name__ == '__main__':
     parser.add_argument("-W", "--with-ai", action="store_true", help="AI分析")
     args = parser.parse_args()
 
-    mayi_fund = MaYiFund()
+    lan_fund = LanFund()
     # 只有指定了 -o 参数时才传入 report_dir，否则传入 None 表示不保存报告
     report_dir = args.output if args.output is not None else None
-    mayi_fund.run(args.add, args.delete, args.hold, args.not_hold, report_dir, args.deep, args.fast, args.with_ai,
+    lan_fund.run(args.add, args.delete, args.hold, args.not_hold, report_dir, args.deep, args.fast, args.with_ai,
                   args.select, args.mark_sector, args.unmark_sector, args.modify_shares)

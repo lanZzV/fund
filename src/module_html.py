@@ -35,9 +35,8 @@ def enhance_fund_tab_content(content, shares_map=None):
                     <div id="estimatedGain" style="font-size: 24px; font-weight: bold; white-space: nowrap; color: var(--text-main);">¥0.00 (0.00%)</div>
                 </div>
                 <div class="stat-item">
-                    <div style="font-size: 12px; color: var(--text-dim); margin-bottom: 5px;">今日实际涨跌</div>
+                    <div style="font-size: 12px; color: var(--text-dim); margin-bottom: 5px;">今日实际涨跌(已结算部分)</div>
                     <div id="actualGain" style="font-size: 24px; font-weight: bold; white-space: nowrap; color: var(--text-main);">¥0.00 (0.00%)</div>
-                    <div style="font-size: 11px; color: var(--text-dim); margin-top: 3px;">已结算部分</div>
                 </div>
             </div>
         </div>
@@ -329,7 +328,7 @@ def get_full_page_html_sidebar(tabs_data, username=None):
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MaYi Fund Terminal</title>
+    <title>LanFund Terminal</title>
     {css_style}
     <link rel="stylesheet" href="/static/css/style.css">
 </head>
@@ -463,7 +462,7 @@ def get_full_page_html(tabs_data, username=None, use_sidebar=False):
         <head>
             <meta charset="UTF-8">
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <title>MaYi Fund Dashboard</title>
+            <title>LanFund Dashboard</title>
             {css_style}
         </head>
         <body>
@@ -520,7 +519,7 @@ def get_full_page_html(tabs_data, username=None, use_sidebar=False):
         <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
         <meta http-equiv="Pragma" content="no-cache">
         <meta http-equiv="Expires" content="0">
-        <title>MaYi Fund Dashboard</title>
+        <title>LanFund Dashboard</title>
         {css_style}
     </head>
     <body>
@@ -600,7 +599,7 @@ def get_sse_loading_page(css_style, js_script):
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>MaYi Fund Dashboard - Loading</title>
+        <title>LanFund Dashboard - Loading</title>
         {css_style}
         <style>
             .loading-container {{
@@ -2231,7 +2230,7 @@ def get_javascript_code():
 
         // Add welcome message
         setTimeout(() => {
-            const welcomeMsg = "Welcome to MaYi Fund Pro Terminal. Connected to market data stream.";
+            const welcomeMsg = "Welcome to LanFund Pro Terminal. Connected to market data stream.";
             chat.messageAddNew(welcomeMsg, 'System', 'left');
             
             // 🔧 将欢迎消息也添加到历史中（作为 assistant 消息）
@@ -3430,7 +3429,7 @@ def get_market_page_html(market_data, username=None):
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>市场行情 - MaYi Fund</title>
+    <title>市场行情 - LanFund</title>
     <link rel="icon" href="/static/1.ico">
     {css_style}
     <link rel="stylesheet" href="/static/css/style.css">
@@ -3765,7 +3764,7 @@ def get_news_page_html(news_content, username=None):
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>7*24快讯 - MaYi Fund</title>
+    <title>7*24快讯 - LanFund</title>
     <link rel="icon" href="/static/1.ico">
     {css_style}
     <link rel="stylesheet" href="/static/css/style.css">
@@ -4045,7 +4044,7 @@ def get_precious_metals_page_html(metals_data, username=None):
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>贵金属行情 - MaYi Fund</title>
+    <title>贵金属行情 - LanFund</title>
     <link rel="icon" href="/static/1.ico">
     {css_style}
     <link rel="stylesheet" href="/static/css/style.css">
@@ -4822,7 +4821,7 @@ def get_portfolio_page_html(fund_content, fund_map, market_charts=None, chart_da
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>持仓基金 - MaYi Fund</title>
+    <title>持仓基金 - LanFund</title>
     <link rel="icon" href="/static/1.ico">
     {css_style}
     <link rel="stylesheet" href="/static/css/style.css">
@@ -5309,10 +5308,14 @@ def get_portfolio_page_html(fund_content, fund_map, market_charts=None, chart_da
                                     const pct = changePercentages[index];
                                     const price = timingData.prices[index];
                                     const changeAmt = changeAmounts[index];  // 使用原始涨跌额数据
+                                    const volume = timingData.volumes ? timingData.volumes[index] : 0;
+                                    const amount = timingData.amounts ? timingData.amounts[index] : 0;
                                     return [
                                         '涨跌幅: ' + (pct >= 0 ? '+' : '') + pct.toFixed(2) + '%',
                                         '上证指数: ' + price.toFixed(2),
-                                        '涨跌额: ' + (changeAmt >= 0 ? '+' : '') + changeAmt.toFixed(2)
+                                        '涨跌额: ' + (changeAmt >= 0 ? '+' : '') + changeAmt.toFixed(2),
+                                        '成交量: ' + volume.toFixed(0) + '万手',
+                                        '成交额: ' + amount.toFixed(2) + '亿'
                                     ];
                                 }}
                             }}
@@ -5388,7 +5391,7 @@ def get_sectors_page_html(sectors_content, select_fund_content, fund_map, userna
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>行业板块 - MaYi Fund</title>
+    <title>行业板块 - LanFund</title>
     <link rel="icon" href="/static/1.ico">
     {css_style}
     <link rel="stylesheet" href="/static/css/style.css">

@@ -5,3 +5,4 @@ build/
 .claude
 CLAUDE.md
 cache/fund_data.db
+dist/

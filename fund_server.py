@@ -142,7 +142,7 @@ def get_sector_funds():
     """获取指定板块的基金列表"""
     bk_id = request.args.get("bk_id")
     importlib.reload(fund)
-    my_fund = fund.MaYiFund(db=db)
+    my_fund = fund.LanFund(db=db)
     return my_fund.select_fund_html(bk_id=bk_id)
 
 
@@ -158,7 +158,7 @@ def api_fund_add():
             return {'success': False, 'message': '请提供基金代码'}
         user_id = get_current_user_id()
         importlib.reload(fund)
-        my_fund = fund.MaYiFund(user_id=user_id, db=db)
+        my_fund = fund.LanFund(user_id=user_id, db=db)
         my_fund.add_code(codes)
         return {'success': True, 'message': f'已添加基金: {codes}'}
     except Exception as e:
@@ -177,7 +177,7 @@ def api_fund_delete():
             return {'success': False, 'message': '请提供基金代码'}
         user_id = get_current_user_id()
         importlib.reload(fund)
-        my_fund = fund.MaYiFund(user_id=user_id, db=db)
+        my_fund = fund.LanFund(user_id=user_id, db=db)
         my_fund.delete_code(codes)
         return {'success': True, 'message': f'已删除基金: {codes}'}
     except Exception as e:
@@ -197,7 +197,7 @@ def api_fund_hold():
             return {'success': False, 'message': '请提供基金代码'}
         user_id = get_current_user_id()
         importlib.reload(fund)
-        my_fund = fund.MaYiFund(user_id=user_id, db=db)
+        my_fund = fund.LanFund(user_id=user_id, db=db)
         code_list = [c.strip() for c in codes.split(',')]
         for code in code_list:
             if code in my_fund.CACHE_MAP:
@@ -224,7 +224,7 @@ def api_fund_sector():
             return {'success': False, 'message': '请选择板块'}
         user_id = get_current_user_id()
         importlib.reload(fund)
-        my_fund = fund.MaYiFund(user_id=user_id, db=db)
+        my_fund = fund.LanFund(user_id=user_id, db=db)
         code_list = [c.strip() for c in codes.split(',')]
         # 使用Web专用方法
         my_fund.mark_fund_sector_web(code_list, sectors)
@@ -245,7 +245,7 @@ def api_fund_sector_remove():
             return {'success': False, 'message': '请提供基金代码'}
         user_id = get_current_user_id()
         importlib.reload(fund)
-        my_fund = fund.MaYiFund(user_id=user_id, db=db)
+        my_fund = fund.LanFund(user_id=user_id, db=db)
         code_list = [c.strip() for c in codes.split(',')]
         # 使用Web专用方法
         my_fund.unmark_fund_sector_web(code_list)
@@ -390,7 +390,7 @@ def api_get_tab_data(tab_id):
     try:
         user_id = get_current_user_id()
         importlib.reload(fund)
-        my_fund = fund.MaYiFund(user_id=user_id, db=db)
+        my_fund = fund.LanFund(user_id=user_id, db=db)
 
         # 定义tab ID到函数的映射
         tab_functions = {
@@ -433,20 +433,16 @@ def api_timing_data():
     try:
         user_id = get_current_user_id()
         importlib.reload(fund)
-        my_fund = fund.MaYiFund(user_id=user_id, db=db)
+        my_fund = fund.LanFund(user_id=user_id, db=db)
 
         # 使用现有的 get_timing_chart_data 方法
         data = my_fund.get_timing_chart_data()
 
-        # 添加当前价格和涨跌幅信息
+        # 添加当前价格和涨跌幅信息（使用原始数据中的正确涨跌幅）
         if data['prices']:
-            current_price = data['prices'][-1]
-            base_price = data['prices'][0]
-            change = current_price - base_price
-            change_pct = (change / base_price) * 100 if base_price > 0 else 0
-            data['current_price'] = current_price
-            data['change'] = change
-            data['change_pct'] = change_pct
+            data['current_price'] = data['prices'][-1]
+            data['change'] = data['change_amounts'][-1] if data.get('change_amounts') else 0
+            data['change_pct'] = data['change_pcts'][-1] if data.get('change_pcts') else 0
 
         return jsonify({'success': True, 'data': data})
     except Exception as e:
@@ -460,7 +456,7 @@ def api_news_7x24():
     """获取7*24快讯"""
     try:
         importlib.reload(fund)
-        my_fund = fund.MaYiFund(user_id=get_current_user_id(), db=db)
+        my_fund = fund.LanFund(user_id=get_current_user_id(), db=db)
 
         # 获取快讯数据
         result = my_fund.kx(True)
@@ -512,7 +508,7 @@ def api_indices_global():
     """获取全球指数数据"""
     try:
         importlib.reload(fund)
-        my_fund = fund.MaYiFund(user_id=get_current_user_id(), db=db)
+        my_fund = fund.LanFund(user_id=get_current_user_id(), db=db)
 
         # 获取全球指数数据 - 使用正确的方法名
         result = my_fund.get_market_info(True)
@@ -546,7 +542,7 @@ def api_indices_volume():
     """获取成交量趋势数据"""
     try:
         importlib.reload(fund)
-        my_fund = fund.MaYiFund(user_id=get_current_user_id(), db=db)
+        my_fund = fund.LanFund(user_id=get_current_user_id(), db=db)
 
         # 使用现有的 get_volume_chart_data 方法
         data = my_fund.get_volume_chart_data()
@@ -563,7 +559,7 @@ def api_gold_realtime():
     """获取实时贵金属价格"""
     try:
         importlib.reload(fund)
-        my_fund = fund.MaYiFund(user_id=get_current_user_id(), db=db)
+        my_fund = fund.LanFund(user_id=get_current_user_id(), db=db)
 
         # 获取实时金价数据
         # real_time_gold 返回 [[...], [...], [...]] 三个贵金属的数据
@@ -603,7 +599,7 @@ def api_gold_history():
     """获取历史金价数据"""
     try:
         importlib.reload(fund)
-        my_fund = fund.MaYiFund(user_id=get_current_user_id(), db=db)
+        my_fund = fund.LanFund(user_id=get_current_user_id(), db=db)
 
         # 获取历史金价数据 (gold 是静态方法，返回 raw data)
         result = my_fund.gold(True)
@@ -688,7 +684,7 @@ def api_fund_list():
     try:
         user_id = get_current_user_id()
         importlib.reload(fund)
-        my_fund = fund.MaYiFund(user_id=user_id, db=db)
+        my_fund = fund.LanFund(user_id=user_id, db=db)
 
         # 获取用户基金数据
         fund_map = db.get_user_funds(user_id)
@@ -720,7 +716,7 @@ def api_sector_funds(sector_id):
     """获取指定板块的基金列表"""
     try:
         importlib.reload(fund)
-        my_fund = fund.MaYiFund(user_id=get_current_user_id(), db=db)
+        my_fund = fund.LanFund(user_id=get_current_user_id(), db=db)
 
         # 获取板块基金数据
         result = my_fund.select_fund(bk_id=sector_id, is_return=True)
@@ -764,7 +760,7 @@ def get_market():
     """7*24快讯页面 - 只展示快讯"""
     user_id = get_current_user_id()
     importlib.reload(fund)
-    my_fund = fund.MaYiFund(user_id=user_id, db=db)
+    my_fund = fund.LanFund(user_id=user_id, db=db)
 
     # 只加载快讯数据
     try:
@@ -784,7 +780,7 @@ def get_precious_metals():
     """贵金属行情页面"""
     user_id = get_current_user_id()
     importlib.reload(fund)
-    my_fund = fund.MaYiFund(user_id=user_id, db=db)
+    my_fund = fund.LanFund(user_id=user_id, db=db)
 
     # 加载贵金属数据
     precious_metals_data = {}
@@ -811,7 +807,7 @@ def get_market_indices():
     """市场指数页面 - 全球指数和成交量趋势"""
     user_id = get_current_user_id()
     importlib.reload(fund)
-    my_fund = fund.MaYiFund(user_id=user_id, db=db)
+    my_fund = fund.LanFund(user_id=user_id, db=db)
 
     # 加载市场数据（全球指数、成交量趋势）
     market_charts = {}
@@ -849,7 +845,7 @@ def get_portfolio():
     delete = request.args.get("delete")
     user_id = get_current_user_id()
     importlib.reload(fund)
-    my_fund = fund.MaYiFund(user_id=user_id, db=db)
+    my_fund = fund.LanFund(user_id=user_id, db=db)
     if add:
         my_fund.add_code(add)
     if delete:
@@ -893,7 +889,7 @@ def get_sectors():
     """行业板块基金查询页面"""
     user_id = get_current_user_id()
     importlib.reload(fund)
-    my_fund = fund.MaYiFund(user_id=user_id, db=db)
+    my_fund = fund.LanFund(user_id=user_id, db=db)
 
     # 加载行业板块数据
     try:

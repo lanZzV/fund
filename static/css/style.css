@@ -402,7 +402,7 @@
         }
 
         .style-table th {
-            text-align: left;
+            text-align: center;
             padding: 12px 16px;
             background-color: var(--gh-bg-tertiary);
             font-weight: 600;
@@ -417,6 +417,7 @@
             border-bottom: 1px solid var(--gh-border-secondary);
             color: var(--gh-text-primary);
             font-weight: 400;
+            text-align: center;
         }
 
         .style-table tbody tr:hover {
@@ -457,10 +458,8 @@
             color: var(--gh-accent-fg);
         }
 
-        /* Numeric Columns Alignment & Font */
-        .style-table th:nth-child(n+2),
-        .style-table td:nth-child(n+2) {
-            text-align: right;
+        /* Numeric Columns Font (monospace for numbers) */
+        .style-table td:nth-child(n+4) {
             font-family: var(--font-mono);
             font-variant-numeric: tabular-nums;
         }
@@ -987,10 +986,10 @@
 /* Sidebar Navigation Variables */
 :root {
     --sidebar-width: 70px;
-    --sidebar-expanded-width: 200px;
+    --sidebar-expanded-width: 180px;
     --sidebar-bg: var(--gh-bg-tertiary);
     --sidebar-border: var(--gh-border-primary);
-    --sidebar-icon-size: 24px;
+    --sidebar-icon-size: 20px;
     --sidebar-icon-active: var(--gh-accent-fg);
 
     /* Header & Summary Variables */
@@ -1013,20 +1012,109 @@
     background: var(--gh-bg-primary);
 }
 
+/* ========================================
+   Legacy Sidebar (id="sidebar")
+   Used by: /market, /market-indices, /precious-metals, /sectors pages
+   ======================================== */
+
+.sidebar {
+    width: 200px;
+    background-color: var(--card-bg, #0d1117);
+    border-right: 1px solid var(--border, #30363d);
+    padding: 20px 0;
+    flex-shrink: 0;
+    transition: width 0.3s ease;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    overflow: visible;
+}
+
+.sidebar.collapsed {
+    width: 60px;
+}
+
+.sidebar-toggle {
+    position: absolute;
+    top: 10px;
+    right: -12px;
+    width: 24px;
+    height: 24px;
+    background: var(--accent, #58a6ff);
+    border: 2px solid var(--card-bg, #0d1117);
+    border-radius: 50%;
+    cursor: pointer;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    color: white;
+    transition: transform 0.2s ease;
+    flex-shrink: 0;
+}
+
+.sidebar-toggle:hover {
+    transform: scale(1.1);
+}
+
+.sidebar-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    color: var(--text-secondary, #8b949e);
+    text-decoration: none;
+    white-space: nowrap;
+    overflow: hidden;
+    transition: all 0.2s ease;
+    width: 100%;
+    border-left: 3px solid transparent;
+}
+
+.sidebar-item:hover {
+    background-color: var(--hover-bg, #161b22);
+    color: var(--text-primary, #c9d1d9);
+}
+
+.sidebar-item.active {
+    background: linear-gradient(90deg, rgba(88, 166, 255, 0.15) 0%, rgba(88, 166, 255, 0.05) 100%);
+    color: var(--accent, #58a6ff);
+    border-left-color: var(--accent, #58a6ff);
+}
+
+.sidebar-icon {
+    font-size: 18px;
+    flex-shrink: 0;
+}
+
+/* Centered and compact when collapsed */
+.sidebar.collapsed .sidebar-item {
+    gap: 0;
+    justify-content: center;
+    padding: 12px;
+}
+
+.sidebar.collapsed .sidebar-item span:not(.sidebar-icon) {
+    display: none;
+}
+
 /* Sidebar Navigation */
 .sidebar-nav {
     width: var(--sidebar-width);
+    min-width: var(--sidebar-width);
     background: var(--sidebar-bg);
     border-right: 1px solid var(--sidebar-border);
     display: flex;
     flex-direction: column;
-    transition: width 0.3s ease;
+    transition: width 0.3s ease, min-width 0.3s ease;
     position: relative;
     z-index: 50;
 }
 
 .sidebar-nav.expanded {
     width: var(--sidebar-expanded-width);
+    min-width: var(--sidebar-expanded-width);
 }
 
 .sidebar-icons {
@@ -1035,71 +1123,109 @@
     flex-direction: column;
     padding: 12px 0;
     gap: 4px;
+    overflow-y: auto;
+    overflow-x: hidden;
+    min-height: 0;
 }
 
-.sidebar-icon {
+.sidebar-nav .sidebar-icon {
     display: flex;
     align-items: center;
-    gap: 6px;
-    padding: 12px 16px;
+    justify-content: center;
+    gap: 0;
+    padding: 12px 0;
     background: none;
     border: none;
     border-left: 3px solid transparent;
     cursor: pointer;
     transition: all 0.2s ease;
     color: var(--gh-text-secondary);
-    text-align: left;
     width: 100%;
+    min-width: 0;
+    white-space: nowrap;
+    overflow: hidden;
 }
 
-.sidebar-icon .icon {
+.sidebar-nav.expanded .sidebar-icon {
+    justify-content: flex-start;
+    gap: 12px;
+    padding: 12px 16px;
+}
+
+.sidebar-nav .sidebar-icon .icon {
     font-size: var(--sidebar-icon-size);
-    min-width: var(--sidebar-icon-size);
+    width: var(--sidebar-icon-size);
     text-align: center;
+    flex-shrink: 0;
 }
 
-.sidebar-icon .icon-label {
+.sidebar-nav .sidebar-icon .icon-label {
     font-size: 14px;
     font-weight: 500;
     white-space: nowrap;
-    opacity: 0;
-    transition: opacity 0.3s ease;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    flex: none;
+    display: none;
 }
 
 .sidebar-nav.expanded .sidebar-icon .icon-label {
-    opacity: 1;
+    display: block;
 }
 
-.sidebar-icon:hover {
+.sidebar-nav .sidebar-icon:hover {
     background: var(--gh-bg-secondary);
     color: var(--gh-text-primary);
 }
 
-.sidebar-icon.active {
+.sidebar-nav .sidebar-icon.active {
     border-left-color: var(--sidebar-icon-active);
-    background: var(--gh-bg-secondary);
+    background: linear-gradient(90deg, rgba(102, 126, 234, 0.15) 0%, rgba(118, 75, 162, 0.05) 100%);
     color: var(--sidebar-icon-active);
 }
 
-.sidebar-toggle {
-    padding: 12px;
-    background: var(--gh-bg-secondary);
+/* New Sidebar Navigation Toggle - positioned at bottom with prominent style */
+.sidebar-icons .sidebar-toggle {
+    margin: 12px 8px;
+    padding: 10px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     border: none;
-    border-top: 1px solid var(--sidebar-border);
+    border-radius: 8px;
     cursor: pointer;
-    color: var(--gh-text-secondary);
+    color: white;
+    font-weight: 600;
+    font-size: 13px;
     transition: all 0.2s ease;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+    width: calc(100% - 16px);
 }
 
-.sidebar-toggle:hover {
-    background: var(--gh-bg-tertiary);
-    color: var(--gh-text-primary);
+.sidebar-icons .sidebar-toggle:hover {
+    background: linear-gradient(135deg, #7c8ef0 0%, #8a5bb0 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
 }
 
-.sidebar-nav.expanded .sidebar-toggle span {
-    transform: rotate(180deg);
+.sidebar-icons .sidebar-toggle .toggle-text {
+    display: none;
+}
+
+.sidebar-nav.expanded .sidebar-icons .sidebar-toggle .toggle-text {
+    display: inline;
+}
+
+.sidebar-icons .sidebar-toggle span:first-child {
     display: inline-block;
     transition: transform 0.3s ease;
+}
+
+.sidebar-nav.expanded .sidebar-icons .sidebar-toggle span:first-child {
+    transform: rotate(180deg);
 }
 
 /* Main Content Area */
@@ -1466,22 +1592,33 @@
         display: none;
     }
 
-    .sidebar-icon {
+    .sidebar-nav .sidebar-icon {
         flex-direction: column;
         padding: 8px 12px;
         border-left: none;
         border-bottom: 3px solid transparent;
         min-width: 60px;
+        gap: 4px;
+        justify-content: center;
     }
 
-    .sidebar-icon.active {
+    .sidebar-nav.expanded .sidebar-icon {
+        flex-direction: column;
+        padding: 8px 12px;
+        gap: 4px;
+        justify-content: center;
+    }
+
+    .sidebar-nav .sidebar-icon.active {
         border-left-color: transparent;
         border-bottom-color: var(--sidebar-icon-active);
     }
 
-    .sidebar-icon .icon-label {
+    .sidebar-nav .sidebar-icon .icon-label,
+    .sidebar-nav.expanded .sidebar-icon .icon-label {
         font-size: 10px;
-        opacity: 1;
+        display: block;
+        flex: none;
     }
 
     .sidebar-toggle {

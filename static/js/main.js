@@ -8,28 +8,71 @@
     document.addEventListener('DOMContentLoaded', function() {
         // Initialize Auto Colorize
         autoColorize();
+
+        // Legacy Sidebar Toggle (id="sidebar")
+        // Used by /market, /market-indices, /precious-metals, /sectors pages
+        // Note: /portfolio uses sidebarNav with sidebar-nav.js instead
+        const sidebar = document.getElementById('sidebar');
+        const sidebarToggle = document.getElementById('sidebarToggle');
+
+        if (sidebar && sidebarToggle && sidebar.id === 'sidebar') {
+            sidebarToggle.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                sidebar.classList.toggle('collapsed');
+                // Update toggle button direction
+                const isCollapsed = sidebar.classList.contains('collapsed');
+                sidebarToggle.textContent = isCollapsed ? '▶' : '◀';
+                sidebarToggle.title = isCollapsed ? '展开' : '折叠';
+            });
+        }
     });
 
     function autoColorize() {
-        const cells = document.querySelectorAll('.style-table td');
-        cells.forEach(cell => {
-            const text = cell.textContent.trim();
-            const cleanText = text.replace(/[%,亿万手]/g, '');
-            const val = parseFloat(cleanText);
+        // Use requestAnimationFrame to ensure DOM is updated
+        requestAnimationFrame(() => {
+            const cells = document.querySelectorAll('.style-table td');
+            cells.forEach(cell => {
+                // Clear existing color classes first
+                cell.classList.remove('positive', 'negative');
 
-            if (!isNaN(val)) {
-                if (text.includes('%') || text.includes('涨跌')) {
-                    if (text.includes('-')) {
-                        cell.classList.add('negative');
-                    } else if (val > 0) {
-                        cell.classList.add('positive');
+                const text = cell.textContent.trim();
+
+                // Skip empty cells or non-data cells
+                if (!text || text === '-' || text === 'N/A' || text === '---') {
+                    return;
+                }
+
+                // Handle "利好" (bullish/positive) and "利空" (bearish/negative) for news
+                if (text === '利好') {
+                    cell.classList.add('positive');
+                    return;
+                } else if (text === '利空') {
+                    cell.classList.add('negative');
+                    return;
+                }
+
+                // Check for percentage format (including cases like +0.15% or -0.15%)
+                if (text.includes('%')) {
+                    const cleanText = text.replace(/[%,亿万手]/g, '');
+                    const val = parseFloat(cleanText);
+
+                    if (!isNaN(val)) {
+                        if (val < 0 || text.startsWith('-')) {
+                            cell.classList.add('negative');  // Green for negative
+                        } else if (val > 0 || text.startsWith('+')) {
+                            cell.classList.add('positive');   // Red for positive
+                        }
+                        // val === 0 gets no color (neutral)
                     }
+                }
+                // Check for values starting with + or - (not percentages)
+                else if (text.startsWith('+')) {
+                    cell.classList.add('positive');
                 } else if (text.startsWith('-')) {
                     cell.classList.add('negative');
-                } else if (text.startsWith('+')) {
-                    cell.classList.add('positive');
                 }
-            }
+            });
         });
     }
 
@@ -298,12 +341,16 @@
         confirmCallback = null;
     }
 
-    document.getElementById('confirmBtn').addEventListener('click', function() {
-        if (confirmCallback) {
-            confirmCallback();
-        }
-        closeConfirmDialog();
-    });
+    // 确认对话框按钮事件 - confirmBtn 只在 portfolio 页面存在
+    const confirmBtn = document.getElementById('confirmBtn');
+    if (confirmBtn) {
+        confirmBtn.addEventListener('click', function() {
+            if (confirmCallback) {
+                confirmCallback();
+            }
+            closeConfirmDialog();
+        });
+    }
 
     // 添加基金
     async function addFunds() {
@@ -1093,4 +1140,320 @@
         window.closeSharesModal = closeSharesModal;
         window.confirmShares = confirmShares;
         window.getFundShares = getFundShares;
+
+        // ==================== Auto-Refresh System ====================
+        let refreshInterval;
+        const REFRESH_INTERVAL = 60000; // 60 seconds
+
+        // Start auto-refresh
+        function startAutoRefresh() {
+            if (refreshInterval) {
+                clearInterval(refreshInterval);
+            }
+            refreshInterval = setInterval(() => {
+                refreshCurrentPage();
+            }, REFRESH_INTERVAL);
+            console.log('Auto-refresh started (60s interval)');
+        }
+
+        // Stop auto-refresh
+        function stopAutoRefresh() {
+            if (refreshInterval) {
+                clearInterval(refreshInterval);
+                refreshInterval = null;
+                console.log('Auto-refresh stopped');
+            }
+        }
+
+        // Refresh current page data based on route
+        async function refreshCurrentPage() {
+            const path = window.location.pathname;
+            const refreshBtn = document.getElementById('refreshBtn');
+
+            // Update button state if exists
+            if (refreshBtn) {
+                refreshBtn.disabled = true;
+                refreshBtn.innerHTML = '⏳ 刷新中...';
+            }
+
+            try {
+                switch (path) {
+                    case '/portfolio':
+                        await fetchPortfolioData();
+                        break;
+                    case '/market-indices':
+                        await fetchMarketIndicesData();
+                        break;
+                    case '/precious-metals':
+                        await fetchPreciousMetalsData();
+                        break;
+                    case '/sectors':
+                        await fetchSectorsData();
+                        break;
+                    case '/market':
+                        await fetchNewsData();
+                        break;
+                    default:
+                        console.log('No refresh handler for path:', path);
+                }
+            } catch (e) {
+                console.error('Refresh failed:', e);
+            } finally {
+                // Restore button state
+                if (refreshBtn) {
+                    refreshBtn.disabled = false;
+                    refreshBtn.innerHTML = '🔄 刷新';
+                }
+            }
+        }
+
+        // Portfolio page data fetch
+        async function fetchPortfolioData() {
+            try {
+                // Fetch timing data
+                const timingRes = await fetch('/api/timing');
+                const timingResult = await timingRes.json();
+                if (timingResult.success && timingResult.data) {
+                    updateTimingChart(timingResult.data);
+                }
+
+                // Note: Fund list is already loaded via sharesData
+                // Auto-colorize will be called after table updates
+                autoColorize();
+            } catch (e) {
+                console.error('Failed to refresh portfolio data:', e);
+            }
+        }
+
+        // Market indices page data fetch
+        async function fetchMarketIndicesData() {
+            try {
+                // Fetch global indices
+                const indicesRes = await fetch('/api/indices/global');
+                const indicesResult = await indicesRes.json();
+
+                // Fetch volume data
+                const volumeRes = await fetch('/api/indices/volume');
+                const volumeResult = await volumeRes.json();
+
+                if (indicesResult.success) {
+                    updateGlobalIndicesTable(indicesResult.data);
+                }
+                if (volumeResult.success) {
+                    updateVolumeChart(volumeResult.data);
+                }
+
+                autoColorize();
+            } catch (e) {
+                console.error('Failed to refresh market indices:', e);
+            }
+        }
+
+        // Precious metals page data fetch
+        async function fetchPreciousMetalsData() {
+            try {
+                // Fetch real-time gold prices
+                const realtimeRes = await fetch('/api/gold/real-time');
+                const realtimeResult = await realtimeRes.json();
+
+                // Fetch gold history
+                const historyRes = await fetch('/api/gold/history');
+                const historyResult = await historyRes.json();
+
+                if (realtimeResult.success) {
+                    updateRealtimeGoldTable(realtimeResult.data);
+                }
+                if (historyResult.success) {
+                    updateGoldHistoryTable(historyResult.data);
+                }
+
+                autoColorize();
+            } catch (e) {
+                console.error('Failed to refresh precious metals:', e);
+            }
+        }
+
+        // Sectors page data fetch
+        async function fetchSectorsData() {
+            try {
+                // Fetch sectors data
+                const sectorsRes = await fetch('/api/sectors');
+                const sectorsResult = await sectorsRes.json();
+
+                if (sectorsResult.success) {
+                    updateSectorsTable(sectorsResult.data);
+                }
+
+                autoColorize();
+            } catch (e) {
+                console.error('Failed to refresh sectors:', e);
+            }
+        }
+
+        // News page data fetch
+        async function fetchNewsData() {
+            try {
+                const newsRes = await fetch('/api/news/7x24');
+                const newsResult = await newsRes.json();
+
+                if (newsResult.success) {
+                    updateNewsTable(newsResult.data);
+                }
+
+                autoColorize();
+            } catch (e) {
+                console.error('Failed to refresh news:', e);
+            }
+        }
+
+        // Update functions (placeholders - to be implemented based on page structure)
+        function updateTimingChart(data) {
+            // Update timing chart if chart instance exists
+            if (window.timingChartInstance && data.labels && data.labels.length > 0) {
+                window.timingChartInstance.data.labels = data.labels;
+                window.timingChartInstance.data.datasets[0].data = data.prices;
+                window.timingChartInstance.update();
+
+                // Update title
+                const titleEl = document.getElementById('timingChartTitle');
+                if (titleEl && data.current_price !== undefined) {
+                    const changePct = data.change_pct || 0;
+                    const color = changePct >= 0 ? '#f44336' : '#4caf50';
+                    titleEl.style.color = color;
+                    titleEl.innerHTML = '📉 上证分时 <span style="font-size:0.9em;">' +
+                        data.current_price.toFixed(2) + ' (' +
+                        (changePct >= 0 ? '+' : '') + changePct.toFixed(2) + '%)</span>';
+                }
+            }
+        }
+
+        function updateGlobalIndicesTable(data) {
+            // Find and update the global indices table
+            const table = document.querySelector('.style-table');
+            if (table && data) {
+                const tbody = table.querySelector('tbody');
+                if (tbody) {
+                    tbody.innerHTML = data.map(item => `
+                        <tr>
+                            <td>${item.name}</td>
+                            <td>${item.value}</td>
+                            <td>${item.change}</td>
+                        </tr>
+                    `).join('');
+                }
+            }
+        }
+
+        function updateVolumeChart(data) {
+            // Update volume chart if exists
+            if (window.volumeChartInstance && data.labels && data.labels.length > 0) {
+                window.volumeChartInstance.data.labels = data.labels;
+                window.volumeChartInstance.data.datasets[0].data = data.total || [];
+                window.volumeChartInstance.update();
+            }
+        }
+
+        function updateRealtimeGoldTable(data) {
+            const table = document.querySelector('.style-table');
+            if (table && data) {
+                const tbody = table.querySelector('tbody');
+                if (tbody) {
+                    tbody.innerHTML = data.map(item => `
+                        <tr>
+                            <td>${item.name}</td>
+                            <td>${item.price}</td>
+                            <td>${item.change_amount}</td>
+                            <td>${item.change_pct}</td>
+                            <td>${item.open_price}</td>
+                            <td>${item.high_price}</td>
+                            <td>${item.low_price}</td>
+                            <td>${item.prev_close}</td>
+                            <td>${item.update_time}</td>
+                            <td>${item.unit}</td>
+                        </tr>
+                    `).join('');
+                }
+            }
+        }
+
+        function updateGoldHistoryTable(data) {
+            // Similar implementation for gold history table
+            const tables = document.querySelectorAll('.style-table');
+            if (tables.length > 1 && data) {
+                const tbody = tables[1].querySelector('tbody');
+                if (tbody) {
+                    tbody.innerHTML = data.map(item => `
+                        <tr>
+                            <td>${item.date}</td>
+                            <td>${item.china_gold_price}</td>
+                            <td>${item.chow_tai_fook_price}</td>
+                            <td>${item.china_gold_change}</td>
+                            <td>${item.chow_tai_fook_change}</td>
+                        </tr>
+                    `).join('');
+                }
+            }
+        }
+
+        function updateSectorsTable(data) {
+            const table = document.querySelector('.style-table');
+            if (table && data) {
+                const tbody = table.querySelector('tbody');
+                if (tbody) {
+                    tbody.innerHTML = data.map(item => `
+                        <tr>
+                            <td>${item.name}</td>
+                            <td>${item.change}</td>
+                            <td>${item.main_inflow}</td>
+                            <td>${item.main_inflow_pct}</td>
+                            <td>${item.small_inflow}</td>
+                            <td>${item.small_inflow_pct}</td>
+                        </tr>
+                    `).join('');
+                }
+            }
+        }
+
+        function updateNewsTable(data) {
+            const table = document.querySelector('.style-table');
+            if (table && data) {
+                const tbody = table.querySelector('tbody');
+                if (tbody) {
+                    tbody.innerHTML = data.map(item => {
+                        // 为利好/利空添加颜色类
+                        let sourceClass = '';
+                        if (item.source === '利好') {
+                            sourceClass = 'positive';
+                        } else if (item.source === '利空') {
+                            sourceClass = 'negative';
+                        }
+
+                        return `
+                        <tr>
+                            <td>${item.time}</td>
+                            <td class="${sourceClass}">${item.source}</td>
+                            <td>${item.content}</td>
+                        </tr>
+                        `;
+                    }).join('');
+                }
+            }
+        }
+
+        // Page visibility detection - pause refresh when tab is hidden
+        document.addEventListener('visibilitychange', function() {
+            if (document.hidden) {
+                stopAutoRefresh();
+            } else {
+                // Immediate refresh when tab becomes visible
+                refreshCurrentPage();
+                startAutoRefresh();
+            }
+        });
+
+        // Start auto-refresh on page load
+        startAutoRefresh();
+
+        // Expose refresh function globally for manual refresh button
+        window.refreshCurrentPage = refreshCurrentPage;
     });

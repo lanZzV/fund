@@ -210,10 +210,8 @@ class Database:
                     'fund_name': row['fund_name'],
                     'is_hold': bool(row['is_hold']),
                     'shares': float(row['shares']) if row['shares'] else 0,
+                    'sectors': sectors,  # 始终包含 sectors 字段
                 }
-
-                if sectors:
-                    fund_map[fund_code]['sectors'] = sectors
 
             return fund_map
 

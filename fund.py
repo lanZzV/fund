@@ -449,14 +449,19 @@ class MaYiFund:
                             dayOfGrowth = "\033[1;32m" + dayOfGrowth
                         else:
                             dayOfGrowth = "\033[1;31m" + dayOfGrowth
-                    # 处理持有标记和板块标记（Web 和 CLI 模式都显示）
+                    # 处理持有标记（Web 和 CLI 模式都显示）
                     if self.CACHE_MAP[fund].get("is_hold", False):
                         fund_name = "⭐ " + fund_name
-                    # 处理板块标记（独立于持有状态）
+                    # 处理板块标记 - 根据模式使用不同格式
                     sectors = self.CACHE_MAP[fund].get("sectors", [])
                     if sectors:
-                        sector_str = ",".join(sectors)
-                        fund_name = f"({sector_str}) {fund_name}"
+                        sector_display = ", ".join(sectors)
+                        if is_return:
+                            # Web模式：使用HTML样式
+                            fund_name = f"{fund_name} <span style='color: #8b949e; font-size: 12px;'>🏷️ {sector_display}</span>"
+                        else:
+                            # CLI模式：使用括号格式
+                            fund_name = f"({sector_display}) {fund_name}"
                     # 合并连涨天数和连涨幅
                     consecutive_info = f"{consecutive_count}天 {consecutive_growth}"
                     # 合并近30天涨跌和总涨幅
@@ -998,7 +1003,8 @@ class MaYiFund:
                 (data_list[1] or "---"),
                 (data_list[3] or "---"),
                 (data_list[15] or "---"),
-                (data_list[16] or "---") + "（" + (data_list[17] or "---") + "%）",
+                (data_list[16] or "---"),  # 净值
+                (data_list[17] or "---") + "%",  # 日增长率
                 (data_list[5] or "---") + "%",
                 (data_list[6] or "---") + "%",
                 (data_list[7] or "---") + "%",
@@ -1261,21 +1267,32 @@ class MaYiFund:
         # result 格式: [[时间, 指数, 涨跌额, 涨跌幅, 成交量, 成交额], ...]
         labels = []
         prices = []
+        change_pcts = []  # 涨跌幅
+        change_amounts = []  # 涨跌额（原始数据）
         volumes = []
         for item in result:
             try:
                 labels.append(item[0])  # 时间
                 price = float(item[1]) if item[1] else 0
+                # 提取涨跌幅，如"+0.38%"，转换为浮点数
+                pct_str = item[3].replace('%', '') if len(item) > 3 and item[3] else '0'
+                pct = float(pct_str)
+                # 提取涨跌额（原始数据，如"+12.34"或"-5.67"）
+                change_amt = float(item[2]) if len(item) > 2 and item[2] else 0
                 # 成交量清理"万手"等字符
                 vol_str = item[4].replace('万手', '').replace(',', '') if len(item) > 4 and item[4] else '0'
                 volume = float(vol_str)
                 prices.append(price)
+                change_pcts.append(pct)
+                change_amounts.append(change_amt)
                 volumes.append(volume)
             except:
                 continue
         return {
             'labels': labels,
             'prices': prices,
+            'change_pcts': change_pcts,
+            'change_amounts': change_amounts,  # 涨跌额（原始数据）
             'volumes': volumes
         }
 
@@ -1783,9 +1800,9 @@ class MaYiFund:
             <div style="padding: 20px;">
                 <h3 style="margin: 0 0 15px 0;">板块: {data["bk_name"]}</h3>
                 {get_table_html(
-                ["基金代码", "基金名称", "基金类型", "日期", "净值|日增长率", "近1周", "近1月", "近3月", "近6月", "今年来", "近1年", "近2年", "近3年", "成立来"],
+                ["基金代码", "基金名称", "基金类型", "日期", "净值", "日增长率", "近1周", "近1月", "近3月", "近6月", "今年来", "近1年", "近2年", "近3年", "成立来"],
                 data["results"],
-                [4, 5, 6, 7, 8, 9, 10, 11, 12, 13]
+                [4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]
             )}
             </div>
             '''

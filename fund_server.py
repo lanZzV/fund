@@ -420,6 +420,326 @@ def api_get_tab_data(tab_id):
         return jsonify({'success': False, 'message': f'数据加载失败: {str(e)}'}), 500
 
 
+# ==================== New API Endpoints for Auto-Refresh ====================
+
+@app.route('/api/timing', methods=['GET'])
+@login_required
+def api_timing_data():
+    """获取上证分时数据"""
+    try:
+        user_id = get_current_user_id()
+        importlib.reload(fund)
+        my_fund = fund.MaYiFund(user_id=user_id, db=db)
+
+        # 使用现有的 get_timing_chart_data 方法
+        data = my_fund.get_timing_chart_data()
+
+        # 添加当前价格和涨跌幅信息
+        if data['prices']:
+            current_price = data['prices'][-1]
+            base_price = data['prices'][0]
+            change = current_price - base_price
+            change_pct = (change / base_price) * 100 if base_price > 0 else 0
+            data['current_price'] = current_price
+            data['change'] = change
+            data['change_pct'] = change_pct
+
+        return jsonify({'success': True, 'data': data})
+    except Exception as e:
+        logger.error(f"获取上证分时数据失败: {e}")
+        return jsonify({'success': False, 'message': f'数据加载失败: {str(e)}'}), 500
+
+
+@app.route('/api/news/7x24', methods=['GET'])
+@login_required
+def api_news_7x24():
+    """获取7*24快讯"""
+    try:
+        importlib.reload(fund)
+        my_fund = fund.MaYiFund(user_id=get_current_user_id(), db=db)
+
+        # 获取快讯数据
+        result = my_fund.kx(True)
+
+        # 将数据转换为JSON格式
+        # kx() 返回的是 list of dicts，需要正确提取字段
+        news_items = []
+        if result:
+            for item in result:
+                try:
+                    # 提取标题和内容
+                    title = item.get('title', '')
+                    if not title and 'content' in item and 'items' in item['content']:
+                        content_items = item['content'].get('items', [])
+                        if content_items and len(content_items) > 0:
+                            title = content_items[0].get('data', '')
+
+                    # 提取发布时间
+                    publish_time = item.get('publish_time', '')
+                    if publish_time:
+                        # 转换时间戳为可读格式
+                        import datetime
+                        try:
+                            publish_time = datetime.datetime.fromtimestamp(int(publish_time)).strftime("%H:%M:%S")
+                        except:
+                            publish_time = ''
+
+                    # 提取评估（利好/利空）
+                    evaluate = item.get('evaluate', '')
+
+                    news_items.append({
+                        'time': publish_time,
+                        'content': title,
+                        'source': evaluate if evaluate else ''
+                    })
+                except Exception as e:
+                    logger.debug(f"Error processing news item: {e}")
+                    continue
+
+        return jsonify({'success': True, 'data': news_items})
+    except Exception as e:
+        logger.error(f"获取7*24快讯失败: {e}")
+        return jsonify({'success': False, 'message': f'数据加载失败: {str(e)}'}), 500
+
+
+@app.route('/api/indices/global', methods=['GET'])
+@login_required
+def api_indices_global():
+    """获取全球指数数据"""
+    try:
+        importlib.reload(fund)
+        my_fund = fund.MaYiFund(user_id=get_current_user_id(), db=db)
+
+        # 获取全球指数数据 - 使用正确的方法名
+        result = my_fund.get_market_info(True)
+
+        # 将数据转换为JSON格式
+        # result 格式: [[名称, 指数, 涨跌幅], ...]
+        indices = []
+        if result:
+            for item in result:
+                if len(item) >= 3:
+                    # 清理涨跌幅中的颜色代码和%符号
+                    change_str = item[2] if item[2] else "0%"
+                    change_str = change_str.replace('%', '').replace('\033[1;31m', '').replace('\033[1;32m', '')
+                    change = float(change_str) if change_str else 0
+                    indices.append({
+                        'name': item[0],
+                        'value': item[1],
+                        'change': change_str + '%',
+                        'change_pct': change
+                    })
+
+        return jsonify({'success': True, 'data': indices})
+    except Exception as e:
+        logger.error(f"获取全球指数失败: {e}")
+        return jsonify({'success': False, 'message': f'数据加载失败: {str(e)}'}), 500
+
+
+@app.route('/api/indices/volume', methods=['GET'])
+@login_required
+def api_indices_volume():
+    """获取成交量趋势数据"""
+    try:
+        importlib.reload(fund)
+        my_fund = fund.MaYiFund(user_id=get_current_user_id(), db=db)
+
+        # 使用现有的 get_volume_chart_data 方法
+        data = my_fund.get_volume_chart_data()
+
+        return jsonify({'success': True, 'data': data})
+    except Exception as e:
+        logger.error(f"获取成交量趋势失败: {e}")
+        return jsonify({'success': False, 'message': f'数据加载失败: {str(e)}'}), 500
+
+
+@app.route('/api/gold/real-time', methods=['GET'])
+@login_required
+def api_gold_realtime():
+    """获取实时贵金属价格"""
+    try:
+        importlib.reload(fund)
+        my_fund = fund.MaYiFund(user_id=get_current_user_id(), db=db)
+
+        # 获取实时金价数据
+        # real_time_gold 返回 [[...], [...], [...]] 三个贵金属的数据
+        # 每个数组有10列: [名称, 最新价, 涨跌额, 涨跌幅, 开盘价, 最高价, 最低价, 昨收价, 更新时间, 单位]
+        result = my_fund.real_time_gold(True)
+
+        # 将数据转换为JSON格式，保留所有10列
+        gold_data = []
+        gold_names = ['中国黄金', '周大福', '周生生']  # 根据API代码 JO_71, JO_92233, JO_92232
+
+        if result and len(result) >= 3:
+            # result[0], result[1], result[2] 分别是三种贵金属的数据
+            for i, gold_type_data in enumerate(result):
+                if len(gold_type_data) >= 4:  # 至少需要前4列
+                    gold_data.append({
+                        'name': gold_type_data[0] if gold_type_data else gold_names[i],
+                        'price': gold_type_data[1] if len(gold_type_data) > 1 else '',
+                        'change_amount': gold_type_data[2] if len(gold_type_data) > 2 else '',
+                        'change_pct': gold_type_data[3] if len(gold_type_data) > 3 else '',
+                        'open_price': gold_type_data[4] if len(gold_type_data) > 4 else '',
+                        'high_price': gold_type_data[5] if len(gold_type_data) > 5 else '',
+                        'low_price': gold_type_data[6] if len(gold_type_data) > 6 else '',
+                        'prev_close': gold_type_data[7] if len(gold_type_data) > 7 else '',
+                        'update_time': gold_type_data[8] if len(gold_type_data) > 8 else '',
+                        'unit': gold_type_data[9] if len(gold_type_data) > 9 else ''
+                    })
+
+        return jsonify({'success': True, 'data': gold_data})
+    except Exception as e:
+        logger.error(f"获取实时金价失败: {e}")
+        return jsonify({'success': False, 'message': f'数据加载失败: {str(e)}'}), 500
+
+
+@app.route('/api/gold/history', methods=['GET'])
+@login_required
+def api_gold_history():
+    """获取历史金价数据"""
+    try:
+        importlib.reload(fund)
+        my_fund = fund.MaYiFund(user_id=get_current_user_id(), db=db)
+
+        # 获取历史金价数据 (gold 是静态方法，返回 raw data)
+        result = my_fund.gold(True)
+
+        # gold 返回格式: [[日期, 中国黄金基础金价, 周大福金价, 中国黄金基础金价涨跌, 周大福金价涨跌], ...]
+        gold_history = []
+        if result:
+            for item in result:
+                if len(item) >= 3:
+                    gold_history.append({
+                        'date': item[0],
+                        'china_gold_price': item[1],
+                        'chow_tai_fook_price': item[2],
+                        'china_gold_change': item[3] if len(item) > 3 else '',
+                        'chow_tai_fook_change': item[4] if len(item) > 4 else ''
+                    })
+
+        return jsonify({'success': True, 'data': gold_history})
+    except Exception as e:
+        logger.error(f"获取历史金价失败: {e}")
+        return jsonify({'success': False, 'message': f'数据加载失败: {str(e)}'}), 500
+
+
+@app.route('/api/sectors', methods=['GET'])
+@login_required
+def api_sectors():
+    """获取行业板块数据"""
+    try:
+        importlib.reload(fund)
+
+        # 获取板块数据 (bk 是静态方法，返回 raw data)
+        # 需要从API获取板块代码
+        import requests
+        url = "https://push2.eastmoney.com/api/qt/clist/get"
+        params = {
+            "cb": "",
+            "fid": "f62",
+            "po": "1",
+            "pz": "100",
+            "pn": "1",
+            "np": "1",
+            "fltt": "2",
+            "invt": "2",
+            "ut": "8dec03ba335b81bf4ebdf7b29ec27d15",
+            "fs": "m:90 t:2",
+            "fields": "f12,f14,f2,f3,f62,f184,f66,f69,f72,f75,f78,f81,f84,f87,f204,f205,f124,f1,f13"
+        }
+        response = requests.get(url, params=params, timeout=10, verify=False)
+        if str(response.json()["data"]):
+            data = response.json()["data"]
+            sectors = []
+            for bk in data["diff"]:
+                sectors.append({
+                    'code': bk["f12"],      # 板块代码
+                    'name': bk["f14"],     # 板块名称
+                    'change': str(bk["f3"]) + "%",  # 涨跌幅
+                    'main_inflow': str(round(bk["f62"] / 100000000, 2)) + "亿",  # 主力净流入
+                    'main_inflow_pct': str(round(bk["f184"], 2)) + "%",  # 主力净流入占比
+                    'small_inflow': str(round(bk["f84"] / 100000000, 2)) + "亿",  # 小单净流入
+                    'small_inflow_pct': str(round(bk["f87"], 2)) + "%"  # 小单流入占比
+                })
+
+            # 按涨跌幅降序排序（与原始 bk() 函数的排序逻辑一致）
+            sectors = sorted(
+                sectors,
+                key=lambda x: float(x['change'].replace("%", "")) if x['main_inflow_pct'] != "N/A" else -99,
+                reverse=True
+            )
+        else:
+            sectors = []
+
+        return jsonify({'success': True, 'data': sectors})
+    except Exception as e:
+        logger.error(f"获取行业板块失败: {e}")
+        return jsonify({'success': False, 'message': f'数据加载失败: {str(e)}'}), 500
+
+
+@app.route('/api/fund/list', methods=['GET'])
+@login_required
+def api_fund_list():
+    """获取基金列表（含份额数据）"""
+    try:
+        user_id = get_current_user_id()
+        importlib.reload(fund)
+        my_fund = fund.MaYiFund(user_id=user_id, db=db)
+
+        # 获取用户基金数据
+        fund_map = db.get_user_funds(user_id)
+
+        # 将数据转换为JSON格式
+        funds = []
+        for code, data in fund_map.items():
+            fund_info = my_fund.CACHE_MAP.get(code, {})
+            funds.append({
+                'code': code,
+                'name': data.get('fund_name', fund_info.get('name', '')),
+                'shares': data.get('shares', 0),
+                'is_hold': data.get('is_hold', False),
+                'sectors': data.get('sectors', []),
+                'net_value': fund_info.get('net_value', 0),
+                'day_growth': fund_info.get('day_growth', 0),
+                'estimated_growth': fund_info.get('estimated_growth', 0)
+            })
+
+        return jsonify({'success': True, 'data': funds})
+    except Exception as e:
+        logger.error(f"获取基金列表失败: {e}")
+        return jsonify({'success': False, 'message': f'数据加载失败: {str(e)}'}), 500
+
+
+@app.route('/api/sector/<sector_id>', methods=['GET'])
+@login_required
+def api_sector_funds(sector_id):
+    """获取指定板块的基金列表"""
+    try:
+        importlib.reload(fund)
+        my_fund = fund.MaYiFund(user_id=get_current_user_id(), db=db)
+
+        # 获取板块基金数据
+        result = my_fund.select_fund(bk_id=sector_id, is_return=True)
+
+        # 将数据转换为JSON格式
+        funds = []
+        if result:
+            for item in result:
+                if len(item) >= 5:
+                    funds.append({
+                        'code': item[0],
+                        'name': item[1],
+                        'net_value': item[2],
+                        'day_growth': item[3],
+                        'estimated_growth': item[4] if len(item) > 4 else ''
+                    })
+
+        return jsonify({'success': True, 'data': funds})
+    except Exception as e:
+        logger.error(f"获取板块基金失败: {e}")
+        return jsonify({'success': False, 'message': f'数据加载失败: {str(e)}'}), 500
+
+
 @app.route('/', methods=['GET'])
 @login_required
 def get_index():
@@ -596,4 +916,4 @@ def get_sectors():
 
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=8311, debug=True)
+    app.run(host='0.0.0.0', port=8311)

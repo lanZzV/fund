@@ -1,12 +1,23 @@
 // Sidebar Navigation Controller
+// Only initializes for pages that use sidebarNav (portfolio page)
+// Other pages use the legacy sidebar (id="sidebar") with inline JavaScript
+
 class SidebarNavigation {
   constructor() {
+    // Only initialize if sidebarNav exists on this page
+    const sidebarNavElement = document.getElementById('sidebarNav');
+    if (!sidebarNavElement) {
+      // This page doesn't use sidebarNav, it uses legacy sidebar
+      return;
+    }
+
     this.currentSection = 'funds';
-    this.sidebar = document.getElementById('sidebarNav');
+    this.sidebar = sidebarNavElement;
     this.sidebarToggle = document.getElementById('sidebarToggle');
     this.sidebarIcons = document.querySelectorAll('.sidebar-icon');
     this.sectionTitle = document.getElementById('sectionTitle');
     this.summaryBar = document.getElementById('summaryBar');
+    this.contentSections = document.querySelectorAll('.content-section');
 
     // Mapping from section ID to actual DOM element ID
     this.sectionIdMap = {
@@ -26,13 +37,15 @@ class SidebarNavigation {
 
   init() {
     // Sidebar icon click handlers
-    this.sidebarIcons.forEach(icon => {
-      icon.addEventListener('click', (e) => {
-        const section = icon.dataset.section;
-        const tabId = icon.dataset.tabId;
-        this.navigateToSection(section, tabId);
+    if (this.sidebarIcons) {
+      this.sidebarIcons.forEach(icon => {
+        icon.addEventListener('click', (e) => {
+          const section = icon.dataset.section;
+          const tabId = icon.dataset.tabId;
+          this.navigateToSection(section, tabId);
+        });
       });
-    });
+    }
 
     // Sidebar toggle
     if (this.sidebarToggle) {
@@ -52,13 +65,15 @@ class SidebarNavigation {
 
   navigateToSection(sectionId, tabId) {
     // Update active icon
-    this.sidebarIcons.forEach(icon => {
-      if (icon.dataset.section === sectionId) {
-        icon.classList.add('active');
-      } else {
-        icon.classList.remove('active');
-      }
-    });
+    if (this.sidebarIcons) {
+      this.sidebarIcons.forEach(icon => {
+        if (icon.dataset.section === sectionId) {
+          icon.classList.add('active');
+        } else {
+          icon.classList.remove('active');
+        }
+      });
+    }
 
     // Update section title
     const titles = {
@@ -94,9 +109,11 @@ class SidebarNavigation {
   async loadSectionContent(sectionId, tabId) {
     // For funds section, show holdings and watchlist
     if (sectionId === 'funds') {
-      this.contentSections.forEach(section => {
-        section.classList.add('hidden');
-      });
+      if (this.contentSections && this.contentSections.length > 0) {
+        this.contentSections.forEach(section => {
+          section.classList.add('hidden');
+        });
+      }
       const holdingsSection = document.getElementById('holdingsSection');
       const watchlistSection = document.getElementById('watchlistSection');
       if (holdingsSection) {
@@ -122,9 +139,11 @@ class SidebarNavigation {
     }
 
     // Show section
-    this.contentSections.forEach(section => {
-      section.classList.add('hidden');
-    });
+    if (this.contentSections && this.contentSections.length > 0) {
+      this.contentSections.forEach(section => {
+        section.classList.add('hidden');
+      });
+    }
     sectionElement.classList.remove('hidden');
 
     // Lazy load content if not already loaded

@@ -199,8 +199,8 @@ def generate_holdings_cards_html(fund_data_map):
         fund_name = data.get('fund_name', 'Unknown')
         sectors = data.get('sectors', [])
 
-        # Generate sector tags
-        sector_tags = ''.join([f'<span class="sector-tag">{sector}</span>' for sector in sectors])
+        # Generate sector tags with icon and gray text (like delete sector popup)
+        sector_tags = f'<span style="color: #8b949e; font-size: 12px;"> 🏷️ {", ".join(sectors)}</span>' if sectors else ''
 
         # Card HTML
         card_html = f"""
@@ -344,7 +344,7 @@ def get_full_page_html_sidebar(tabs_data, username=None):
         </div>
         <div class="navbar-menu">
             <span class="navbar-item">实时行情</span>
-            {f'<span class="navbar-item" style="color: #3b82f6;">👤 {username}</span>' if username else ''}
+            {f'<span class="navbar-item" style="color: #3b82f6;">🍎 {username}</span>' if username else ''}
             {f'<a href="/logout" class="navbar-item" style="color: #f85149; text-decoration: none;">退出登录</a>' if username else ''}
         </div>
     </nav>
@@ -525,10 +525,10 @@ def get_full_page_html(tabs_data, username=None, use_sidebar=False):
     </head>
     <body>
         <nav class="navbar">
-            <div class="navbar-brand">MaYi Fund 蚂蚁基金助手</div>
+            <div class="navbar-brand">BuBu Fund LanFund助手</div>
             <div class="navbar-menu">
                 <span class="navbar-item">实时行情</span>
-                {f'<span class="navbar-item" style="color: #3b82f6;">👤 {username}</span>' if username else ''}
+                {f'<span class="navbar-item" style="color: #3b82f6;">🍎 {username}</span>' if username else ''}
                 {f'<a href="/logout" class="navbar-item" style="color: #f85149; text-decoration: none;">退出登录</a>' if username else ''}
             </div>
         </nav>
@@ -611,6 +611,15 @@ def get_sse_loading_page(css_style, js_script):
                 height: 100%;
                 padding: 2rem;
             }}
+            .navbar-brand {{
+                display: flex;
+                align-items: center;
+            }}
+            .navbar-logo {{
+                width: 32px;
+                height: 32px;
+                margin-right: 12px;
+            }}
             .loading-spinner {{
                 border: 4px solid #f3f3f3;
                 border-top: 4px solid var(--bloomberg-blue);
@@ -653,7 +662,10 @@ def get_sse_loading_page(css_style, js_script):
     </head>
     <body>
         <nav class="navbar">
-            <div class="navbar-brand">MaYi Fund 蚂蚁基金助手</div>
+            <div class="navbar-brand">
+                <img src="/static/1.ico" alt="Logo" class="navbar-logo">
+                <span>BuBu Fund LanFund助手</span>
+            </div>
             <div class="navbar-menu">
                 <span class="navbar-item">加载中...</span>
             </div>
@@ -762,8 +774,12 @@ def get_sidebar_navigation_html():
       <span class="icon-label">{section['label']}</span>
     </button>\n'''
 
+    html += '''    <button class="sidebar-toggle" id="sidebarToggle">
+      <span>◀</span>
+      <span class="toggle-text">展开</span>
+    </button>
+'''
     html += '  </div>\n'
-    html += '  <button class="sidebar-toggle" id="sidebarToggle"><span>◀</span></button>\n'
     html += '</aside>\n'
 
     return html
@@ -828,9 +844,10 @@ def generate_fund_row_html(fund_code, fund_data, is_held=True):
     sector_tags = ''
     if is_held:
         sector_tags += '<span class="tag tag-hold">⭐ 持有</span>'
-    for sector in sectors:
-        safe_sector = html.escape(str(sector))
-        sector_tags += f'<span class="tag tag-sector">{safe_sector}</span>'
+    if sectors:
+        # Display sectors with icon and gray text (like delete sector popup style)
+        safe_sectors = html.escape(', '.join(str(s) for s in sectors))
+        sector_tags += f'<span style="color: #8b949e; font-size: 12px;"> 🏷️ {safe_sectors}</span>'
 
     # Shares input (only for held funds)
     shares_html = ''
@@ -3160,7 +3177,9 @@ def get_javascript_code():
         // Generate and populate holdings cards
         if (heldFundsData.length > 0) {
             const cardsHTML = heldFundsData.map(fund => {
-                const sectorTags = fund.sectors.map(s => `<span class="sector-tag">${s}</span>`).join('');
+                const sectorTags = fund.sectors && fund.sectors.length > 0
+                    ? `<span style="color: #8b949e; font-size: 12px;"> 🏷️ ${fund.sectors.join(', ')}</span>`
+                    : '';
                 const estClass = fund.estimatedGrowth >= 0 ? 'up' : 'down';
                 const dayClass = fund.dayGrowth >= 0 ? 'up' : 'down';
 
@@ -3403,7 +3422,7 @@ def get_market_page_html(market_data, username=None):
 
     username_display = ''
     if username:
-        username_display = '<span class="nav-user">👤 {username}</span>'.format(username=username)
+        username_display = '<span class="nav-user">🍎 {username}</span>'.format(username=username)
         username_display += '<a href="/logout" class="nav-logout">退出登录</a>'
 
     html = '''<!DOCTYPE html>
@@ -3477,41 +3496,6 @@ def get_market_page_html(market_data, username=None):
         .main-container {{
             display: flex;
             flex: 1;
-        }}
-
-        /* 左侧导航栏 */
-        .sidebar {{
-            width: 200px;
-            background-color: var(--card-bg);
-            border-right: 1px solid var(--border);
-            padding: 20px 0;
-            flex-shrink: 0;
-        }}
-
-        .sidebar-item {{
-            padding: 12px 20px;
-            cursor: pointer;
-            border-left: 3px solid transparent;
-            transition: all 0.2s ease;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            color: var(--text-dim);
-            text-decoration: none;
-            white-space: nowrap;
-            overflow: hidden;
-        }}
-
-        .sidebar-item:hover {{
-            background-color: rgba(59, 130, 246, 0.1);
-            color: var(--text-main);
-        }}
-
-        .sidebar-item.active {{
-            background-color: rgba(59, 130, 246, 0.15);
-            border-left-color: var(--accent);
-            color: var(--accent);
-            font-weight: 600;
         }}
 
         /* 内容区域 */
@@ -3773,7 +3757,7 @@ def get_news_page_html(news_content, username=None):
 
     username_display = ''
     if username:
-        username_display = '<span class="nav-user">👤 {username}</span>'.format(username=username)
+        username_display = '<span class="nav-user">🍎 {username}</span>'.format(username=username)
         username_display += '<a href="/logout" class="nav-logout">退出登录</a>'
 
     html = '''<!DOCTYPE html>
@@ -3852,78 +3836,6 @@ def get_news_page_html(news_content, username=None):
         .main-container {{
             display: flex;
             flex: 1;
-        }}
-
-        /* 左侧导航栏 */
-        .sidebar {{
-            width: 200px;
-            background-color: var(--card-bg);
-            border-right: 1px solid var(--border);
-            padding: 20px 0;
-            flex-shrink: 0;
-            transition: width 0.3s ease;
-        }}
-
-        .sidebar.collapsed {{
-            width: 60px;
-        }}
-
-        .sidebar.collapsed .sidebar-item {{
-            gap: 0;
-            justify-content: center;
-            padding: 12px;
-        }}
-
-        .sidebar.collapsed .sidebar-item span:not(.sidebar-icon) {{
-            display: none;
-        }}
-
-        .sidebar-toggle {{
-            position: absolute;
-            top: 10px;
-            right: -12px;
-            width: 24px;
-            height: 24px;
-            background: var(--accent);
-            border: 2px solid var(--card-bg);
-            border-radius: 50%;
-            cursor: pointer;
-            z-index: 10;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 12px;
-            color: white;
-            transition: all 0.2s;
-        }}
-
-        .sidebar-toggle:hover {{
-            transform: scale(1.1);
-        }}
-
-        .sidebar-item {{
-            padding: 12px 20px;
-            cursor: pointer;
-            border-left: 3px solid transparent;
-            transition: all 0.2s ease;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            color: var(--text-dim);
-            text-decoration: none;
-            white-space: nowrap;
-            overflow: hidden;
-        }}
-
-        .sidebar-item:hover {{
-            background-color: rgba(255, 255, 255, 0.05);
-            color: var(--text-main);
-        }}
-
-        .sidebar-item.active {{
-            border-left-color: #3b82f6;
-            color: var(--text-main);
-            font-weight: 500;
         }}
 
         /* 内容区域 */
@@ -4049,7 +3961,10 @@ def get_news_page_html(news_content, username=None):
         <div class="content-area">
             <!-- 页面标题 -->
             <div class="page-header">
-                <h1>📰 7*24快讯</h1>
+                <h1 style="display: flex; align-items: center;">
+                    📰 7*24快讯
+                    <button id="refreshBtn" onclick="refreshCurrentPage()" class="refresh-button" style="margin-left: 15px; padding: 8px 16px; background: var(--accent); color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 0.9rem; font-weight: 500; transition: all 0.2s ease; display: inline-flex; align-items: center; gap: 5px;">🔄 刷新</button>
+                </h1>
                 <p>实时追踪全球市场动态</p>
             </div>
 
@@ -4077,16 +3992,6 @@ def get_news_page_html(news_content, username=None):
         }}
 
         document.addEventListener('DOMContentLoaded', function() {{
-            // 侧边栏折叠控制
-            const sidebar = document.getElementById('sidebar');
-            const sidebarToggle = document.getElementById('sidebarToggle');
-            if (sidebar && sidebarToggle) {{
-                sidebarToggle.addEventListener('click', function() {{
-                    sidebar.classList.toggle('collapsed');
-                    sidebarToggle.textContent = sidebar.classList.contains('collapsed') ? '◀' : '▶';
-                }});
-            }}
-
             // 歌词轮播
             const lyrics = [
                 '总要有一首我的歌, 大声唱过, 再看天地辽阔 ————《一颗苹果》',
@@ -4132,7 +4037,7 @@ def get_precious_metals_page_html(metals_data, username=None):
 
     username_display = ''
     if username:
-        username_display = '<span class="nav-user">👤 {username}</span>'.format(username=username)
+        username_display = '<span class="nav-user">🍎 {username}</span>'.format(username=username)
         username_display += '<a href="/logout" class="nav-logout">退出登录</a>'
 
     html = '''<!DOCTYPE html>
@@ -4212,78 +4117,6 @@ def get_precious_metals_page_html(metals_data, username=None):
         .main-container {{
             display: flex;
             flex: 1;
-        }}
-
-        /* 左侧导航栏 */
-        .sidebar {{
-            width: 200px;
-            background-color: var(--card-bg);
-            border-right: 1px solid var(--border);
-            padding: 20px 0;
-            flex-shrink: 0;
-            transition: width 0.3s ease;
-        }}
-
-        .sidebar.collapsed {{
-            width: 60px;
-        }}
-
-        .sidebar.collapsed .sidebar-item {{
-            gap: 0;
-            justify-content: center;
-            padding: 12px;
-        }}
-
-        .sidebar.collapsed .sidebar-item span:not(.sidebar-icon) {{
-            display: none;
-        }}
-
-        .sidebar-toggle {{
-            position: absolute;
-            top: 10px;
-            right: -12px;
-            width: 24px;
-            height: 24px;
-            background: var(--accent);
-            border: 2px solid var(--card-bg);
-            border-radius: 50%;
-            cursor: pointer;
-            z-index: 10;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 12px;
-            color: white;
-            transition: all 0.2s;
-        }}
-
-        .sidebar-toggle:hover {{
-            transform: scale(1.1);
-        }}
-
-        .sidebar-item {{
-            padding: 12px 20px;
-            cursor: pointer;
-            border-left: 3px solid transparent;
-            transition: all 0.2s ease;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            color: var(--text-dim);
-            text-decoration: none;
-            white-space: nowrap;
-            overflow: hidden;
-        }}
-
-        .sidebar-item:hover {{
-            background-color: rgba(255, 255, 255, 0.05);
-            color: var(--text-main);
-        }}
-
-        .sidebar-item.active {{
-            border-left-color: #3b82f6;
-            color: var(--text-main);
-            font-weight: 500;
         }}
 
         /* 内容区域 */
@@ -4471,7 +4304,10 @@ def get_precious_metals_page_html(metals_data, username=None):
         <div class="content-area">
             <!-- 页面标题 -->
             <div class="page-header">
-                <h1>🪙 贵金属行情</h1>
+                <h1 style="display: flex; align-items: center;">
+                    🪙 贵金属行情
+                    <button id="refreshBtn" onclick="refreshCurrentPage()" class="refresh-button" style="margin-left: 15px; padding: 8px 16px; background: var(--accent); color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 0.9rem; font-weight: 500; transition: all 0.2s ease; display: inline-flex; align-items: center; gap: 5px;">🔄 刷新</button>
+                </h1>
                 <p>实时追踪贵金属价格走势</p>
             </div>
 
@@ -4628,16 +4464,6 @@ def get_precious_metals_page_html(metals_data, username=None):
         }}
 
         document.addEventListener('DOMContentLoaded', function() {{
-            // 侧边栏折叠控制
-            const sidebar = document.getElementById('sidebar');
-            const sidebarToggle = document.getElementById('sidebarToggle');
-            if (sidebar && sidebarToggle) {{
-                sidebarToggle.addEventListener('click', function() {{
-                    sidebar.classList.toggle('collapsed');
-                    sidebarToggle.textContent = sidebar.classList.contains('collapsed') ? '◀' : '▶';
-                }});
-            }}
-
             // 歌词轮播
             const lyrics = [
                 '总要有一首我的歌, 大声唱过, 再看天地辽阔 ————《一颗苹果》',
@@ -4690,7 +4516,7 @@ def get_market_indices_page_html(market_charts=None, chart_data=None, username=N
 
     username_display = ''
     if username:
-        username_display = '<span class="nav-user">👤 {username}</span>'.format(username=username)
+        username_display = '<span class="nav-user">🍎 {username}</span>'.format(username=username)
         username_display += '<a href="/logout" class="nav-logout">退出登录</a>'
 
     # 准备图表数据JSON (optional, for future chart enhancements)
@@ -4702,7 +4528,10 @@ def get_market_indices_page_html(market_charts=None, chart_data=None, username=N
         <!-- 市场指数区域 -->
         <div class="market-indices-section" style="padding: 30px;">
             <div class="page-header" style="margin-bottom: 25px;">
-                <h1 style="font-size: 1.5rem; font-weight: 600; margin: 0; color: var(--text-main);">📊 市场指数</h1>
+                <h1 style="font-size: 1.5rem; font-weight: 600; margin: 0; color: var(--text-main); display: flex; align-items: center;">
+                    📊 市场指数
+                    <button id="refreshBtn" onclick="refreshCurrentPage()" class="refresh-button" style="margin-left: 15px; padding: 8px 16px; background: var(--accent); color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 0.9rem; font-weight: 500; transition: all 0.2s ease; display: inline-flex; align-items: center; gap: 5px;">🔄 刷新</button>
+                </h1>
             </div>
 
             <!-- 第一行：全球指数和成交量趋势 -->
@@ -4737,7 +4566,7 @@ def get_market_indices_page_html(market_charts=None, chart_data=None, username=N
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>市场指数 - MaYi Fund</title>
+    <title>市场指数 - LanFund</title>
     <link rel="icon" href="/static/1.ico">
     {css_style}
     <link rel="stylesheet" href="/static/css/style.css">
@@ -4805,79 +4634,6 @@ def get_market_indices_page_html(market_charts=None, chart_data=None, username=N
             flex: 1;
         }}
 
-        /* 左侧导航栏 */
-        .sidebar {{
-            width: 200px;
-            background-color: var(--card-bg);
-            border-right: 1px solid var(--border);
-            padding: 20px 0;
-            flex-shrink: 0;
-            transition: width 0.3s ease;
-        }}
-
-        .sidebar.collapsed {{
-            width: 60px;
-        }}
-
-        .sidebar.collapsed .sidebar-item {{
-            gap: 0;
-            justify-content: center;
-            padding: 12px;
-        }}
-
-        .sidebar.collapsed .sidebar-item span:not(.sidebar-icon) {{
-            display: none;
-        }}
-
-        .sidebar-toggle {{
-            position: absolute;
-            top: 10px;
-            right: -12px;
-            width: 24px;
-            height: 24px;
-            background: var(--accent);
-            border: 2px solid var(--card-bg);
-            border-radius: 50%;
-            cursor: pointer;
-            z-index: 10;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 12px;
-            color: white;
-            transition: all 0.2s;
-        }}
-
-        .sidebar-toggle:hover {{
-            transform: scale(1.1);
-        }}
-
-        .sidebar-item {{
-            padding: 12px 20px;
-            cursor: pointer;
-            border-left: 3px solid transparent;
-            transition: all 0.2s ease;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            color: var(--text-dim);
-            text-decoration: none;
-            white-space: nowrap;
-            overflow: hidden;
-        }}
-
-        .sidebar-item:hover {{
-            background-color: rgba(59, 130, 246, 0.1);
-            color: var(--text-main);
-        }}
-
-        .sidebar-item.active {{
-            background-color: rgba(59, 130, 246, 0.15);
-            border-left-color: var(--accent);
-            color: var(--accent);
-            font-weight: 600;
-        }}
-
         /* 内容区域 */
         .content-area {{
             flex: 1;
@@ -4922,11 +4678,10 @@ def get_market_indices_page_html(market_charts=None, chart_data=None, username=N
     <!-- 顶部导航栏 -->
     <div class="top-navbar">
         <div class="top-navbar-brand">
-            <span style="font-size: 1.5rem;">📈</span>
-            <span style="font-weight: 700; margin-left: 10px; font-size: 1.2rem;">MaYi Fund</span>
+            <img src="/static/1.ico" alt="Logo" class="navbar-logo">
         </div>
-        <div class="top-navbar-quote">
-            "投资有风险，入市需谨慎"
+        <div class="top-navbar-quote" id="lyricsDisplay">
+            偶然与巧合, 舞动了蝶翼, 谁的心头风起 ————《如果我们不曾相遇》
         </div>
         <div class="top-navbar-menu">
             {username_display}
@@ -4970,16 +4725,6 @@ def get_market_indices_page_html(market_charts=None, chart_data=None, username=N
     <script src="/static/js/sidebar-nav.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function() {{
-            // 侧边栏折叠控制
-            const sidebar = document.getElementById('sidebar');
-            const sidebarToggle = document.getElementById('sidebarToggle');
-            if (sidebar && sidebarToggle) {{
-                sidebarToggle.addEventListener('click', function() {{
-                    sidebar.classList.toggle('collapsed');
-                    sidebarToggle.textContent = sidebar.classList.contains('collapsed') ? '◀' : '▶';
-                }});
-            }}
-
             // 歌词轮播
             const lyrics = [
                 '总要有一首我的歌, 大声唱过, 再看天地辽阔 ————《一颗苹果》',
@@ -5032,15 +4777,6 @@ def get_market_indices_page_html(market_charts=None, chart_data=None, username=N
                     }}
                 }}
             }});
-
-            // 侧边栏折叠控制
-            const sidebar = document.getElementById('sidebar');
-            const sidebarToggle = document.getElementById('sidebarToggle');
-
-            sidebarToggle.addEventListener('click', function() {{
-                sidebar.classList.toggle('collapsed');
-                sidebarToggle.textContent = sidebar.classList.contains('collapsed') ? '◀' : '▶';
-            }});
         }});
     </script>
 </body>
@@ -5059,7 +4795,7 @@ def get_portfolio_page_html(fund_content, fund_map, market_charts=None, chart_da
 
     username_display = ''
     if username:
-        username_display = '<span class="nav-user">👤 {username}</span>'.format(username=username)
+        username_display = '<span class="nav-user">🍎 {username}</span>'.format(username=username)
         username_display += '<a href="/logout" class="nav-logout">退出登录</a>'
 
     # 准备图表数据JSON
@@ -5153,41 +4889,6 @@ def get_portfolio_page_html(fund_content, fund_map, market_charts=None, chart_da
         .main-container {{
             display: flex;
             flex: 1;
-        }}
-
-        /* 左侧导航栏 */
-        .sidebar {{
-            width: 200px;
-            background-color: var(--card-bg);
-            border-right: 1px solid var(--border);
-            padding: 20px 0;
-            flex-shrink: 0;
-        }}
-
-        .sidebar-item {{
-            padding: 12px 20px;
-            cursor: pointer;
-            border-left: 3px solid transparent;
-            transition: all 0.2s ease;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            color: var(--text-dim);
-            text-decoration: none;
-            white-space: nowrap;
-            overflow: hidden;
-        }}
-
-        .sidebar-item:hover {{
-            background-color: rgba(59, 130, 246, 0.1);
-            color: var(--text-main);
-        }}
-
-        .sidebar-item.active {{
-            background-color: rgba(59, 130, 246, 0.15);
-            border-left-color: var(--accent);
-            color: var(--accent);
-            font-weight: 600;
         }}
 
         /* 内容区域 */
@@ -5326,8 +5027,43 @@ def get_portfolio_page_html(fund_content, fund_map, market_charts=None, chart_da
         <div class="content-area">
             <!-- 页面标题 -->
             <div class="portfolio-header">
-                <h1>💼 持仓基金</h1>
+                <h1>
+                    💼 持仓基金
+                    <button id="refreshBtn" onclick="refreshCurrentPage()" class="refresh-button">🔄 刷新</button>
+                </h1>
             </div>
+
+            <!-- Refresh button styling -->
+            <style>
+                .refresh-button {{
+                    margin-left: 15px;
+                    padding: 8px 16px;
+                    background: var(--accent);
+                    color: white;
+                    border: none;
+                    border-radius: 6px;
+                    cursor: pointer;
+                    font-size: 0.9rem;
+                    font-weight: 500;
+                    transition: all 0.2s ease;
+                    display: inline-flex;
+                    align-items: center;
+                    gap: 5px;
+                }}
+                .refresh-button:hover {{
+                    background: #2563eb;
+                    transform: translateY(-1px);
+                }}
+                .refresh-button:disabled {{
+                    background: #6b7280;
+                    cursor: not-allowed;
+                    transform: none;
+                }}
+                .portfolio-header h1 {{
+                    display: flex;
+                    align-items: center;
+                }}
+            </style>
 
             <!-- 免责声明 -->
             <div style="margin-bottom: 20px; padding: 12px 15px; background: rgba(255, 193, 7, 0.1); border: 1px solid rgba(255, 193, 7, 0.3); border-radius: 8px; font-size: 0.85rem; color: var(--text-dim);">
@@ -5435,16 +5171,6 @@ def get_portfolio_page_html(fund_content, fund_map, market_charts=None, chart_da
                 }}
             }});
 
-            // 侧边栏折叠控制
-            const sidebar = document.getElementById('sidebar');
-            const sidebarToggle = document.getElementById('sidebarToggle');
-            if (sidebar && sidebarToggle) {{
-                sidebarToggle.addEventListener('click', function() {{
-                    sidebar.classList.toggle('collapsed');
-                    sidebarToggle.textContent = sidebar.classList.contains('collapsed') ? '◀' : '▶';
-                }});
-            }}
-
             // 歌词轮播
             const lyrics = [
                 '总要有一首我的歌, 大声唱过, 再看天地辽阔 ————《一颗苹果》',
@@ -5480,57 +5206,58 @@ def get_portfolio_page_html(fund_content, fund_map, market_charts=None, chart_da
             initTimingChart();
         }});
 
-                        // 上证分时图表 - 根据涨跌显示不同颜色
+                        // 上证分时图表 - 使用API返回的实际涨跌幅
         function initTimingChart() {{
             const ctx = document.getElementById('timingChart');
             if (!ctx || timingData.labels.length === 0) return;
 
-            // 计算基准价格（第一个价格）用于判断涨跌
+            // 使用API返回的实际数据（已经处理好的）
+            const changePercentages = timingData.change_pcts || [];
+            const changeAmounts = timingData.change_amounts || [];  // 原始涨跌额数据
             const basePrice = timingData.prices[0];
             const lastPrice = timingData.prices[timingData.prices.length - 1];
-            const change = lastPrice - basePrice;
-            const changePct = (change / basePrice) * 100;
-            const titleColor = changePct >= 0 ? '#f44336' : '#4caf50';
 
-            // 更新标题颜色
+            // 使用最后一个实际涨跌幅值
+            const lastPct = changePercentages.length > 0 ? changePercentages[changePercentages.length - 1] : 0;
+            const titleColor = lastPct >= 0 ? '#f44336' : '#4caf50';
+
+            // 更新标题颜色 - 现在主要显示实际涨跌幅
             const titleElement = document.getElementById('timingChartTitle');
             if (titleElement) {{
                 titleElement.style.color = titleColor;
-                titleElement.innerHTML = '📉 上证分时 <span style="font-size:0.9em;">' + lastPrice.toFixed(2) + ' (' + (change >= 0 ? '+' : '') + changePct.toFixed(2) + '%)</span>';
+                titleElement.innerHTML = '📉 上证分时 <span style="font-size:0.9em;">' +
+                    (lastPct >= 0 ? '+' : '') + lastPct.toFixed(2) + '% (' + lastPrice.toFixed(2) + ')</span>';
             }}
 
-            new Chart(ctx, {{
+            // 保存图表实例到全局变量，方便后续更新
+            window.timingChartInstance = new Chart(ctx, {{
                 type: 'line',
                 data: {{
                     labels: timingData.labels,
                     datasets: [{{
-                        label: '上证指数',
-                        data: timingData.prices,
+                        label: '涨跌幅 (%)',
+                        data: changePercentages,
                         borderColor: function(context) {{
                             // 动态返回颜色：>0% 红色，<0% 绿色，=0% 灰色
-                            const index = context.p0DataIndex;
+                            const index = context.dataIndex;
                             if (index === undefined || index < 0) return '#9ca3af';
-                            const price = timingData.prices[index];
-                            const changePct = ((price - basePrice) / basePrice) * 100;
-                            return changePct > 0 ? '#f44336' : (changePct < 0 ? '#4caf50' : '#9ca3af');
+                            const pct = changePercentages[index];
+                            return pct > 0 ? '#f44336' : (pct < 0 ? '#4caf50' : '#9ca3af');
                         }},
                         segment: {{
                             borderColor: function(context) {{
                                 // 根据线段的结束点判断颜色
-                                const index = context.p0DataIndex;
-                                const price = timingData.prices[index];
-                                const changePct = ((price - basePrice) / basePrice) * 100;
-                                return changePct > 0 ? '#f44336' : (changePct < 0 ? '#4caf50' : '#9ca3af');
+                                const pct = changePercentages[context.p1DataIndex];
+                                return pct > 0 ? '#f44336' : (pct < 0 ? '#4caf50' : '#9ca3af');
                             }}
                         }},
                         backgroundColor: function(context) {{
                             const chart = context.chart;
                             const {{ctx, chartArea}} = chart;
                             if (!chartArea) return null;
-                            // 根据当前最新价格判断整体涨跌来设置背景色
-                            const lastPrice = timingData.prices[timingData.prices.length - 1];
-                            const changePct = ((lastPrice - basePrice) / basePrice) * 100;
-                            const color = changePct >= 0 ? '244, 67, 54' : '76, 175, 80'; // 红色或绿色
+                            // 根据当前最新涨跌幅判断整体涨跌来设置背景色
+                            const lastPct = changePercentages[changePercentages.length - 1];
+                            const color = lastPct >= 0 ? '244, 67, 54' : '76, 175, 80';
                             const gradient = ctx.createLinearGradient(0, chartArea.top, 0, chartArea.bottom);
                             gradient.addColorStop(0, 'rgba(' + color + ', 0.2)');
                             gradient.addColorStop(1, 'rgba(' + color + ', 0.0)');
@@ -5555,18 +5282,16 @@ def get_portfolio_page_html(fund_content, fund_map, market_charts=None, chart_da
                             display: true,
                             position: 'top',
                             labels: {{
-                                color: '#9ca3af',
                                 font: {{ size: 11 }},
                                 boxWidth: 12,
                                 generateLabels: function(chart) {{
-                                    const lastPrice = timingData.prices[timingData.prices.length - 1];
-                                    const change = lastPrice - basePrice;
-                                    const changePct = (change / basePrice) * 100;
-                                    const color = changePct >= 0 ? '#f44336' : '#4caf50';
+                                    const lastPct = changePercentages[changePercentages.length - 1];
+                                    const color = lastPct >= 0 ? '#ff4d4f' : '#52c41a';
                                     return [{{
-                                        text: '上证指数: ' + lastPrice.toFixed(2) + ' (' + (change >= 0 ? '+' : '') + changePct.toFixed(2) + '%)',
+                                        text: '涨跌幅: ' + (lastPct >= 0 ? '+' : '') + lastPct.toFixed(2) + '% (' + lastPrice.toFixed(2) + ')',
                                         fillStyle: color,
                                         strokeStyle: color,
+                                        fontColor: color,
                                         lineWidth: 2,
                                         hidden: false,
                                         index: 0
@@ -5576,15 +5301,22 @@ def get_portfolio_page_html(fund_content, fund_map, market_charts=None, chart_da
                         }},
                         tooltip: {{
                             callbacks: {{
+                                title: function(context) {{
+                                    return '时间: ' + context[0].label;
+                                }},
                                 label: function(context) {{
-                                    const price = context.parsed.y;
-                                    const change = price - basePrice;
-                                    const changePct = (change / basePrice) * 100;
-                                    return '指数: ' + price.toFixed(2) + ' (' + (change >= 0 ? '+' : '') + changePct.toFixed(2) + '%)';
+                                    const index = context.dataIndex;
+                                    const pct = changePercentages[index];
+                                    const price = timingData.prices[index];
+                                    const changeAmt = changeAmounts[index];  // 使用原始涨跌额数据
+                                    return [
+                                        '涨跌幅: ' + (pct >= 0 ? '+' : '') + pct.toFixed(2) + '%',
+                                        '上证指数: ' + price.toFixed(2),
+                                        '涨跌额: ' + (changeAmt >= 0 ? '+' : '') + changeAmt.toFixed(2)
+                                    ];
                                 }}
                             }}
                         }},
-                        // 显示数据点数值
                         datalabels: {{
                             display: false
                         }}
@@ -5601,10 +5333,16 @@ def get_portfolio_page_html(fund_content, fund_map, market_charts=None, chart_da
                             }}
                         }},
                         y: {{
+                            title: {{
+                                display: true,
+                                text: '涨跌幅 (%)',
+                                color: '#9ca3af',
+                                font: {{ size: 11 }}
+                            }},
                             ticks: {{
                                 color: '#9ca3af',
                                 callback: function(value) {{
-                                    return value.toFixed(0);
+                                    return (value >= 0 ? '+' : '') + value.toFixed(2) + '%';
                                 }}
                             }},
                             grid: {{
@@ -5642,7 +5380,7 @@ def get_sectors_page_html(sectors_content, select_fund_content, fund_map, userna
 
     username_display = ''
     if username:
-        username_display = '<span class="nav-user">👤 {username}</span>'.format(username=username)
+        username_display = '<span class="nav-user">🍎 {username}</span>'.format(username=username)
         username_display += '<a href="/logout" class="nav-logout">退出登录</a>'
 
     html = '''<!DOCTYPE html>
@@ -5716,81 +5454,6 @@ def get_sectors_page_html(sectors_content, select_fund_content, fund_map, userna
         .main-container {{
             display: flex;
             flex: 1;
-        }}
-
-        /* 左侧导航栏 */
-        .sidebar {{
-            width: 200px;
-            background-color: var(--card-bg);
-            border-right: 1px solid var(--border);
-            padding: 20px 0;
-            flex-shrink: 0;
-            transition: width 0.3s ease;
-        }}
-
-        .sidebar.collapsed {{
-            width: 60px;
-        }}
-
-        .sidebar.collapsed .sidebar-item {{
-            gap: 0;
-            justify-content: center;
-            padding: 12px;
-        }}
-
-        .sidebar.collapsed .sidebar-item span:not(.sidebar-icon) {{
-            display: none;
-        }}
-
-        .sidebar-toggle {{
-            position: absolute;
-            top: 10px;
-            right: -12px;
-            width: 24px;
-            height: 24px;
-            background: var(--accent);
-            border: 2px solid var(--card-bg);
-            border-radius: 50%;
-            cursor: pointer;
-            z-index: 10;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 12px;
-            color: white;
-            transition: all 0.2s;
-        }}
-
-        .sidebar-toggle:hover {{
-            transform: scale(1.1);
-        }}
-
-        .sidebar-item {{
-            padding: 12px 20px;
-            cursor: pointer;
-            border-left: 3px solid transparent;
-            transition: all 0.2s ease;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            color: var(--text-dim);
-            text-decoration: none;
-            white-space: nowrap;
-            overflow: hidden;
-        }}
-
-        .sidebar-item:hover {{
-            background-color: rgba(59, 130, 246, 0.1);
-            color: var(--text-main);
-            text-decoration: none;
-        }}
-
-        .sidebar-item.active {{
-            background-color: rgba(59, 130, 246, 0.15);
-            border-left-color: var(--accent);
-            color: var(--accent);
-            font-weight: 600;
-            text-decoration: none;
         }}
 
         /* 内容区域 */
@@ -5969,7 +5632,10 @@ def get_sectors_page_html(sectors_content, select_fund_content, fund_map, userna
             <!-- 行业板块 Tab -->
             <div id="tab-sectors" class="tab-content active">
                 <div class="page-header">
-                    <h1>🏢 行业板块</h1>
+                    <h1 style="display: flex; align-items: center;">
+                        🏢 行业板块
+                        <button id="refreshBtn" onclick="refreshCurrentPage()" class="refresh-button" style="margin-left: 15px; padding: 8px 16px; background: var(--accent); color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 0.9rem; font-weight: 500; transition: all 0.2s ease; display: inline-flex; align-items: center; gap: 5px;">🔄 刷新</button>
+                    </h1>
                     <p>查看各行业板块的市场表现</p>
                 </div>
                 <div class="content-card">
@@ -5980,7 +5646,10 @@ def get_sectors_page_html(sectors_content, select_fund_content, fund_map, userna
             <!-- 板块基金查询 Tab -->
             <div id="tab-query" class="tab-content">
                 <div class="page-header">
-                    <h1>🔍 板块基金查询</h1>
+                    <h1 style="display: flex; align-items: center;">
+                        🔍 板块基金查询
+                        <button id="refreshBtn" onclick="refreshCurrentPage()" class="refresh-button" style="margin-left: 15px; padding: 8px 16px; background: var(--accent); color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 0.9rem; font-weight: 500; transition: all 0.2s ease; display: inline-flex; align-items: center; gap: 5px;">🔄 刷新</button>
+                    </h1>
                     <p>查询特定板块的基金产品</p>
                 </div>
                 <div class="content-card">
@@ -6040,16 +5709,6 @@ def get_sectors_page_html(sectors_content, select_fund_content, fund_map, userna
             const firstTabBtn = document.querySelector('.tab-button');
             if (firstTabBtn) {{
                 firstTabBtn.classList.add('active');
-            }}
-
-            // 侧边栏折叠控制
-            const sidebar = document.getElementById('sidebar');
-            const sidebarToggle = document.getElementById('sidebarToggle');
-            if (sidebar && sidebarToggle) {{
-                sidebarToggle.addEventListener('click', function() {{
-                    sidebar.classList.toggle('collapsed');
-                    sidebarToggle.textContent = sidebar.classList.contains('collapsed') ? '◀' : '▶';
-                }});
             }}
 
             // 歌词轮播

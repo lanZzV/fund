@@ -174,18 +174,27 @@ python fund.py -s
 # 然后可以选择具体的板块查看该板块下的基金列表
 ```
 
+**修改基金持仓份额**
+
+```bash
+python fund.py -m
+# 根据提示输入基金代码和持仓份额
+# 用于设置每只基金的持有份额，用于计算收益统计
+```
+
 ### AI分析命令
 
 #### 启用AI分析
 
 ```bash
-python fund.py -W           # 标准分析模式（默认）
+# 启用AI分析（必须使用 -W 参数）
+python fund.py -W           # 标准分析模式（~1200-1600字）
 python fund.py -f -W        # 快速分析模式（~400-500字）
 python fund.py -F -W        # 快速分析模式（备用参数）
 python fund.py -D -W        # 深度研究模式（ReAct Agent，10000+字）
 python fund.py --deep -W    # 深度研究模式（备用参数）
-python fund.py -N           # 禁用AI分析
-python fund.py --no-ai      # 禁用AI分析（备用参数）
+
+# 注意：不使用 -W 参数时，默认不进行AI分析
 ```
 
 #### 输出AI报告到文件
@@ -282,7 +291,6 @@ http://localhost:8311/fund?delete=001618
   - 今日预估涨跌
   - 今日实际涨跌
   - 收益 Top3 基金（金银铜排名）
-  - Lan Fund 品牌标识
 - 卡片尺寸 375×667px，适合手机竖屏截图
 - 可直接截图分享到朋友圈、社交媒体
 - 支持点击遮罩层或 ESC 键关闭
@@ -403,9 +411,11 @@ export LLM_MODEL="deepseek-chat"
 
 OpenAI兼容格式，推荐标准模式用thinking模型，深度研究模式使用控制工具厉害的模型如claude-sonnet或kimi-k2
 
-### 禁用AI分析
+### AI分析开关说明
 
-使用-N或者--no-ai参数即可禁用AI分析，不配置 `LLM_API_KEY` 也可以。
+- **启用AI分析**：必须使用 `-W` 或 `--with-ai` 参数
+- **禁用AI分析**：不使用 `-W` 参数即可（默认行为）
+- **无需API Key**：不启用AI分析时，无需配置 `LLM_API_KEY` 环境变量
 
 ## 打包为可执行文件
 

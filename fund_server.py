@@ -407,9 +407,12 @@ def api_get_tab_data(tab_id):
         # 获取数据
         content = tab_functions[tab_id]()
 
-        # 如果是fund tab，需要增强内容
+        # 如果是fund tab，需要增强内容（传递份额数据）
         if tab_id == 'fund':
-            content = enhance_fund_tab_content(content)
+            user_id = get_current_user_id()
+            fund_map = db.get_user_funds(user_id)
+            shares_map = {code: data.get('shares', 0) for code, data in fund_map.items()}
+            content = enhance_fund_tab_content(content, shares_map)
 
         return jsonify({'success': True, 'content': content})
     except Exception as e:
@@ -417,11 +420,18 @@ def api_get_tab_data(tab_id):
         return jsonify({'success': False, 'message': f'数据加载失败: {str(e)}'}), 500
 
 
+@app.route('/', methods=['GET'])
+@login_required
+def get_index():
+    # 重定向到持仓基金页面
+    return redirect('/portfolio')
+
+
 @app.route('/fund', methods=['GET'])
 @login_required
 def get_fund():
-    # 重定向到市场行情页面
-    return redirect('/market')
+    # 重定向到持仓基金页面
+    return redirect('/portfolio')
 
 
 @app.route('/market', methods=['GET'])
@@ -471,28 +481,15 @@ def get_precious_metals():
     return html
 
 
-@app.route('/portfolio', methods=['GET'])
+@app.route('/market-indices', methods=['GET'])
 @login_required
-def get_portfolio():
-    """持仓基金页面"""
-    add = request.args.get("add")
-    delete = request.args.get("delete")
+def get_market_indices():
+    """市场指数页面 - 全球指数和成交量趋势"""
     user_id = get_current_user_id()
     importlib.reload(fund)
     my_fund = fund.MaYiFund(user_id=user_id, db=db)
-    if add:
-        my_fund.add_code(add)
-    if delete:
-        my_fund.delete_code(delete)
 
-    # 加载基金数据
-    try:
-        fund_content = my_fund.fund_html()
-        fund_content = enhance_fund_tab_content(fund_content)
-    except Exception as e:
-        fund_content = f"<p style='color:#f44336;'>数据加载失败: {str(e)}</p>"
-
-    # 加载市场数据（全球指数、成交量趋势、上证分时）- 同时获取HTML和原始图表数据
+    # 加载市场数据（全球指数、成交量趋势）
     market_charts = {}
     chart_data = {}
     try:
@@ -511,6 +508,42 @@ def get_portfolio():
         market_charts['volume'] = f"<p style='color:#f44336;'>加载失败: {str(e)}</p>"
         chart_data['volume'] = {'labels': [], 'total': [], 'sh': [], 'sz': [], 'bj': []}
 
+    from src.module_html import get_market_indices_page_html
+    html = get_market_indices_page_html(
+        market_charts=market_charts,
+        chart_data=chart_data,
+        username=get_current_username()
+    )
+    return html
+
+
+@app.route('/portfolio', methods=['GET'])
+@login_required
+def get_portfolio():
+    """持仓基金页面"""
+    add = request.args.get("add")
+    delete = request.args.get("delete")
+    user_id = get_current_user_id()
+    importlib.reload(fund)
+    my_fund = fund.MaYiFund(user_id=user_id, db=db)
+    if add:
+        my_fund.add_code(add)
+    if delete:
+        my_fund.delete_code(delete)
+
+    # 加载基金数据
+    try:
+        fund_content = my_fund.fund_html()
+        # 获取用户份额数据并传递给enhance_fund_tab_content
+        fund_map = db.get_user_funds(user_id)
+        shares_map = {code: data.get('shares', 0) for code, data in fund_map.items()}
+        fund_content = enhance_fund_tab_content(fund_content, shares_map)
+    except Exception as e:
+        fund_content = f"<p style='color:#f44336;'>数据加载失败: {str(e)}</p>"
+
+    # 加载上证分时数据
+    market_charts = {}
+    chart_data = {}
     try:
         market_charts['timing'] = my_fund.A_html()
         chart_data['timing'] = my_fund.get_timing_chart_data()
@@ -563,4 +596,4 @@ def get_sectors():
 
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=8311)
+    app.run(host='0.0.0.0', port=8311, debug=True)

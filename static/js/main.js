@@ -665,20 +665,17 @@
             let settledValue = 0;
             const today = new Date().toISOString().split('T')[0];
 
-            // 判断是否是9:30之前或今日净值未更新
-            const now = new Date();
-            const currentHour = now.getHours();
-            const currentMinute = now.getMinutes();
-            const beforeMarketOpen = currentHour < 9 || (currentHour === 9 && currentMinute < 30);
+            // 存储每个基金的详细涨跌信息
+            const fundDetailsData = [];
 
             // 遍历所有基金行
             const fundRows = document.querySelectorAll('.style-table tbody tr');
             fundRows.forEach(row => {
                 const cells = row.querySelectorAll('td');
-                if (cells.length < 9) return;
+                if (cells.length < 6) return;
 
-                // 获取基金代码
-                const codeCell = cells[1]; // 第二列是基金代码（第一列是复选框）
+                // 获取基金代码（第一列）
+                const codeCell = cells[0];
                 const fundCode = codeCell.textContent.trim();
 
                 // 从全局数据获取份额
@@ -686,42 +683,56 @@
                 if (shares <= 0) return;
 
                 try {
-                    // 解析净值 "1.234(2025-02-02)"
-                    const netValueText = cells[4].textContent.trim();
+                    // 获取基金名称（第二列，索引1）
+                    const fundName = cells[1].textContent.trim();
+
+                    // 解析净值 "1.234(2025-02-02)" (第四列，索引3)
+                    const netValueText = cells[3].textContent.trim();
                     const netValueMatch = netValueText.match(/([0-9.]+)\(([0-9-]+)\)/);
                     if (!netValueMatch) return;
 
                     const netValue = parseFloat(netValueMatch[1]);
                     const netValueDate = netValueMatch[2];
 
-                    // 解析估值增长率
-                    const estimatedGrowthText = cells[5].textContent.trim();
+                    // 解析估值增长率 (第五列，索引4)
+                    const estimatedGrowthText = cells[4].textContent.trim();
                     const estimatedGrowth = estimatedGrowthText !== 'N/A' ?
                         parseFloat(estimatedGrowthText.replace('%', '')) : 0;
 
-                    // 解析日涨幅
-                    const dayGrowthText = cells[6].textContent.trim();
+                    // 解析日涨幅 (第六列，索引5)
+                    const dayGrowthText = cells[5].textContent.trim();
                     const dayGrowth = dayGrowthText !== 'N/A' ?
                         parseFloat(dayGrowthText.replace('%', '')) : 0;
 
                     // 计算持仓市值
                     const positionValue = shares * netValue;
                     totalValue += positionValue;
-                    settledValue += positionValue;
 
                     // 计算预估涨跌（始终计算）
-                    estimatedGain += positionValue * estimatedGrowth / 100;
+                    const fundEstimatedGain = positionValue * estimatedGrowth / 100;
+                    estimatedGain += fundEstimatedGain;
 
                     // 计算实际涨跌
-                    // 逻辑：9:30之前 或 今日净值未更新 → 用日涨幅（前一日的）计算
-                    //      9:30之后且今日净值已更新 → 用今日日涨幅计算
-                    if (beforeMarketOpen || netValueDate !== today) {
-                        // 使用日涨幅（前一日）计算实际收益
-                        actualGain += positionValue * dayGrowth / 100;
-                    } else {
-                        // 今日9:30后且净值已更新，使用今日日涨幅
-                        actualGain += positionValue * dayGrowth / 100;
+                    // 逻辑：只有当净值日期是今天时（今日净值已更新），才计算实际涨跌
+                    let fundActualGain = 0;
+                    if (netValueDate === today) {
+                        // 今日净值已更新，计算实际收益
+                        fundActualGain = positionValue * dayGrowth / 100;
+                        actualGain += fundActualGain;
+                        settledValue += positionValue;
                     }
+
+                    // 收集每个基金的详细涨跌信息
+                    fundDetailsData.push({
+                        code: fundCode,
+                        name: fundName,
+                        shares: shares,
+                        positionValue: positionValue,
+                        estimatedGain: fundEstimatedGain,
+                        estimatedGainPct: estimatedGrowth,
+                        actualGain: fundActualGain,
+                        actualGainPct: netValueDate === today ? dayGrowth : 0
+                    });
                 } catch (e) {
                     console.warn('解析基金数据失败:', fundCode, e);
                 }
@@ -751,13 +762,17 @@
                 estimatedGainEl.innerHTML = `<span style="color: ${estColor}">${estSign}¥${Math.abs(estimatedGain).toLocaleString('zh-CN', {minimumFractionDigits: 2, maximumFractionDigits: 2})} (${estSign}${estGainPct.toFixed(2)}%)</span>`;
             }
 
-            // 更新今日实际（始终显示）
+            // 更新今日实际（只有当有基金净值更新至今日时才显示数值）
             const actualGainEl = document.getElementById('actualGain');
             if (actualGainEl) {
-                const actGainPct = totalValue > 0 ? (actualGain / totalValue * 100) : 0;
-                const actSign = actualGain >= 0 ? '+' : '';
-                const actColor = actualGain >= 0 ? '#f44336' : '#4caf50';
-                actualGainEl.innerHTML = `<span style="color: ${actColor}">${actSign}¥${Math.abs(actualGain).toLocaleString('zh-CN', {minimumFractionDigits: 2, maximumFractionDigits: 2})} (${actSign}${actGainPct.toFixed(2)}%)</span>`;
+                if (settledValue > 0) {
+                    const actGainPct = (actualGain / settledValue * 100);
+                    const actSign = actualGain >= 0 ? '+' : '';
+                    const actColor = actualGain >= 0 ? '#f44336' : '#4caf50';
+                    actualGainEl.innerHTML = `<span style="color: ${actColor}">${actSign}¥${Math.abs(actualGain).toLocaleString('zh-CN', {minimumFractionDigits: 2, maximumFractionDigits: 2})} (${actSign}${actGainPct.toFixed(2)}%)</span>`;
+                } else {
+                    actualGainEl.innerHTML = '<span style="color: var(--text-dim);">净值未更新</span>';
+                }
             }
 
             // 更新持仓数量
@@ -788,12 +803,47 @@
                 summaryDiv.querySelector('#estimatedGain').innerHTML =
                     `<span style="color: ${estColor}">${estSign}¥${Math.abs(estimatedGain).toLocaleString('zh-CN', {minimumFractionDigits: 2, maximumFractionDigits: 2})} (${estSign}${estGainPct.toFixed(2)}%)</span>`;
 
-                // 更新实际涨跌（始终显示）
-                const actGainPct = totalValue > 0 ? (actualGain / totalValue * 100) : 0;
-                const actSign = actualGain >= 0 ? '+' : '';
-                const actColor = actualGain >= 0 ? '#ef4444' : '#10b981';
-                summaryDiv.querySelector('#actualGain').innerHTML =
-                    `<span style="color: ${actColor}">${actSign}¥${Math.abs(actualGain).toLocaleString('zh-CN', {minimumFractionDigits: 2, maximumFractionDigits: 2})} (${actSign}${actGainPct.toFixed(2)}%)</span>`;
+                // 更新实际涨跌（只有当有基金净值更新至今日时才显示数值）
+                const actualGainEl = summaryDiv.querySelector('#actualGain');
+                if (actualGainEl) {
+                    if (settledValue > 0) {
+                        const actGainPct = (actualGain / settledValue * 100);
+                        const actSign = actualGain >= 0 ? '+' : '';
+                        const actColor = actualGain >= 0 ? '#f44336' : '#4caf50';
+                        actualGainEl.innerHTML = `<span style="color: ${actColor}">${actSign}¥${Math.abs(actualGain).toLocaleString('zh-CN', {minimumFractionDigits: 2, maximumFractionDigits: 2})} (${actSign}${actGainPct.toFixed(2)}%)</span>`;
+                    } else {
+                        actualGainEl.innerHTML = '<span style="color: var(--text-dim);">净值未更新</span>';
+                    }
+                }
+            }
+
+            // 填充分基金明细表格
+            const fundDetailsDiv = document.getElementById('fundDetailsSummary');
+            if (fundDetailsDiv && fundDetailsData.length > 0) {
+                fundDetailsDiv.style.display = 'block';
+                const tableBody = document.getElementById('fundDetailsTableBody');
+                if (tableBody) {
+                    tableBody.innerHTML = fundDetailsData.map(fund => {
+                        const estColor = fund.estimatedGain >= 0 ? '#f44336' : '#4caf50';
+                        const actColor = fund.actualGain >= 0 ? '#f44336' : '#4caf50';
+                        const estSign = fund.estimatedGain >= 0 ? '+' : '';
+                        const actSign = fund.actualGain >= 0 ? '+' : '';
+                        return `
+                            <tr style="border-bottom: 1px solid var(--border);">
+                                <td style="padding: 10px; color: var(--accent); font-weight: 500;">${fund.code}</td>
+                                <td style="padding: 10px; color: var(--text-main);">${fund.name}</td>
+                                <td style="padding: 10px; text-align: right; font-family: var(--font-mono);">${fund.shares.toLocaleString('zh-CN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+                                <td style="padding: 10px; text-align: right; font-family: var(--font-mono); font-weight: 600;">¥${fund.positionValue.toLocaleString('zh-CN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+                                <td style="padding: 10px; text-align: right; font-family: var(--font-mono); color: ${estColor}; font-weight: 500;">${estSign}¥${Math.abs(fund.estimatedGain).toLocaleString('zh-CN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+                                <td style="padding: 10px; text-align: right; font-family: var(--font-mono); color: ${estColor}; font-weight: 500;">${estSign}${fund.estimatedGainPct.toFixed(2)}%</td>
+                                <td style="padding: 10px; text-align: right; font-family: var(--font-mono); color: ${actColor}; font-weight: 500;">${actSign}¥${Math.abs(fund.actualGain).toLocaleString('zh-CN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+                                <td style="padding: 10px; text-align: right; font-family: var(--font-mono); color: ${actColor}; font-weight: 500;">${actSign}${fund.actualGainPct.toFixed(2)}%</td>
+                            </tr>
+                        `;
+                    }).join('');
+                }
+            } else if (fundDetailsDiv) {
+                fundDetailsDiv.style.display = 'none';
             }
 
             // Update new summary bar if it exists (sidebar layout)
@@ -877,13 +927,23 @@
                 if (response.ok) {
                     const fundData = await response.json();
 
-                    // 填充份额输入框
+                    // 初始化全局份额数据存储
+                    window.fundSharesData = {};
+
+                    // 填充份额数据到全局存储
                     for (const [code, data] of Object.entries(fundData)) {
+                        if (data.shares !== undefined && data.shares !== null) {
+                            window.fundSharesData[code] = parseFloat(data.shares) || 0;
+                        }
+
+                        // 如果有份额输入框，也填充（旧版页面兼容）
                         const sharesInput = document.getElementById('shares_' + code);
                         if (sharesInput && data.shares) {
                             sharesInput.value = data.shares;
                         }
                     }
+
+                    console.log('已加载份额数据:', window.fundSharesData);
 
                     // 计算持仓统计
                     calculatePositionSummary();
@@ -920,4 +980,117 @@
         window.closeSectorModal = closeSectorModal;
         window.confirmSector = confirmSector;
         window.removeSector = removeSector;
+
+        // ==================== Shares Modal Functions ====================
+
+        // 当前正在编辑份额的基金代码
+        let currentSharesFundCode = null;
+
+        // 获取基金份额（从内存或DOM）
+        window.getFundShares = function(fundCode) {
+            // 先从全局存储获取
+            if (window.fundSharesData && window.fundSharesData[fundCode]) {
+                return window.fundSharesData[fundCode];
+            }
+            return 0;
+        };
+
+        // 更新份额按钮状态
+        function updateSharesButton(fundCode, shares) {
+            const button = document.getElementById('sharesBtn_' + fundCode);
+            if (button) {
+                if (shares > 0) {
+                    button.textContent = '修改';
+                    button.style.background = '#10b981';
+                } else {
+                    button.textContent = '设置';
+                    button.style.background = '#3b82f6';
+                }
+            }
+        }
+
+        // 打开份额设置弹窗
+        window.openSharesModal = function(fundCode) {
+            currentSharesFundCode = fundCode;
+            const modal = document.getElementById('sharesModal');
+            const fundCodeDisplay = document.getElementById('sharesModalFundCode');
+            const sharesInput = document.getElementById('sharesModalInput');
+
+            // 获取当前份额
+            const sharesValue = window.getFundShares(fundCode) || 0;
+            sharesInput.value = sharesValue > 0 ? sharesValue : '';
+            fundCodeDisplay.textContent = fundCode;
+
+            // 更新弹窗标题
+            const header = modal.querySelector('.sector-modal-header');
+            if (header) {
+                header.textContent = sharesValue > 0 ? '修改持仓份额' : '设置持仓份额';
+            }
+
+            modal.classList.add('active');
+            setTimeout(() => sharesInput.focus(), 100);
+        };
+
+        // 关闭份额设置弹窗
+        window.closeSharesModal = function() {
+            const modal = document.getElementById('sharesModal');
+            if (modal) {
+                modal.classList.remove('active');
+            }
+            currentSharesFundCode = null;
+        };
+
+        // 确认设置份额
+        window.confirmShares = async function() {
+            if (!currentSharesFundCode) {
+                alert('未选择基金');
+                return;
+            }
+
+            const sharesInput = document.getElementById('sharesModalInput');
+            const shares = parseFloat(sharesInput.value) || 0;
+
+            if (shares < 0) {
+                alert('份额不能为负数');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/fund/shares', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ code: currentSharesFundCode, shares: shares })
+                });
+                const result = await response.json();
+
+                if (result.success) {
+                    // 更新全局存储
+                    if (!window.fundSharesData) {
+                        window.fundSharesData = {};
+                    }
+                    window.fundSharesData[currentSharesFundCode] = shares;
+
+                    // 更新按钮状态
+                    updateSharesButton(currentSharesFundCode, shares);
+
+                    // 重新计算持仓统计
+                    calculatePositionSummary();
+
+                    // 关闭弹窗
+                    window.closeSharesModal();
+
+                    alert(result.message);
+                } else {
+                    alert(result.message);
+                }
+            } catch (e) {
+                alert('设置份额失败: ' + e.message);
+            }
+        };
+
+        // 全局暴露份额相关函数
+        window.openSharesModal = openSharesModal;
+        window.closeSharesModal = closeSharesModal;
+        window.confirmShares = confirmShares;
+        window.getFundShares = getFundShares;
     });

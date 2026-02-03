@@ -508,16 +508,23 @@ class MaYiFund:
                 est_gain_pct = position_summary['estimated_gain_pct']
                 act_gain = position_summary['actual_gain']
                 act_gain_pct = position_summary['actual_gain_pct']
+                settled_value = position_summary.get('settled_value', 0)
 
                 est_color = '\033[1;31m' if est_gain >= 0 else '\033[1;32m'
                 act_color = '\033[1;31m' if act_gain >= 0 else '\033[1;32m'
                 est_sign = '+' if est_gain >= 0 else ''
                 act_sign = '+' if act_gain >= 0 else ''
 
+                # 今日实际涨跌：只有当有基金净值更新至今日时才显示数值
+                if settled_value > 0:
+                    actual_gain_str = f"{act_color}{act_sign}¥{act_gain:,.2f} ({act_sign}{act_gain_pct:.2f}%)\033[0m"
+                else:
+                    actual_gain_str = "\033[1;90m净值未更新\033[0m"  # 灰色显示
+
                 summary_table = [
                     ["总持仓金额", f"¥{total_value:,.2f}"],
                     ["今日预估涨跌", f"{est_color}{est_sign}¥{est_gain:,.2f} ({est_sign}{est_gain_pct:.2f}%)\033[0m"],
-                    ["今日实际涨跌", f"{act_color}{act_sign}¥{act_gain:,.2f} ({act_sign}{act_gain_pct:.2f}%)\033[0m"],
+                    ["今日实际涨跌", actual_gain_str],
                 ]
 
                 for line_msg in format_table_msg(summary_table).split("\n"):
@@ -619,23 +626,19 @@ class MaYiFund:
                 # 计算持仓市值
                 position_value = shares * net_value
                 total_value += position_value
-                settled_value += position_value
 
                 # 计算预估涨跌（始终计算）
                 fund_est_gain = position_value * estimated_growth / 100
                 estimated_gain += fund_est_gain
 
                 # 计算实际涨跌
-                # 逻辑：9:30之前 或 今日净值未更新 → 用日涨幅（前一日的）计算
-                #      9:30之后且今日净值已更新 → 用今日日涨幅计算
-                if before_market_open or net_value_date != today:
-                    # 使用日涨幅（前一日）计算实际收益
+                # 逻辑：只有当净值日期是今天时（今日净值已更新），才计算实际涨跌
+                fund_act_gain = 0
+                if net_value_date == today:
+                    # 今日净值已更新，计算实际收益
                     fund_act_gain = position_value * day_growth / 100
-                else:
-                    # 今日9:30后且净值已更新，使用今日日涨幅
-                    fund_act_gain = position_value * day_growth / 100
-
-                actual_gain += fund_act_gain
+                    actual_gain += fund_act_gain
+                    settled_value += position_value
 
                 # 保存每个基金的详细信息
                 fund_details.append({
@@ -662,7 +665,7 @@ class MaYiFund:
             'estimated_gain': estimated_gain,
             'estimated_gain_pct': (estimated_gain / total_value * 100) if total_value > 0 else 0,
             'actual_gain': actual_gain,
-            'actual_gain_pct': (actual_gain / total_value * 100) if total_value > 0 else 0,
+            'actual_gain_pct': (actual_gain / settled_value * 100) if settled_value > 0 else 0,
             'settled_value': settled_value,
             'fund_details': fund_details  # 新增：每个基金的详细涨跌信息
         }
@@ -1613,7 +1616,7 @@ class MaYiFund:
                 if not is_return:
                     marketData = marketData.split(";")[-30:]
                 else:
-                    marketData = marketData.split(";")[-15:]
+                    marketData = marketData.split(";")
                 marketData = [x.split(",")[1:] for x in marketData]
                 if marketData:
                     result = []

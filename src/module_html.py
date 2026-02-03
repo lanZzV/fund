@@ -2,38 +2,65 @@
 import re
 
 
-def enhance_fund_tab_content(content):
+def enhance_fund_tab_content(content, shares_map=None):
     """
     Enhance the fund tab content with operations panel, file operations, and shares input.
-    This function is called before rendering the template.
+    Args:
+        content: HTML content to enhance
+        shares_map: Dict mapping fund_code -> shares value (optional)
     """
     # 添加文件操作和持仓统计区域
     file_operations = """
-        <div class="file-operations" style="margin-bottom: 15px; display: flex; gap: 10px; align-items: center;">
+        <div class="file-operations" style="margin-bottom: 15px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
             <button class="btn btn-secondary" onclick="downloadFundMap()" style="padding: 8px 16px;">📥 导出基金列表</button>
             <input type="file" id="uploadFile" accept=".json" style="display:none" onchange="uploadFundMap(this.files[0])">
             <button class="btn btn-secondary" onclick="document.getElementById('uploadFile').click()" style="padding: 8px 16px;">📤 导入基金列表</button>
+            <span style="color: #f59e0b; font-size: 13px; margin-left: 10px;">
+                <span style="color: #f59e0b;">⚠️</span> 导入/导出为覆盖性操作，直接应用最新配置（非累加）
+            </span>
         </div>
     """
 
     # 添加持仓统计区域（将通过JavaScript动态填充）
     position_summary = """
-        <div id="positionSummary" class="position-summary" style="display: none; background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); border-radius: 12px; padding: 20px; margin-bottom: 20px; color: white; box-shadow: 0 4px 15px rgba(59, 130, 246, 0.3); border: 1px solid rgba(255, 255, 255, 0.1);">
-            <h3 style="margin: 0 0 15px 0; font-size: 18px; font-weight: 600;">💰 持仓统计</h3>
+        <div id="positionSummary" class="position-summary" style="display: none; background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px; padding: 20px; margin-bottom: 20px;">
+            <h3 style="margin: 0 0 15px 0; font-size: 18px; font-weight: 600; color: var(--text-main);">💰 持仓统计</h3>
             <div class="stats-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
                 <div class="stat-item">
-                    <div style="font-size: 12px; opacity: 0.9; margin-bottom: 5px;">总持仓金额</div>
-                    <div id="totalValue" style="font-size: 24px; font-weight: bold;">¥0.00</div>
+                    <div style="font-size: 12px; color: var(--text-dim); margin-bottom: 5px;">总持仓金额</div>
+                    <div id="totalValue" style="font-size: 24px; font-weight: bold; color: var(--text-main);">¥0.00</div>
                 </div>
                 <div class="stat-item">
-                    <div style="font-size: 12px; opacity: 0.9; margin-bottom: 5px;">今日预估涨跌</div>
-                    <div id="estimatedGain" style="font-size: 24px; font-weight: bold;">¥0.00 (0.00%)</div>
+                    <div style="font-size: 12px; color: var(--text-dim); margin-bottom: 5px;">今日预估涨跌</div>
+                    <div id="estimatedGain" style="font-size: 24px; font-weight: bold; white-space: nowrap; color: var(--text-main);">¥0.00 (0.00%)</div>
                 </div>
                 <div class="stat-item">
-                    <div style="font-size: 12px; opacity: 0.9; margin-bottom: 5px;">今日实际涨跌</div>
-                    <div id="actualGain" style="font-size: 24px; font-weight: bold;">¥0.00 (0.00%)</div>
-                    <div style="font-size: 11px; opacity: 0.8; margin-top: 3px;">已结算部分</div>
+                    <div style="font-size: 12px; color: var(--text-dim); margin-bottom: 5px;">今日实际涨跌</div>
+                    <div id="actualGain" style="font-size: 24px; font-weight: bold; white-space: nowrap; color: var(--text-main);">¥0.00 (0.00%)</div>
+                    <div style="font-size: 11px; color: var(--text-dim); margin-top: 3px;">已结算部分</div>
                 </div>
+            </div>
+        </div>
+
+        <div id="fundDetailsSummary" class="fund-details-summary" style="display: none; background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px; padding: 20px; margin-bottom: 20px;">
+            <h3 style="margin: 0 0 15px 0; font-size: 16px; font-weight: 600; color: var(--text-main);">📊 分基金涨跌明细</h3>
+            <div style="overflow-x: auto;">
+                <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
+                    <thead>
+                        <tr style="background: rgba(59, 130, 246, 0.1);">
+                            <th style="padding: 10px; text-align: left; color: var(--text-dim); font-weight: 500;">基金代码</th>
+                            <th style="padding: 10px; text-align: left; color: var(--text-dim); font-weight: 500;">基金名称</th>
+                            <th style="padding: 10px; text-align: right; color: var(--text-dim); font-weight: 500;">持仓份额</th>
+                            <th style="padding: 10px; text-align: right; color: var(--text-dim); font-weight: 500;">持仓市值</th>
+                            <th style="padding: 10px; text-align: right; color: var(--text-dim); font-weight: 500;">预估收益</th>
+                            <th style="padding: 10px; text-align: right; color: var(--text-dim); font-weight: 500;">预估涨跌</th>
+                            <th style="padding: 10px; text-align: right; color: var(--text-dim); font-weight: 500;">实际收益</th>
+                            <th style="padding: 10px; text-align: right; color: var(--text-dim); font-weight: 500;">实际涨跌</th>
+                        </tr>
+                    </thead>
+                    <tbody id="fundDetailsTableBody">
+                    </tbody>
+                </table>
             </div>
         </div>
     """
@@ -72,12 +99,29 @@ def enhance_fund_tab_content(content):
         code_match = re.search(r'<td[^>]*>(\d{6})</td>', row_content)
         if code_match:
             fund_code = code_match.group(1)
+
+            # 根据份额数据确定按钮状态
+            shares = 0
+            if shares_map and fund_code in shares_map:
+                try:
+                    shares = float(shares_map[fund_code])
+                except (ValueError, TypeError):
+                    shares = 0
+
+            # 根据份额值设置按钮文本和颜色
+            if shares > 0:
+                button_text = '修改'
+                button_color = '#10b981'  # 绿色
+            else:
+                button_text = '设置'
+                button_color = '#3b82f6'  # 蓝色
+
             # 在行末添加份额设置按钮（在</tr>之前）- 去掉最后的</tr>，添加按钮后再加回
             row_with_shares = row_content[:-5] + f'''<td>
                 <button class="shares-button" id="sharesBtn_{fund_code}"
                         onclick="openSharesModal('{fund_code}')"
-                        style="padding: 6px 12px; background: #3b82f6; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 13px; transition: all 0.2s;">
-                    设置
+                        style="padding: 6px 12px; background: {button_color}; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 13px; transition: all 0.2s;">
+                    {button_text}
                 </button>
             </td></tr>'''
             return row_with_shares
@@ -2787,6 +2831,494 @@ def get_javascript_code():
         }
     }
 
+    // ==================== 新增功能：份额管理和文件操作 ====================
+
+    // 当前正在编辑份额的基金代码
+    let currentSharesFundCode = null;
+
+    // 获取基金份额（从内存或DOM）- 必须在 openSharesModal 之前定义
+    window.getFundShares = function(fundCode) {
+        // 先从全局存储获取
+        if (window.fundSharesData && window.fundSharesData[fundCode]) {
+            return window.fundSharesData[fundCode];
+        }
+        return 0;
+    };
+
+    // 更新份额按钮状态 - 必须在 openSharesModal 之前定义
+    function updateSharesButton(fundCode, shares) {
+        const button = document.getElementById('sharesBtn_' + fundCode);
+        if (button) {
+            if (shares > 0) {
+                button.textContent = '修改';
+                button.style.background = '#10b981';
+            } else {
+                button.textContent = '设置';
+                button.style.background = '#3b82f6';
+            }
+        }
+    }
+
+    // 打开份额设置弹窗
+    window.openSharesModal = function(fundCode) {
+        currentSharesFundCode = fundCode;
+        const modal = document.getElementById('sharesModal');
+        const fundCodeDisplay = document.getElementById('sharesModalFundCode');
+        const sharesInput = document.getElementById('sharesModalInput');
+
+        // 获取当前份额
+        const sharesValue = window.getFundShares(fundCode) || 0;
+        sharesInput.value = sharesValue > 0 ? sharesValue : '';
+        fundCodeDisplay.textContent = fundCode;
+
+        // 更新弹窗标题
+        const header = modal.querySelector('.sector-modal-header');
+        header.textContent = sharesValue > 0 ? '修改持仓份额' : '设置持仓份额';
+
+        modal.classList.add('active');
+        setTimeout(() => sharesInput.focus(), 100);
+    };
+
+    // 关闭份额设置弹窗
+    window.closeSharesModal = function() {
+        const modal = document.getElementById('sharesModal');
+        modal.classList.remove('active');
+        currentSharesFundCode = null;
+    };
+
+    // 确认份额设置
+    window.confirmShares = async function() {
+        if (!currentSharesFundCode) {
+            alert('基金代码无效');
+            return;
+        }
+
+        const sharesInput = document.getElementById('sharesModalInput');
+        const shares = parseFloat(sharesInput.value) || 0;
+
+        if (shares < 0) {
+            alert('份额不能为负数');
+            return;
+        }
+
+        try {
+            const response = await fetch('/api/fund/shares', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ code: currentSharesFundCode, shares: shares })
+            });
+            const result = await response.json();
+            if (result.success) {
+                // 更新全局份额数据
+                if (!window.fundSharesData) {
+                    window.fundSharesData = {};
+                }
+                window.fundSharesData[currentSharesFundCode] = shares;
+
+                // 更新按钮文本
+                updateSharesButton(currentSharesFundCode, shares);
+                // 重新计算持仓统计
+                calculatePositionSummary();
+                // 关闭弹窗
+                closeSharesModal();
+            } else {
+                alert(result.message);
+            }
+        } catch (e) {
+            alert('更新份额失败: ' + e.message);
+        }
+    };
+
+    // 下载fund_map.json
+    window.updateShares = async function(fundCode, shares) {
+        if (!fundCode) {
+            alert('基金代码无效');
+            return;
+        }
+
+        try {
+            const sharesValue = parseFloat(shares) || 0;
+            const response = await fetch('/api/fund/shares', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ code: fundCode, shares: sharesValue })
+            });
+            const result = await response.json();
+            if (result.success) {
+                // 更新全局份额数据
+                if (!window.fundSharesData) {
+                    window.fundSharesData = {};
+                }
+                window.fundSharesData[fundCode] = sharesValue;
+
+                // 更新按钮状态
+                updateSharesButton(fundCode, sharesValue);
+                // 更新成功后重新计算持仓统计
+                calculatePositionSummary();
+            } else {
+                alert(result.message);
+            }
+        } catch (e) {
+            alert('更新份额失败: ' + e.message);
+        }
+    };
+
+    // 下载fund_map.json
+    window.downloadFundMap = function() {
+        window.location.href = '/api/fund/download';
+    };
+
+    // 上传fund_map.json
+    window.uploadFundMap = async function(file) {
+        if (!file) {
+            alert('请选择文件');
+            return;
+        }
+
+        if (!file.name.endsWith('.json')) {
+            alert('只支持JSON文件');
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append('file', file);
+
+        try {
+            const response = await fetch('/api/fund/upload', {
+                method: 'POST',
+                body: formData
+            });
+            const result = await response.json();
+            if (result.success) {
+                alert(result.message);
+                location.reload();
+            } else {
+                alert(result.message);
+            }
+        } catch (e) {
+            alert('上传失败: ' + e.message);
+        }
+    };
+
+    // 计算并显示持仓统计
+    async function calculatePositionSummary() {
+        let totalValue = 0;
+        let estimatedGain = 0;
+        let actualGain = 0;
+        let settledValue = 0;
+        const today = new Date().toISOString().split('T')[0];
+
+        // Get fund data map for holdings cards
+        let fundDataMap = {};
+        try {
+            const response = await fetch('/api/fund/data');
+            if (response.ok) {
+                fundDataMap = await response.json();
+            }
+        } catch (e) {
+            console.warn('Failed to fetch fund data map:', e);
+        }
+
+        // Collect held funds data for cards
+        const heldFundsData = [];
+        // Collect fund details for summary table
+        const fundDetailsData = [];
+
+        // 遍历所有基金行
+        const fundRows = document.querySelectorAll('.style-table tbody tr');
+        fundRows.forEach(row => {
+            const cells = row.querySelectorAll('td');
+            if (cells.length < 9) return;
+
+            // 获取基金代码
+            const codeCell = cells[1]; // 第二列是基金代码（第一列是复选框）
+            const fundCode = codeCell.textContent.trim();
+
+            // Check if this fund is held
+            const isHeld = fundDataMap[fundCode]?.is_hold || false;
+
+            // 获取份额数据（从全局数据对象）
+            const shares = window.fundSharesData && window.fundSharesData[fundCode] ? parseFloat(window.fundSharesData[fundCode]) : 0;
+            if (shares <= 0) return;  // 只处理有份额的基金
+
+            try {
+                // 解析净值 "1.234(2025-02-02)"
+                const netValueText = cells[4].textContent.trim();
+                const netValueMatch = netValueText.match(/([0-9.]+)\(([0-9-]+)\)/);
+                if (!netValueMatch) return;
+
+                const netValue = parseFloat(netValueMatch[1]);
+                const netValueDate = netValueMatch[2];
+
+                // 解析估值增长率
+                const estimatedGrowthText = cells[5].textContent.trim();
+                const estimatedGrowth = estimatedGrowthText !== 'N/A' ?
+                    parseFloat(estimatedGrowthText.replace('%', '')) : 0;
+
+                // 解析日涨幅
+                const dayGrowthText = cells[6].textContent.trim();
+                const dayGrowth = dayGrowthText !== 'N/A' ?
+                    parseFloat(dayGrowthText.replace('%', '')) : 0;
+
+                // 解析连涨/跌
+                const consecutiveText = cells[7].textContent.trim();
+
+                // 解析近30天
+                const monthlyText = cells[8].textContent.trim();
+
+                // 计算持仓市值
+                const positionValue = shares * netValue;
+
+                // If this fund is held, collect its data for cards
+                if (isHeld) {
+                    heldFundsData.push({
+                        code: fundCode,
+                        name: fundDataMap[fundCode]?.fund_name || 'Unknown',
+                        sectors: fundDataMap[fundCode]?.sectors || [],
+                        netValue: netValue,
+                        netValueDate: netValueDate,
+                        estimatedGrowth: estimatedGrowth,
+                        dayGrowth: dayGrowth,
+                        consecutive: consecutiveText,
+                        monthly: monthlyText,
+                        shares: shares,
+                        positionValue: positionValue
+                    });
+                }
+
+                if (shares > 0) {
+                    totalValue += positionValue;
+
+                    // 计算预估涨跌
+                    const fundEstimatedGain = positionValue * estimatedGrowth / 100;
+                    estimatedGain += fundEstimatedGain;
+
+                    // 计算实际涨跌（仅当日结算）
+                    let fundActualGain = 0;
+                    if (netValueDate === today) {
+                        fundActualGain = positionValue * dayGrowth / 100;
+                        actualGain += fundActualGain;
+                        settledValue += positionValue;
+                    }
+
+                    // Collect fund details for summary table
+                    const fundName = cells[2].textContent.trim();
+                    fundDetailsData.push({
+                        code: fundCode,
+                        name: fundName,
+                        shares: shares,
+                        positionValue: positionValue,
+                        estimatedGain: fundEstimatedGain,
+                        estimatedGainPct: estimatedGrowth,
+                        actualGain: fundActualGain,
+                        actualGainPct: netValueDate === today ? dayGrowth : 0
+                    });
+                }
+            } catch (e) {
+                console.warn('解析基金数据失败:', fundCode, e);
+            }
+        });
+
+        // Update Asset Hero Section
+        const assetHero = document.getElementById('assetHero');
+        if (assetHero) {
+            if (totalValue > 0) {
+                assetHero.style.display = 'block';
+
+            // Update total value
+            document.getElementById('heroTotalValue').textContent =
+                '¥' + totalValue.toLocaleString('zh-CN', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+
+            // Update estimated gain
+            const estGainPct = totalValue > 0 ? (estimatedGain / totalValue * 100) : 0;
+            const estSign = estimatedGain >= 0 ? '+' : '';
+            const estClass = estimatedGain >= 0 ? 'positive' : 'negative';
+            document.getElementById('heroEstimatedGain').textContent =
+                estSign + '¥' + Math.abs(estimatedGain).toLocaleString('zh-CN', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+            document.getElementById('heroEstimatedGain').className = 'asset-metric-value ' + estClass;
+            document.getElementById('heroEstimatedGainPct').textContent = estSign + estGainPct.toFixed(2) + '%';
+
+            // Update actual gain
+            if (settledValue > 0) {
+                const actGainPct = (actualGain / settledValue * 100);
+                const actSign = actualGain >= 0 ? '+' : '';
+                const actClass = actualGain >= 0 ? 'positive' : 'negative';
+                document.getElementById('heroActualGain').textContent =
+                    actSign + '¥' + Math.abs(actualGain).toLocaleString('zh-CN', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+                document.getElementById('heroActualGain').className = 'asset-metric-value ' + actClass;
+                document.getElementById('heroActualGainPct').textContent = actSign + actGainPct.toFixed(2) + '% (Settled)';
+            } else {
+                document.getElementById('heroActualGain').textContent = '¥0.00';
+                document.getElementById('heroActualGain').className = 'asset-metric-value neutral';
+                document.getElementById('heroActualGainPct').textContent = '0.00% (Settled)';
+            }
+            } else {
+                assetHero.style.display = 'none';
+            }
+        }
+
+        // Generate and populate holdings cards
+        if (heldFundsData.length > 0) {
+            const cardsHTML = heldFundsData.map(fund => {
+                const sectorTags = fund.sectors.map(s => `<span class="sector-tag">${s}</span>`).join('');
+                const estClass = fund.estimatedGrowth >= 0 ? 'up' : 'down';
+                const dayClass = fund.dayGrowth >= 0 ? 'up' : 'down';
+
+                return `
+                <div class="fund-glass-card" data-code="${fund.code}">
+                    <div class="card-header">
+                        <div>
+                            <div class="card-title">${fund.name}</div>
+                            <div class="card-code">${fund.code} ${sectorTags}</div>
+                        </div>
+                        <div class="card-badge">⭐</div>
+                    </div>
+                    <div class="card-main-data">
+                        <span class="est-pct ${estClass}">${fund.estimatedGrowth >= 0 ? '+' : ''}${fund.estimatedGrowth.toFixed(2)}%</span>
+                        <span style="font-size: 12px; color: var(--text-dim)">实时估值</span>
+                    </div>
+                    <div class="card-details">
+                        <div class="detail-item">持仓份额 <b>${fund.shares.toLocaleString('zh-CN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</b></div>
+                        <div class="detail-item">估值盈亏 <b class="${estClass}">${fund.estimatedGrowth >= 0 ? '+' : ''}¥${(fund.positionValue * fund.estimatedGrowth / 100).toLocaleString('zh-CN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</b></div>
+                        <div class="detail-item">当前净值 <b>${fund.netValue.toFixed(4)}</b></div>
+                        <div class="detail-item">日涨幅 <b class="${dayClass}">${fund.dayGrowth >= 0 ? '+' : ''}${fund.dayGrowth.toFixed(2)}%</b></div>
+                    </div>
+                </div>
+                `;
+            }).join('');
+
+            const holdingsSection = `
+            <div style="margin-bottom: 24px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                    <div style="font-size: 18px; font-weight: 600; color: var(--text-main);">💎 核心持仓</div>
+                    <div style="font-size: 14px; color: var(--text-dim); font-family: var(--font-mono);">${heldFundsData.length} 只</div>
+                </div>
+                <div class="holdings-grid">
+                    ${cardsHTML}
+                </div>
+            </div>
+            `;
+
+            document.getElementById('holdingsCardsContainer').innerHTML = holdingsSection;
+        } else {
+            document.getElementById('holdingsCardsContainer').innerHTML = '';
+        }
+
+        // 显示或隐藏持仓统计区域
+        const summaryDiv = document.getElementById('positionSummary');
+        const fundDetailsDiv = document.getElementById('fundDetailsSummary');
+        if (!summaryDiv) {
+            // positionSummary element not found (sidebar layout), skip old layout summary
+            console.log('positionSummary element not found - using sidebar layout');
+        } else if (totalValue > 0) {
+            summaryDiv.style.display = 'block';
+
+            // 更新总持仓金额
+            const totalValueEl = document.getElementById('totalValue');
+            if (totalValueEl) {
+                totalValueEl.textContent =
+                    '¥' + totalValue.toLocaleString('zh-CN', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+            }
+
+            // 更新预估涨跌
+            const estGainPct = totalValue > 0 ? (estimatedGain / totalValue * 100) : 0;
+            const estSign = estimatedGain >= 0 ? '+' : '';
+            const estColor = estimatedGain >= 0 ? '#ef4444' : '#10b981';
+            const estimatedGainEl = document.getElementById('estimatedGain');
+            if (estimatedGainEl) {
+                estimatedGainEl.innerHTML =
+                    `<span style="color: ${estColor}">${estSign}¥${Math.abs(estimatedGain).toLocaleString('zh-CN', {minimumFractionDigits: 2, maximumFractionDigits: 2})} (${estSign}${estGainPct.toFixed(2)}%)</span>`;
+            }
+
+            // 更新实际涨跌
+            const actualGainEl = document.getElementById('actualGain');
+            if (actualGainEl) {
+                if (settledValue > 0) {
+                    const actGainPct = (actualGain / settledValue * 100);
+                    const actSign = actualGain >= 0 ? '+' : '';
+                    const actColor = actualGain >= 0 ? '#ef4444' : '#10b981';
+                    actualGainEl.innerHTML =
+                        `<span style="color: ${actColor}">${actSign}¥${Math.abs(actualGain).toLocaleString('zh-CN', {minimumFractionDigits: 2, maximumFractionDigits: 2})} (${actSign}${actGainPct.toFixed(2)}%)</span>`;
+                } else {
+                    actualGainEl.innerHTML =
+                        '<span style="color: var(--text-dim);">净值未更新</span>';
+                }
+            }
+
+            // 填充分基金明细表格
+            if (fundDetailsDiv && fundDetailsData.length > 0) {
+                fundDetailsDiv.style.display = 'block';
+                const tableBody = document.getElementById('fundDetailsTableBody');
+                if (tableBody) {
+                    tableBody.innerHTML = fundDetailsData.map(fund => {
+                        const estColor = fund.estimatedGain >= 0 ? '#f44336' : '#4caf50';
+                        const actColor = fund.actualGain >= 0 ? '#f44336' : '#4caf50';
+                        const estSign = fund.estimatedGain >= 0 ? '+' : '';
+                        const actSign = fund.actualGain >= 0 ? '+' : '';
+                        return `
+                            <tr style="border-bottom: 1px solid var(--border);">
+                                <td style="padding: 10px; color: var(--accent); font-weight: 500;">${fund.code}</td>
+                                <td style="padding: 10px; color: var(--text-main);">${fund.name}</td>
+                                <td style="padding: 10px; text-align: right; font-family: var(--font-mono);">${fund.shares.toLocaleString('zh-CN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+                                <td style="padding: 10px; text-align: right; font-family: var(--font-mono); font-weight: 600;">¥${fund.positionValue.toLocaleString('zh-CN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+                                <td style="padding: 10px; text-align: right; font-family: var(--font-mono); color: ${estColor}; font-weight: 500;">${estSign}¥${Math.abs(fund.estimatedGain).toLocaleString('zh-CN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+                                <td style="padding: 10px; text-align: right; font-family: var(--font-mono); color: ${estColor}; font-weight: 500;">${estSign}${fund.estimatedGainPct.toFixed(2)}%</td>
+                                <td style="padding: 10px; text-align: right; font-family: var(--font-mono); color: ${actColor}; font-weight: 500;">${actSign}¥${Math.abs(fund.actualGain).toLocaleString('zh-CN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+                                <td style="padding: 10px; text-align: right; font-family: var(--font-mono); color: ${actColor}; font-weight: 500;">${actSign}${fund.actualGainPct.toFixed(2)}%</td>
+                            </tr>
+                        `;
+                    }).join('');
+                }
+            } else if (fundDetailsDiv) {
+                fundDetailsDiv.style.display = 'none';
+            }
+        } else {
+            summaryDiv.style.display = 'none';
+            if (fundDetailsDiv) {
+                fundDetailsDiv.style.display = 'none';
+            }
+        }
+    }
+
+    // 页面加载时加载份额数据并计算持仓统计
+    async function loadSharesData() {
+        try {
+            // 从后端API获取用户的基金数据（包含份额）
+            const response = await fetch('/api/fund/data');
+            if (response.ok) {
+                const fundData = await response.json();
+
+                // 存储份额数据到全局变量
+                window.fundSharesData = {};
+
+                // 先存储数据，稍后更新按钮
+                for (const [code, data] of Object.entries(fundData)) {
+                    const shares = parseFloat(data.shares) || 0;
+                    window.fundSharesData[code] = shares;
+                }
+
+                // 等待DOM加载完成后更新按钮状态
+                updateAllSharesButtons();
+
+                // 计算持仓统计
+                calculatePositionSummary();
+            }
+        } catch (e) {
+            console.error('加载份额数据失败:', e);
+            // 即使加载失败，也尝试计算持仓统计
+            calculatePositionSummary();
+        }
+    }
+
+    // 更新所有份额按钮状态（在DOM加载后调用）
+    function updateAllSharesButtons() {
+        if (!window.fundSharesData) return;
+
+        for (const [code, shares] of Object.entries(window.fundSharesData)) {
+            updateSharesButton(code, shares);
+        }
+    }
+
     // 板块搜索功能
     document.addEventListener('DOMContentLoaded', function() {
         const searchInput = document.getElementById('sectorSearch');
@@ -2814,429 +3346,7 @@ def get_javascript_code():
             });
         }
 
-        // ==================== 新增功能：份额管理和文件操作 ====================
-
-        // 当前正在编辑份额的基金代码
-        let currentSharesFundCode = null;
-
-        // 打开份额设置弹窗
-        window.openSharesModal = function(fundCode) {
-            currentSharesFundCode = fundCode;
-            const modal = document.getElementById('sharesModal');
-            const fundCodeDisplay = document.getElementById('sharesModalFundCode');
-            const sharesInput = document.getElementById('sharesModalInput');
-
-            // 获取当前份额
-            const sharesValue = window.getFundShares(fundCode) || 0;
-            sharesInput.value = sharesValue > 0 ? sharesValue : '';
-            fundCodeDisplay.textContent = fundCode;
-
-            // 更新弹窗标题
-            const header = modal.querySelector('.sector-modal-header');
-            header.textContent = sharesValue > 0 ? '修改持仓份额' : '设置持仓份额';
-
-            modal.classList.add('active');
-            setTimeout(() => sharesInput.focus(), 100);
-        };
-
-        // 关闭份额设置弹窗
-        window.closeSharesModal = function() {
-            const modal = document.getElementById('sharesModal');
-            modal.classList.remove('active');
-            currentSharesFundCode = null;
-        };
-
-        // 确认份额设置
-        window.confirmShares = async function() {
-            if (!currentSharesFundCode) {
-                alert('基金代码无效');
-                return;
-            }
-
-            const sharesInput = document.getElementById('sharesModalInput');
-            const shares = parseFloat(sharesInput.value) || 0;
-
-            if (shares < 0) {
-                alert('份额不能为负数');
-                return;
-            }
-
-            try {
-                const response = await fetch('/api/fund/shares', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ code: currentSharesFundCode, shares: shares })
-                });
-                const result = await response.json();
-                if (result.success) {
-                    // 更新按钮文本
-                    updateSharesButton(currentSharesFundCode, shares);
-                    // 重新计算持仓统计
-                    calculatePositionSummary();
-                    // 关闭弹窗
-                    closeSharesModal();
-                } else {
-                    alert(result.message);
-                }
-            } catch (e) {
-                alert('更新份额失败: ' + e.message);
-            }
-        };
-
-        // 更新份额按钮状态
-        function updateSharesButton(fundCode, shares) {
-            const button = document.getElementById('sharesBtn_' + fundCode);
-            if (button) {
-                if (shares > 0) {
-                    button.textContent = '修改';
-                    button.style.background = '#10b981';
-                } else {
-                    button.textContent = '设置';
-                    button.style.background = '#3b82f6';
-                }
-            }
-        }
-
-        // 获取基金份额（从内存或DOM）
-        window.getFundShares = function(fundCode) {
-            // 先从全局存储获取
-            if (window.fundSharesData && window.fundSharesData[fundCode]) {
-                return window.fundSharesData[fundCode];
-            }
-            return 0;
-        };
-
-        // 更新基金份额（保留原函数以兼容其他调用）
-        window.updateShares = async function(fundCode, shares) {
-            if (!fundCode) {
-                alert('基金代码无效');
-                return;
-            }
-
-            try {
-                const sharesValue = parseFloat(shares) || 0;
-                const response = await fetch('/api/fund/shares', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ code: fundCode, shares: sharesValue })
-                });
-                const result = await response.json();
-                if (result.success) {
-                    // 更新按钮状态
-                    updateSharesButton(fundCode, sharesValue);
-                    // 更新成功后重新计算持仓统计
-                    calculatePositionSummary();
-                } else {
-                    alert(result.message);
-                }
-            } catch (e) {
-                alert('更新份额失败: ' + e.message);
-            }
-        };
-
-        // 下载fund_map.json
-        window.downloadFundMap = function() {
-            window.location.href = '/api/fund/download';
-        };
-
-        // 上传fund_map.json
-        window.uploadFundMap = async function(file) {
-            if (!file) {
-                alert('请选择文件');
-                return;
-            }
-
-            if (!file.name.endsWith('.json')) {
-                alert('只支持JSON文件');
-                return;
-            }
-
-            const formData = new FormData();
-            formData.append('file', file);
-
-            try {
-                const response = await fetch('/api/fund/upload', {
-                    method: 'POST',
-                    body: formData
-                });
-                const result = await response.json();
-                if (result.success) {
-                    alert(result.message);
-                    location.reload();
-                } else {
-                    alert(result.message);
-                }
-            } catch (e) {
-                alert('上传失败: ' + e.message);
-            }
-        };
-
-        // 计算并显示持仓统计
-        async function calculatePositionSummary() {
-            let totalValue = 0;
-            let estimatedGain = 0;
-            let actualGain = 0;
-            let settledValue = 0;
-            const today = new Date().toISOString().split('T')[0];
-
-            // Get fund data map for holdings cards
-            let fundDataMap = {};
-            try {
-                const response = await fetch('/api/fund/data');
-                if (response.ok) {
-                    fundDataMap = await response.json();
-                }
-            } catch (e) {
-                console.warn('Failed to fetch fund data map:', e);
-            }
-
-            // Collect held funds data for cards
-            const heldFundsData = [];
-
-            // 遍历所有基金行
-            const fundRows = document.querySelectorAll('.style-table tbody tr');
-            fundRows.forEach(row => {
-                const cells = row.querySelectorAll('td');
-                if (cells.length < 9) return;
-
-                // 获取基金代码
-                const codeCell = cells[1]; // 第二列是基金代码（第一列是复选框）
-                const fundCode = codeCell.textContent.trim();
-
-                // Check if this fund is held
-                const isHeld = fundDataMap[fundCode]?.is_hold || false;
-
-                // 获取份额输入框的值
-                const sharesInput = document.getElementById('shares_' + fundCode);
-                if (!sharesInput) return;
-
-                const shares = parseFloat(sharesInput.value) || 0;
-
-                try {
-                    // 解析净值 "1.234(2025-02-02)"
-                    const netValueText = cells[4].textContent.trim();
-                    const netValueMatch = netValueText.match(/([0-9.]+)\(([0-9-]+)\)/);
-                    if (!netValueMatch) return;
-
-                    const netValue = parseFloat(netValueMatch[1]);
-                    const netValueDate = netValueMatch[2];
-
-                    // 解析估值增长率
-                    const estimatedGrowthText = cells[5].textContent.trim();
-                    const estimatedGrowth = estimatedGrowthText !== 'N/A' ?
-                        parseFloat(estimatedGrowthText.replace('%', '')) : 0;
-
-                    // 解析日涨幅
-                    const dayGrowthText = cells[6].textContent.trim();
-                    const dayGrowth = dayGrowthText !== 'N/A' ?
-                        parseFloat(dayGrowthText.replace('%', '')) : 0;
-
-                    // 解析连涨/跌
-                    const consecutiveText = cells[7].textContent.trim();
-
-                    // 解析近30天
-                    const monthlyText = cells[8].textContent.trim();
-
-                    // 计算持仓市值
-                    const positionValue = shares * netValue;
-
-                    // If this fund is held, collect its data for cards
-                    if (isHeld) {
-                        heldFundsData.push({
-                            code: fundCode,
-                            name: fundDataMap[fundCode]?.fund_name || 'Unknown',
-                            sectors: fundDataMap[fundCode]?.sectors || [],
-                            netValue: netValue,
-                            netValueDate: netValueDate,
-                            estimatedGrowth: estimatedGrowth,
-                            dayGrowth: dayGrowth,
-                            consecutive: consecutiveText,
-                            monthly: monthlyText,
-                            shares: shares,
-                            positionValue: positionValue
-                        });
-                    }
-
-                    if (shares > 0) {
-                        totalValue += positionValue;
-
-                        // 计算预估涨跌
-                        estimatedGain += positionValue * estimatedGrowth / 100;
-
-                        // 计算实际涨跌（仅当日结算）
-                        if (netValueDate === today) {
-                            actualGain += positionValue * dayGrowth / 100;
-                            settledValue += positionValue;
-                        }
-                    }
-                } catch (e) {
-                    console.warn('解析基金数据失败:', fundCode, e);
-                }
-            });
-
-            // Update Asset Hero Section
-            const assetHero = document.getElementById('assetHero');
-            if (assetHero) {
-                if (totalValue > 0) {
-                    assetHero.style.display = 'block';
-
-                // Update total value
-                document.getElementById('heroTotalValue').textContent =
-                    '¥' + totalValue.toLocaleString('zh-CN', {minimumFractionDigits: 2, maximumFractionDigits: 2});
-
-                // Update estimated gain
-                const estGainPct = totalValue > 0 ? (estimatedGain / totalValue * 100) : 0;
-                const estSign = estimatedGain >= 0 ? '+' : '';
-                const estClass = estimatedGain >= 0 ? 'positive' : 'negative';
-                document.getElementById('heroEstimatedGain').textContent =
-                    estSign + '¥' + Math.abs(estimatedGain).toLocaleString('zh-CN', {minimumFractionDigits: 2, maximumFractionDigits: 2});
-                document.getElementById('heroEstimatedGain').className = 'asset-metric-value ' + estClass;
-                document.getElementById('heroEstimatedGainPct').textContent = estSign + estGainPct.toFixed(2) + '%';
-
-                // Update actual gain
-                if (settledValue > 0) {
-                    const actGainPct = (actualGain / settledValue * 100);
-                    const actSign = actualGain >= 0 ? '+' : '';
-                    const actClass = actualGain >= 0 ? 'positive' : 'negative';
-                    document.getElementById('heroActualGain').textContent =
-                        actSign + '¥' + Math.abs(actualGain).toLocaleString('zh-CN', {minimumFractionDigits: 2, maximumFractionDigits: 2});
-                    document.getElementById('heroActualGain').className = 'asset-metric-value ' + actClass;
-                    document.getElementById('heroActualGainPct').textContent = actSign + actGainPct.toFixed(2) + '% (Settled)';
-                } else {
-                    document.getElementById('heroActualGain').textContent = '¥0.00';
-                    document.getElementById('heroActualGain').className = 'asset-metric-value neutral';
-                    document.getElementById('heroActualGainPct').textContent = '0.00% (Settled)';
-                }
-                } else {
-                    assetHero.style.display = 'none';
-                }
-            }
-
-            // Generate and populate holdings cards
-            if (heldFundsData.length > 0) {
-                const cardsHTML = heldFundsData.map(fund => {
-                    const sectorTags = fund.sectors.map(s => `<span class="sector-tag">${s}</span>`).join('');
-                    const estClass = fund.estimatedGrowth >= 0 ? 'up' : 'down';
-                    const dayClass = fund.dayGrowth >= 0 ? 'up' : 'down';
-
-                    return `
-                    <div class="fund-glass-card" data-code="${fund.code}">
-                        <div class="card-header">
-                            <div>
-                                <div class="card-title">${fund.name}</div>
-                                <div class="card-code">${fund.code} ${sectorTags}</div>
-                            </div>
-                            <div class="card-badge">⭐</div>
-                        </div>
-                        <div class="card-main-data">
-                            <span class="est-pct ${estClass}">${fund.estimatedGrowth >= 0 ? '+' : ''}${fund.estimatedGrowth.toFixed(2)}%</span>
-                            <span style="font-size: 12px; color: var(--text-dim)">实时估值</span>
-                        </div>
-                        <div class="card-details">
-                            <div class="detail-item">持仓份额 <b>${fund.shares.toLocaleString('zh-CN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</b></div>
-                            <div class="detail-item">估值盈亏 <b class="${estClass}">${fund.estimatedGrowth >= 0 ? '+' : ''}¥${(fund.positionValue * fund.estimatedGrowth / 100).toLocaleString('zh-CN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</b></div>
-                            <div class="detail-item">当前净值 <b>${fund.netValue.toFixed(4)}</b></div>
-                            <div class="detail-item">日涨幅 <b class="${dayClass}">${fund.dayGrowth >= 0 ? '+' : ''}${fund.dayGrowth.toFixed(2)}%</b></div>
-                        </div>
-                    </div>
-                    `;
-                }).join('');
-
-                const holdingsSection = `
-                <div style="margin-bottom: 24px;">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-                        <div style="font-size: 18px; font-weight: 600; color: var(--text-main);">💎 核心持仓</div>
-                        <div style="font-size: 14px; color: var(--text-dim); font-family: var(--font-mono);">${heldFundsData.length} 只</div>
-                    </div>
-                    <div class="holdings-grid">
-                        ${cardsHTML}
-                    </div>
-                </div>
-                `;
-
-                document.getElementById('holdingsCardsContainer').innerHTML = holdingsSection;
-            } else {
-                document.getElementById('holdingsCardsContainer').innerHTML = '';
-            }
-        }
-                } catch (e) {
-                    console.warn('解析基金数据失败:', fundCode, e);
-                }
-            });
-
-            // 显示或隐藏持仓统计区域
-            const summaryDiv = document.getElementById('positionSummary');
-            if (!summaryDiv) {
-                // positionSummary element not found (sidebar layout), skip old layout summary
-                console.log('positionSummary element not found - using sidebar layout');
-            } else if (totalValue > 0) {
-                summaryDiv.style.display = 'block';
-
-                // 更新总持仓金额
-                const totalValueEl = document.getElementById('totalValue');
-                if (totalValueEl) {
-                    totalValueEl.textContent =
-                        '¥' + totalValue.toLocaleString('zh-CN', {minimumFractionDigits: 2, maximumFractionDigits: 2});
-                }
-
-                // 更新预估涨跌
-                const estGainPct = totalValue > 0 ? (estimatedGain / totalValue * 100) : 0;
-                const estSign = estimatedGain >= 0 ? '+' : '';
-                const estColor = estimatedGain >= 0 ? '#ef4444' : '#10b981';
-                const estimatedGainEl = document.getElementById('estimatedGain');
-                if (estimatedGainEl) {
-                    estimatedGainEl.innerHTML =
-                        `<span style="color: ${estColor}">${estSign}¥${Math.abs(estimatedGain).toLocaleString('zh-CN', {minimumFractionDigits: 2, maximumFractionDigits: 2})} (${estSign}${estGainPct.toFixed(2)}%)</span>`;
-                }
-
-                // 更新实际涨跌
-                const actualGainEl = document.getElementById('actualGain');
-                if (actualGainEl) {
-                    if (settledValue > 0) {
-                        const actGainPct = (actualGain / settledValue * 100);
-                        const actSign = actualGain >= 0 ? '+' : '';
-                        const actColor = actualGain >= 0 ? '#ef4444' : '#10b981';
-                        actualGainEl.innerHTML =
-                            `<span style="color: ${actColor}">${actSign}¥${Math.abs(actualGain).toLocaleString('zh-CN', {minimumFractionDigits: 2, maximumFractionDigits: 2})} (${actSign}${actGainPct.toFixed(2)}%)</span>`;
-                    } else {
-                        actualGainEl.innerHTML =
-                            '<span style="color: #999">¥0.00 (0.00%)</span>';
-                    }
-                }
-            } else {
-                summaryDiv.style.display = 'none';
-            }
-        }
-
-        // 页面加载时加载份额数据并计算持仓统计
-        async function loadSharesData() {
-            try {
-                // 从后端API获取用户的基金数据（包含份额）
-                const response = await fetch('/api/fund/data');
-                if (response.ok) {
-                    const fundData = await response.json();
-
-                    // 存储份额数据到全局变量
-                    window.fundSharesData = {};
-
-                    // 更新按钮状态
-                    for (const [code, data] of Object.entries(fundData)) {
-                        const shares = parseFloat(data.shares) || 0;
-                        window.fundSharesData[code] = shares;
-                        updateSharesButton(code, shares);
-                    }
-
-                    // 计算持仓统计
-                    calculatePositionSummary();
-                }
-            } catch (e) {
-                console.error('加载份额数据失败:', e);
-                // 即使加载失败，也尝试计算持仓统计
-                calculatePositionSummary();
-            }
-        }
-
-        // 初始化
+        // 初始化 - 加载份额数据
         loadSharesData();
 
         // 份额弹窗 - 点击外部关闭
@@ -3343,6 +3453,7 @@ def get_market_page_html(market_data, username=None):
             overflow: hidden;
             text-overflow: ellipsis;
             letter-spacing: 0.05em;
+            transition: opacity 0.5s ease-in-out;
         }}
 
         .top-navbar-menu {{
@@ -3384,9 +3495,11 @@ def get_market_page_html(market_data, username=None):
             transition: all 0.2s ease;
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 6px;
             color: var(--text-dim);
             text-decoration: none;
+            white-space: nowrap;
+            overflow: hidden;
         }}
 
         .sidebar-item:hover {{
@@ -3572,7 +3685,7 @@ def get_market_page_html(market_data, username=None):
         <div class="top-navbar-brand">
             <img src="/static/1.ico" alt="Logo" class="navbar-logo">
         </div>
-        <div class="top-navbar-quote">
+        <div class="top-navbar-quote" id="lyricsDisplay">
             偶然与巧合, 舞动了蝶翼, 谁的心头风起 ————《如果我们不曾相遇》
         </div>
         <div class="top-navbar-menu">
@@ -3715,6 +3828,7 @@ def get_news_page_html(news_content, username=None):
             overflow: hidden;
             text-overflow: ellipsis;
             letter-spacing: 0.05em;
+            transition: opacity 0.5s ease-in-out;
         }}
 
         .top-navbar-menu {{
@@ -3747,6 +3861,44 @@ def get_news_page_html(news_content, username=None):
             border-right: 1px solid var(--border);
             padding: 20px 0;
             flex-shrink: 0;
+            transition: width 0.3s ease;
+        }}
+
+        .sidebar.collapsed {{
+            width: 60px;
+        }}
+
+        .sidebar.collapsed .sidebar-item {{
+            gap: 0;
+            justify-content: center;
+            padding: 12px;
+        }}
+
+        .sidebar.collapsed .sidebar-item span:not(.sidebar-icon) {{
+            display: none;
+        }}
+
+        .sidebar-toggle {{
+            position: absolute;
+            top: 10px;
+            right: -12px;
+            width: 24px;
+            height: 24px;
+            background: var(--accent);
+            border: 2px solid var(--card-bg);
+            border-radius: 50%;
+            cursor: pointer;
+            z-index: 10;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            color: white;
+            transition: all 0.2s;
+        }}
+
+        .sidebar-toggle:hover {{
+            transform: scale(1.1);
         }}
 
         .sidebar-item {{
@@ -3756,9 +3908,11 @@ def get_news_page_html(news_content, username=None):
             transition: all 0.2s ease;
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 6px;
             color: var(--text-dim);
             text-decoration: none;
+            white-space: nowrap;
+            overflow: hidden;
         }}
 
         .sidebar-item:hover {{
@@ -3777,6 +3931,31 @@ def get_news_page_html(news_content, username=None):
             flex: 1;
             padding: 20px;
             overflow-y: auto;
+        }}
+
+        /* 隐藏滚动条但保留功能 */
+        ::-webkit-scrollbar {{
+            width: 6px;
+            height: 6px;
+        }}
+
+        ::-webkit-scrollbar-track {{
+            background: transparent;
+        }}
+
+        ::-webkit-scrollbar-thumb {{
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 3px;
+        }}
+
+        ::-webkit-scrollbar-thumb:hover {{
+            background: rgba(255, 255, 255, 0.2);
+        }}
+
+        /* Firefox */
+        * {{
+            scrollbar-width: thin;
+            scrollbar-color: rgba(255, 255, 255, 0.1) transparent;
         }}
 
         .page-header {{
@@ -3831,7 +4010,7 @@ def get_news_page_html(news_content, username=None):
         <div class="top-navbar-brand">
             <img src="/static/1.ico" alt="Logo" class="navbar-logo">
         </div>
-        <div class="top-navbar-quote">
+        <div class="top-navbar-quote" id="lyricsDisplay">
             偶然与巧合, 舞动了蝶翼, 谁的心头风起 ————《如果我们不曾相遇》
         </div>
         <div class="top-navbar-menu">
@@ -3842,21 +4021,26 @@ def get_news_page_html(news_content, username=None):
     <!-- 主容器 -->
     <div class="main-container">
         <!-- 左侧导航栏 -->
-        <div class="sidebar">
+        <div class="sidebar collapsed" id="sidebar">
+            <div class="sidebar-toggle" id="sidebarToggle">◀</div>
             <a href="/market" class="sidebar-item active">
-                <span>📰</span>
+                <span class="sidebar-icon">📰</span>
                 <span>7*24快讯</span>
             </a>
+            <a href="/market-indices" class="sidebar-item">
+                <span class="sidebar-icon">📊</span>
+                <span>市场指数</span>
+            </a>
             <a href="/precious-metals" class="sidebar-item">
-                <span>🪙</span>
+                <span class="sidebar-icon">🪙</span>
                 <span>贵金属行情</span>
             </a>
             <a href="/portfolio" class="sidebar-item">
-                <span>💼</span>
+                <span class="sidebar-icon">💼</span>
                 <span>持仓基金</span>
             </a>
             <a href="/sectors" class="sidebar-item">
-                <span>🏢</span>
+                <span class="sidebar-icon">🏢</span>
                 <span>行业板块</span>
             </a>
         </div>
@@ -3876,6 +4060,8 @@ def get_news_page_html(news_content, username=None):
         </div>
     </div>
 
+    <script src="/static/js/main.js"></script>
+    <script src="/static/js/sidebar-nav.js"></script>
     <script>
         // 自动颜色化
         function autoColorize() {{
@@ -3891,6 +4077,47 @@ def get_news_page_html(news_content, username=None):
         }}
 
         document.addEventListener('DOMContentLoaded', function() {{
+            // 侧边栏折叠控制
+            const sidebar = document.getElementById('sidebar');
+            const sidebarToggle = document.getElementById('sidebarToggle');
+            if (sidebar && sidebarToggle) {{
+                sidebarToggle.addEventListener('click', function() {{
+                    sidebar.classList.toggle('collapsed');
+                    sidebarToggle.textContent = sidebar.classList.contains('collapsed') ? '◀' : '▶';
+                }});
+            }}
+
+            // 歌词轮播
+            const lyrics = [
+                '总要有一首我的歌, 大声唱过, 再看天地辽阔 ————《一颗苹果》',
+                '苍狗又白云, 身旁有了你, 匆匆轮回又有何惧 ————《如果我们不曾相遇》',
+                '活着其实很好, 再吃一颗苹果 ————《一颗苹果》',
+                '偶然与巧合, 舞动了蝶翼, 谁的心头风起 ————《如果我们不曾相遇》'
+            ];
+            let currentLyricIndex = 0;
+            const lyricsElement = document.getElementById('lyricsDisplay');
+
+            // 随机选择初始歌词
+            currentLyricIndex = Math.floor(Math.random() * lyrics.length);
+            if (lyricsElement) {{
+                lyricsElement.textContent = lyrics[currentLyricIndex];
+
+                // 每10秒切换一次歌词
+                setInterval(function() {{
+                    // 淡出
+                    lyricsElement.style.opacity = '0';
+
+                    setTimeout(function() {{
+                        // 切换歌词
+                        currentLyricIndex = (currentLyricIndex + 1) % lyrics.length;
+                        lyricsElement.textContent = lyrics[currentLyricIndex];
+
+                        // 淡入
+                        lyricsElement.style.opacity = '1';
+                    }}, 500);
+                }}, 10000);
+            }}
+
             autoColorize();
         }});
     </script>
@@ -3961,6 +4188,7 @@ def get_precious_metals_page_html(metals_data, username=None):
             overflow: hidden;
             text-overflow: ellipsis;
             letter-spacing: 0.05em;
+            transition: opacity 0.5s ease-in-out;
         }}
 
         .top-navbar-menu {{
@@ -3993,6 +4221,44 @@ def get_precious_metals_page_html(metals_data, username=None):
             border-right: 1px solid var(--border);
             padding: 20px 0;
             flex-shrink: 0;
+            transition: width 0.3s ease;
+        }}
+
+        .sidebar.collapsed {{
+            width: 60px;
+        }}
+
+        .sidebar.collapsed .sidebar-item {{
+            gap: 0;
+            justify-content: center;
+            padding: 12px;
+        }}
+
+        .sidebar.collapsed .sidebar-item span:not(.sidebar-icon) {{
+            display: none;
+        }}
+
+        .sidebar-toggle {{
+            position: absolute;
+            top: 10px;
+            right: -12px;
+            width: 24px;
+            height: 24px;
+            background: var(--accent);
+            border: 2px solid var(--card-bg);
+            border-radius: 50%;
+            cursor: pointer;
+            z-index: 10;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            color: white;
+            transition: all 0.2s;
+        }}
+
+        .sidebar-toggle:hover {{
+            transform: scale(1.1);
         }}
 
         .sidebar-item {{
@@ -4002,9 +4268,11 @@ def get_precious_metals_page_html(metals_data, username=None):
             transition: all 0.2s ease;
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 6px;
             color: var(--text-dim);
             text-decoration: none;
+            white-space: nowrap;
+            overflow: hidden;
         }}
 
         .sidebar-item:hover {{
@@ -4023,6 +4291,31 @@ def get_precious_metals_page_html(metals_data, username=None):
             flex: 1;
             padding: 20px;
             overflow-y: auto;
+        }}
+
+        /* 隐藏滚动条但保留功能 */
+        ::-webkit-scrollbar {{
+            width: 6px;
+            height: 6px;
+        }}
+
+        ::-webkit-scrollbar-track {{
+            background: transparent;
+        }}
+
+        ::-webkit-scrollbar-thumb {{
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 3px;
+        }}
+
+        ::-webkit-scrollbar-thumb:hover {{
+            background: rgba(255, 255, 255, 0.2);
+        }}
+
+        /* Firefox */
+        * {{
+            scrollbar-width: thin;
+            scrollbar-color: rgba(255, 255, 255, 0.1) transparent;
         }}
 
         .page-header {{
@@ -4139,7 +4432,7 @@ def get_precious_metals_page_html(metals_data, username=None):
         <div class="top-navbar-brand">
             <img src="/static/1.ico" alt="Logo" class="navbar-logo">
         </div>
-        <div class="top-navbar-quote">
+        <div class="top-navbar-quote" id="lyricsDisplay">
             偶然与巧合, 舞动了蝶翼, 谁的心头风起 ————《如果我们不曾相遇》
         </div>
         <div class="top-navbar-menu">
@@ -4150,21 +4443,26 @@ def get_precious_metals_page_html(metals_data, username=None):
     <!-- 主容器 -->
     <div class="main-container">
         <!-- 左侧导航栏 -->
-        <div class="sidebar">
+        <div class="sidebar collapsed" id="sidebar">
+            <div class="sidebar-toggle" id="sidebarToggle">◀</div>
             <a href="/market" class="sidebar-item">
-                <span>📰</span>
+                <span class="sidebar-icon">📰</span>
                 <span>7*24快讯</span>
             </a>
+            <a href="/market-indices" class="sidebar-item">
+                <span class="sidebar-icon">📊</span>
+                <span>市场指数</span>
+            </a>
             <a href="/precious-metals" class="sidebar-item active">
-                <span>🪙</span>
+                <span class="sidebar-icon">🪙</span>
                 <span>贵金属行情</span>
             </a>
             <a href="/portfolio" class="sidebar-item">
-                <span>💼</span>
+                <span class="sidebar-icon">💼</span>
                 <span>持仓基金</span>
             </a>
             <a href="/sectors" class="sidebar-item">
-                <span>🏢</span>
+                <span class="sidebar-icon">🏢</span>
                 <span>行业板块</span>
             </a>
         </div>
@@ -4214,6 +4512,8 @@ def get_precious_metals_page_html(metals_data, username=None):
         </div>
     </div>
 
+    <script src="/static/js/main.js"></script>
+    <script src="/static/js/sidebar-nav.js"></script>
     <script>
         // 自动颜色化
         function autoColorize() {{
@@ -4328,6 +4628,47 @@ def get_precious_metals_page_html(metals_data, username=None):
         }}
 
         document.addEventListener('DOMContentLoaded', function() {{
+            // 侧边栏折叠控制
+            const sidebar = document.getElementById('sidebar');
+            const sidebarToggle = document.getElementById('sidebarToggle');
+            if (sidebar && sidebarToggle) {{
+                sidebarToggle.addEventListener('click', function() {{
+                    sidebar.classList.toggle('collapsed');
+                    sidebarToggle.textContent = sidebar.classList.contains('collapsed') ? '◀' : '▶';
+                }});
+            }}
+
+            // 歌词轮播
+            const lyrics = [
+                '总要有一首我的歌, 大声唱过, 再看天地辽阔 ————《一颗苹果》',
+                '苍狗又白云, 身旁有了你, 匆匆轮回又有何惧 ————《如果我们不曾相遇》',
+                '活着其实很好, 再吃一颗苹果 ————《一颗苹果》',
+                '偶然与巧合, 舞动了蝶翼, 谁的心头风起 ————《如果我们不曾相遇》'
+            ];
+            let currentLyricIndex = 0;
+            const lyricsElement = document.getElementById('lyricsDisplay');
+
+            // 随机选择初始歌词
+            currentLyricIndex = Math.floor(Math.random() * lyrics.length);
+            if (lyricsElement) {{
+                lyricsElement.textContent = lyrics[currentLyricIndex];
+
+                // 每10秒切换一次歌词
+                setInterval(function() {{
+                    // 淡出
+                    lyricsElement.style.opacity = '0';
+
+                    setTimeout(function() {{
+                        // 切换歌词
+                        currentLyricIndex = (currentLyricIndex + 1) % lyrics.length;
+                        lyricsElement.textContent = lyrics[currentLyricIndex];
+
+                        // 淡入
+                        lyricsElement.style.opacity = '1';
+                    }}, 500);
+                }}, 10000);
+            }}
+
             autoColorize();
             createGoldChart();
         }});
@@ -4338,6 +4679,375 @@ def get_precious_metals_page_html(metals_data, username=None):
         username_display=username_display,
         real_time_content=metals_data.get('real_time', ''),
         history_content=metals_data.get('history', '')
+    )
+    return html
+
+
+def get_market_indices_page_html(market_charts=None, chart_data=None, username=None):
+    """生成市场指数页面 - 全球指数和成交量趋势"""
+    css_style = get_css_style()
+    import json
+
+    username_display = ''
+    if username:
+        username_display = '<span class="nav-user">👤 {username}</span>'.format(username=username)
+        username_display += '<a href="/logout" class="nav-logout">退出登录</a>'
+
+    # 准备图表数据JSON (optional, for future chart enhancements)
+    indices_data_json = json.dumps(chart_data.get('indices', {'labels': [], 'prices': [], 'changes': []}) if chart_data else {'labels': [], 'prices': [], 'changes': []})
+    volume_data_json = json.dumps(chart_data.get('volume', {'labels': [], 'total': [], 'sh': [], 'sz': [], 'bj': []}) if chart_data else {'labels': [], 'total': [], 'sh': [], 'sz': [], 'bj': []})
+
+    # 生成市场指数HTML - 两行布局
+    market_content = '''
+        <!-- 市场指数区域 -->
+        <div class="market-indices-section" style="padding: 30px;">
+            <div class="page-header" style="margin-bottom: 25px;">
+                <h1 style="font-size: 1.5rem; font-weight: 600; margin: 0; color: var(--text-main);">📊 市场指数</h1>
+            </div>
+
+            <!-- 第一行：全球指数和成交量趋势 -->
+            <div class="market-charts-grid" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; margin-bottom: 20px;">
+                <!-- 全球指数 - 表格 -->
+                <div class="chart-card" style="background-color: var(--card-bg); border: 1px solid var(--border); border-radius: 8px; overflow: hidden;">
+                    <div class="chart-card-header" style="padding: 12px 15px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center;">
+                        <h3 style="margin: 0; font-size: 1rem; color: var(--text-main);">🌍 全球指数</h3>
+                    </div>
+                    <div class="chart-card-content" style="padding: 15px; max-height: 400px; overflow-y: auto;">
+                        {indices_content}
+                    </div>
+                </div>
+                <!-- 成交量趋势 - 表格 -->
+                <div class="chart-card" style="background-color: var(--card-bg); border: 1px solid var(--border); border-radius: 8px; overflow: hidden;">
+                    <div class="chart-card-header" style="padding: 12px 15px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center;">
+                        <h3 style="margin: 0; font-size: 1rem; color: var(--text-main);">📊 成交量趋势</h3>
+                    </div>
+                    <div class="chart-card-content" style="padding: 15px; max-height: 400px; overflow-y: auto;">
+                        {volume_content}
+                    </div>
+                </div>
+            </div>
+        </div>
+    '''.format(
+        indices_content=market_charts.get('indices', ''),
+        volume_content=market_charts.get('volume', '')
+    )
+
+    html = '''<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>市场指数 - MaYi Fund</title>
+    <link rel="icon" href="/static/1.ico">
+    {css_style}
+    <link rel="stylesheet" href="/static/css/style.css">
+    <style>
+        body {{
+            background-color: var(--terminal-bg);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }}
+
+        /* 顶部导航栏 */
+        .top-navbar {{
+            background-color: var(--card-bg);
+            color: var(--text-main);
+            padding: 0.8rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--border);
+        }}
+
+        .top-navbar-brand {{
+            display: flex;
+            align-items: center;
+            flex: 0 0 auto;
+        }}
+
+        .top-navbar-quote {{
+            flex: 1;
+            text-align: center;
+            font-size: 1rem;
+            font-weight: 500;
+            color: var(--text-main);
+            font-style: italic;
+            padding: 0 2rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            letter-spacing: 0.05em;
+            transition: opacity 0.5s ease-in-out;
+        }}
+
+        .top-navbar-menu {{
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+        }}
+
+        .nav-user {{
+            color: #3b82f6;
+            font-weight: 500;
+        }}
+
+        .nav-logout {{
+            color: #f85149;
+            text-decoration: none;
+            font-weight: 500;
+        }}
+
+        /* 主容器 */
+        .main-container {{
+            display: flex;
+            flex: 1;
+        }}
+
+        /* 左侧导航栏 */
+        .sidebar {{
+            width: 200px;
+            background-color: var(--card-bg);
+            border-right: 1px solid var(--border);
+            padding: 20px 0;
+            flex-shrink: 0;
+            transition: width 0.3s ease;
+        }}
+
+        .sidebar.collapsed {{
+            width: 60px;
+        }}
+
+        .sidebar.collapsed .sidebar-item {{
+            gap: 0;
+            justify-content: center;
+            padding: 12px;
+        }}
+
+        .sidebar.collapsed .sidebar-item span:not(.sidebar-icon) {{
+            display: none;
+        }}
+
+        .sidebar-toggle {{
+            position: absolute;
+            top: 10px;
+            right: -12px;
+            width: 24px;
+            height: 24px;
+            background: var(--accent);
+            border: 2px solid var(--card-bg);
+            border-radius: 50%;
+            cursor: pointer;
+            z-index: 10;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            color: white;
+            transition: all 0.2s;
+        }}
+
+        .sidebar-toggle:hover {{
+            transform: scale(1.1);
+        }}
+
+        .sidebar-item {{
+            padding: 12px 20px;
+            cursor: pointer;
+            border-left: 3px solid transparent;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            color: var(--text-dim);
+            text-decoration: none;
+            white-space: nowrap;
+            overflow: hidden;
+        }}
+
+        .sidebar-item:hover {{
+            background-color: rgba(59, 130, 246, 0.1);
+            color: var(--text-main);
+        }}
+
+        .sidebar-item.active {{
+            background-color: rgba(59, 130, 246, 0.15);
+            border-left-color: var(--accent);
+            color: var(--accent);
+            font-weight: 600;
+        }}
+
+        /* 内容区域 */
+        .content-area {{
+            flex: 1;
+            overflow-y: auto;
+        }}
+
+        /* 隐藏滚动条但保留功能 */
+        ::-webkit-scrollbar {{
+            width: 6px;
+            height: 6px;
+        }}
+
+        ::-webkit-scrollbar-track {{
+            background: transparent;
+        }}
+
+        ::-webkit-scrollbar-thumb {{
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 3px;
+        }}
+
+        ::-webkit-scrollbar-thumb:hover {{
+            background: rgba(255, 255, 255, 0.2);
+        }}
+
+        /* Firefox */
+        * {{
+            scrollbar-width: thin;
+            scrollbar-color: rgba(255, 255, 255, 0.1) transparent;
+        }}
+
+        .chart-card-content::-webkit-scrollbar {{
+            width: 4px;
+        }}
+
+        .chart-card-content::-webkit-scrollbar-thumb {{
+            background: rgba(255, 255, 255, 0.05);
+        }}
+    </style>
+</head>
+<body>
+    <!-- 顶部导航栏 -->
+    <div class="top-navbar">
+        <div class="top-navbar-brand">
+            <span style="font-size: 1.5rem;">📈</span>
+            <span style="font-weight: 700; margin-left: 10px; font-size: 1.2rem;">MaYi Fund</span>
+        </div>
+        <div class="top-navbar-quote">
+            "投资有风险，入市需谨慎"
+        </div>
+        <div class="top-navbar-menu">
+            {username_display}
+        </div>
+    </div>
+
+    <!-- 主容器 -->
+    <div class="main-container">
+        <!-- 左侧导航栏 -->
+        <div class="sidebar collapsed" id="sidebar">
+            <div class="sidebar-toggle" id="sidebarToggle">◀</div>
+            <a href="/market" class="sidebar-item">
+                <span class="sidebar-icon">📰</span>
+                <span>市场行情</span>
+            </a>
+            <a href="/market-indices" class="sidebar-item active">
+                <span class="sidebar-icon">📊</span>
+                <span>市场指数</span>
+            </a>
+            <a href="/precious-metals" class="sidebar-item">
+                <span class="sidebar-icon">🪙</span>
+                <span>贵金属行情</span>
+            </a>
+            <a href="/portfolio" class="sidebar-item">
+                <span class="sidebar-icon">💼</span>
+                <span>持仓基金</span>
+            </a>
+            <a href="/sectors" class="sidebar-item">
+                <span class="sidebar-icon">🏢</span>
+                <span>行业板块</span>
+            </a>
+        </div>
+
+        <!-- 内容区域 -->
+        <div class="content-area">
+            {market_content}
+        </div>
+    </div>
+
+    <script src="/static/js/main.js"></script>
+    <script src="/static/js/sidebar-nav.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {{
+            // 侧边栏折叠控制
+            const sidebar = document.getElementById('sidebar');
+            const sidebarToggle = document.getElementById('sidebarToggle');
+            if (sidebar && sidebarToggle) {{
+                sidebarToggle.addEventListener('click', function() {{
+                    sidebar.classList.toggle('collapsed');
+                    sidebarToggle.textContent = sidebar.classList.contains('collapsed') ? '◀' : '▶';
+                }});
+            }}
+
+            // 歌词轮播
+            const lyrics = [
+                '总要有一首我的歌, 大声唱过, 再看天地辽阔 ————《一颗苹果》',
+                '苍狗又白云, 身旁有了你, 匆匆轮回又有何惧 ————《如果我们不曾相遇》',
+                '活着其实很好, 再吃一颗苹果 ————《一颗苹果》',
+                '偶然与巧合, 舞动了蝶翼, 谁的心头风起 ————《如果我们不曾相遇》'
+            ];
+            let currentLyricIndex = 0;
+            const lyricsElement = document.getElementById('lyricsDisplay');
+
+            // 随机选择初始歌词
+            currentLyricIndex = Math.floor(Math.random() * lyrics.length);
+            if (lyricsElement) {{
+                lyricsElement.textContent = lyrics[currentLyricIndex];
+
+                // 每10秒切换一次歌词
+                setInterval(function() {{
+                    // 淡出
+                    lyricsElement.style.opacity = '0';
+
+                    setTimeout(function() {{
+                        // 切换歌词
+                        currentLyricIndex = (currentLyricIndex + 1) % lyrics.length;
+                        lyricsElement.textContent = lyrics[currentLyricIndex];
+
+                        // 淡入
+                        lyricsElement.style.opacity = '1';
+                    }}, 500);
+                }}, 10000);
+            }}
+
+            // 自动颜色化
+            const cells = document.querySelectorAll('.style-table td');
+            cells.forEach(cell => {{
+                const text = cell.textContent.trim();
+                const cleanText = text.replace(/[%,亿万手]/g, '');
+                const val = parseFloat(cleanText);
+
+                if (!isNaN(val)) {{
+                    if (text.includes('%') || text.includes('涨跌')) {{
+                        if (text.includes('-')) {{
+                            cell.classList.add('negative');
+                        }} else if (val > 0) {{
+                            cell.classList.add('positive');
+                        }}
+                    }} else if (text.startsWith('-')) {{
+                        cell.classList.add('negative');
+                    }} else if (text.startsWith('+')) {{
+                        cell.classList.add('positive');
+                    }}
+                }}
+            }});
+
+            // 侧边栏折叠控制
+            const sidebar = document.getElementById('sidebar');
+            const sidebarToggle = document.getElementById('sidebarToggle');
+
+            sidebarToggle.addEventListener('click', function() {{
+                sidebar.classList.toggle('collapsed');
+                sidebarToggle.textContent = sidebar.classList.contains('collapsed') ? '◀' : '▶';
+            }});
+        }});
+    </script>
+</body>
+</html>'''.format(
+        css_style=css_style,
+        username_display=username_display,
+        market_content=market_content
     )
     return html
 
@@ -4353,50 +5063,23 @@ def get_portfolio_page_html(fund_content, fund_map, market_charts=None, chart_da
         username_display += '<a href="/logout" class="nav-logout">退出登录</a>'
 
     # 准备图表数据JSON
-    indices_data_json = json.dumps(chart_data.get('indices', {'labels': [], 'prices': [], 'changes': []}) if chart_data else {'labels': [], 'prices': [], 'changes': []})
-    volume_data_json = json.dumps(chart_data.get('volume', {'labels': [], 'total': [], 'sh': [], 'sz': [], 'bj': []}) if chart_data else {'labels': [], 'total': [], 'sh': [], 'sz': [], 'bj': []})
     timing_data_json = json.dumps(chart_data.get('timing', {'labels': [], 'prices': [], 'volumes': []}) if chart_data else {'labels': [], 'prices': [], 'volumes': []})
 
-    # 生成市场图表HTML
-    # 全球指数和成交量趋势使用表格，上证分时使用图表单独一行
+    # 生成市场图表HTML - 只保留上证分时
     market_charts_html = '''
         <!-- 市场指数区域 -->
         <div class="market-charts-section" style="margin-bottom: 30px;">
-            <h2 style="font-size: 1.3rem; margin-bottom: 15px; color: var(--text-main);">📊 市场指数</h2>
-            <div class="market-charts-grid" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; margin-bottom: 20px;">
-                <!-- 全球指数 - 表格 -->
-                <div class="chart-card" style="background-color: var(--card-bg); border: 1px solid var(--border); border-radius: 8px; overflow: hidden;">
-                    <div class="chart-card-header" style="padding: 12px 15px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center;">
-                        <h3 style="margin: 0; font-size: 1rem; color: var(--text-main);">🌍 全球指数</h3>
-                    </div>
-                    <div class="chart-card-content" style="padding: 15px; max-height: 300px; overflow-y: auto;">
-                        {indices_content}
-                    </div>
-                </div>
-                <!-- 成交量趋势 - 表格 -->
-                <div class="chart-card" style="background-color: var(--card-bg); border: 1px solid var(--border); border-radius: 8px; overflow: hidden;">
-                    <div class="chart-card-header" style="padding: 12px 15px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center;">
-                        <h3 style="margin: 0; font-size: 1rem; color: var(--text-main);">📊 成交量趋势</h3>
-                    </div>
-                    <div class="chart-card-content" style="padding: 15px; max-height: 300px; overflow-y: auto;">
-                        {volume_content}
-                    </div>
-                </div>
-            </div>
             <!-- 上证分时 - 单独一行，使用Chart.js -->
             <div class="chart-card" style="background-color: var(--card-bg); border: 1px solid var(--border); border-radius: 8px; overflow: hidden;">
                 <div class="chart-card-header" style="padding: 12px 15px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center;">
-                    <h3 style="margin: 0; font-size: 1rem; color: var(--text-main);">📉 上证分时</h3>
+                    <h3 id="timingChartTitle" style="margin: 0; font-size: 1rem; color: var(--text-main);">📉 上证分时</h3>
                 </div>
                 <div class="chart-card-content" style="padding: 15px; height: 300px;">
                     <canvas id="timingChart"></canvas>
                 </div>
             </div>
         </div>
-    '''.format(
-        indices_content=market_charts.get('indices', ''),
-        volume_content=market_charts.get('volume', '')
-    )
+    '''
 
     html = '''<!DOCTYPE html>
 <html lang="zh-CN">
@@ -4446,6 +5129,7 @@ def get_portfolio_page_html(fund_content, fund_map, market_charts=None, chart_da
             overflow: hidden;
             text-overflow: ellipsis;
             letter-spacing: 0.05em;
+            transition: opacity 0.5s ease-in-out;
         }}
 
         .top-navbar-menu {{
@@ -4487,9 +5171,11 @@ def get_portfolio_page_html(fund_content, fund_map, market_charts=None, chart_da
             transition: all 0.2s ease;
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 6px;
             color: var(--text-dim);
             text-decoration: none;
+            white-space: nowrap;
+            overflow: hidden;
         }}
 
         .sidebar-item:hover {{
@@ -4526,33 +5212,6 @@ def get_portfolio_page_html(fund_content, fund_map, market_charts=None, chart_da
             color: var(--text-dim);
             margin: 5px 0 0;
             font-size: 0.9rem;
-        }}
-
-        .portfolio-summary {{
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 20px;
-            margin-bottom: 30px;
-        }}
-
-        .summary-card {{
-            background: var(--card-bg);
-            border: 1px solid var(--border);
-            border-radius: 12px;
-            padding: 20px;
-            text-align: center;
-        }}
-
-        .summary-label {{
-            color: var(--text-dim);
-            font-size: 0.9rem;
-            margin-bottom: 10px;
-        }}
-
-        .summary-value {{
-            font-size: 1.8rem;
-            font-weight: 700;
-            font-family: var(--font-mono);
         }}
 
         .operations-panel {{
@@ -4628,7 +5287,7 @@ def get_portfolio_page_html(fund_content, fund_map, market_charts=None, chart_da
         <div class="top-navbar-brand">
             <img src="/static/1.ico" alt="Logo" class="navbar-logo">
         </div>
-        <div class="top-navbar-quote">
+        <div class="top-navbar-quote" id="lyricsDisplay">
             偶然与巧合, 舞动了蝶翼, 谁的心头风起 ————《如果我们不曾相遇》
         </div>
         <div class="top-navbar-menu">
@@ -4639,21 +5298,26 @@ def get_portfolio_page_html(fund_content, fund_map, market_charts=None, chart_da
     <!-- 主容器 -->
     <div class="main-container">
         <!-- 左侧导航栏 -->
-        <div class="sidebar">
+        <div class="sidebar collapsed" id="sidebar">
+            <div class="sidebar-toggle" id="sidebarToggle">◀</div>
             <a href="/market" class="sidebar-item">
-                <span>📰</span>
+                <span class="sidebar-icon">📰</span>
                 <span>7*24快讯</span>
             </a>
+            <a href="/market-indices" class="sidebar-item">
+                <span class="sidebar-icon">📊</span>
+                <span>市场指数</span>
+            </a>
             <a href="/precious-metals" class="sidebar-item">
-                <span>🪙</span>
+                <span class="sidebar-icon">🪙</span>
                 <span>贵金属行情</span>
             </a>
             <a href="/portfolio" class="sidebar-item active">
-                <span>💼</span>
+                <span class="sidebar-icon">💼</span>
                 <span>持仓基金</span>
             </a>
             <a href="/sectors" class="sidebar-item">
-                <span>🏢</span>
+                <span class="sidebar-icon">🏢</span>
                 <span>行业板块</span>
             </a>
         </div>
@@ -4675,27 +5339,7 @@ def get_portfolio_page_html(fund_content, fund_map, market_charts=None, chart_da
                 </p>
             </div>
 
-            <!-- 持仓统计 -->
-            <div class="portfolio-summary" id="portfolioSummary">
-                <div class="summary-card">
-                    <div class="summary-label">总持仓金额</div>
-                    <div class="summary-value" id="totalValue">¥0.00</div>
-                </div>
-                <div class="summary-card">
-                    <div class="summary-label">今日预估</div>
-                    <div class="summary-value" id="estimatedGain">¥0.00</div>
-                </div>
-                <div class="summary-card">
-                    <div class="summary-label">今日实际</div>
-                    <div class="summary-value" id="actualGain">¥0.00</div>
-                </div>
-                <div class="summary-card">
-                    <div class="summary-label">持仓数量</div>
-                    <div class="summary-value" id="holdCount">0 只</div>
-                </div>
-            </div>
-
-            <!-- 市场图表 (全球指数、成交量趋势、上证分时) -->
+            <!-- 市场图表 (上证分时) -->
             {market_charts_html}
 
             <!-- 基金内容 -->
@@ -4765,10 +5409,6 @@ def get_portfolio_page_html(fund_content, fund_map, market_charts=None, chart_da
 
     <script src="/static/js/main.js"></script>
     <script>
-        // 全球指数数据
-        const indicesData = {indices_data_json};
-        // 成交量数据
-        const volumeData = {volume_data_json};
         // 上证分时数据
         const timingData = {timing_data_json};
 
@@ -4795,6 +5435,47 @@ def get_portfolio_page_html(fund_content, fund_map, market_charts=None, chart_da
                 }}
             }});
 
+            // 侧边栏折叠控制
+            const sidebar = document.getElementById('sidebar');
+            const sidebarToggle = document.getElementById('sidebarToggle');
+            if (sidebar && sidebarToggle) {{
+                sidebarToggle.addEventListener('click', function() {{
+                    sidebar.classList.toggle('collapsed');
+                    sidebarToggle.textContent = sidebar.classList.contains('collapsed') ? '◀' : '▶';
+                }});
+            }}
+
+            // 歌词轮播
+            const lyrics = [
+                '总要有一首我的歌, 大声唱过, 再看天地辽阔 ————《一颗苹果》',
+                '苍狗又白云, 身旁有了你, 匆匆轮回又有何惧 ————《如果我们不曾相遇》',
+                '活着其实很好, 再吃一颗苹果 ————《一颗苹果》',
+                '偶然与巧合, 舞动了蝶翼, 谁的心头风起 ————《如果我们不曾相遇》'
+            ];
+            let currentLyricIndex = 0;
+            const lyricsElement = document.getElementById('lyricsDisplay');
+
+            // 随机选择初始歌词
+            currentLyricIndex = Math.floor(Math.random() * lyrics.length);
+            if (lyricsElement) {{
+                lyricsElement.textContent = lyrics[currentLyricIndex];
+
+                // 每10秒切换一次歌词
+                setInterval(function() {{
+                    // 淡出
+                    lyricsElement.style.opacity = '0';
+
+                    setTimeout(function() {{
+                        // 切换歌词
+                        currentLyricIndex = (currentLyricIndex + 1) % lyrics.length;
+                        lyricsElement.textContent = lyrics[currentLyricIndex];
+
+                        // 淡入
+                        lyricsElement.style.opacity = '1';
+                    }}, 500);
+                }}, 10000);
+            }}
+
             // 初始化上证分时图表
             initTimingChart();
         }});
@@ -4806,6 +5487,17 @@ def get_portfolio_page_html(fund_content, fund_map, market_charts=None, chart_da
 
             // 计算基准价格（第一个价格）用于判断涨跌
             const basePrice = timingData.prices[0];
+            const lastPrice = timingData.prices[timingData.prices.length - 1];
+            const change = lastPrice - basePrice;
+            const changePct = (change / basePrice) * 100;
+            const titleColor = changePct >= 0 ? '#f44336' : '#4caf50';
+
+            // 更新标题颜色
+            const titleElement = document.getElementById('timingChartTitle');
+            if (titleElement) {{
+                titleElement.style.color = titleColor;
+                titleElement.innerHTML = '📉 上证分时 <span style="font-size:0.9em;">' + lastPrice.toFixed(2) + ' (' + (change >= 0 ? '+' : '') + changePct.toFixed(2) + '%)</span>';
+            }}
 
             new Chart(ctx, {{
                 type: 'line',
@@ -4891,6 +5583,10 @@ def get_portfolio_page_html(fund_content, fund_map, market_charts=None, chart_da
                                     return '指数: ' + price.toFixed(2) + ' (' + (change >= 0 ? '+' : '') + changePct.toFixed(2) + '%)';
                                 }}
                             }}
+                        }},
+                        // 显示数据点数值
+                        datalabels: {{
+                            display: false
                         }}
                     }},
                     scales: {{
@@ -4921,7 +5617,7 @@ def get_portfolio_page_html(fund_content, fund_map, market_charts=None, chart_da
         }}
     </script>
 </body>
-</html>'''.format(css_style=css_style, username_display=username_display, market_charts_html=market_charts_html, fund_content=fund_content, indices_data_json=indices_data_json, volume_data_json=volume_data_json, timing_data_json=timing_data_json)
+</html>'''.format(css_style=css_style, username_display=username_display, market_charts_html=market_charts_html, fund_content=fund_content, timing_data_json=timing_data_json)
     return html
 
 
@@ -4996,6 +5692,7 @@ def get_sectors_page_html(sectors_content, select_fund_content, fund_map, userna
             overflow: hidden;
             text-overflow: ellipsis;
             letter-spacing: 0.05em;
+            transition: opacity 0.5s ease-in-out;
         }}
 
         .top-navbar-menu {{
@@ -5028,6 +5725,44 @@ def get_sectors_page_html(sectors_content, select_fund_content, fund_map, userna
             border-right: 1px solid var(--border);
             padding: 20px 0;
             flex-shrink: 0;
+            transition: width 0.3s ease;
+        }}
+
+        .sidebar.collapsed {{
+            width: 60px;
+        }}
+
+        .sidebar.collapsed .sidebar-item {{
+            gap: 0;
+            justify-content: center;
+            padding: 12px;
+        }}
+
+        .sidebar.collapsed .sidebar-item span:not(.sidebar-icon) {{
+            display: none;
+        }}
+
+        .sidebar-toggle {{
+            position: absolute;
+            top: 10px;
+            right: -12px;
+            width: 24px;
+            height: 24px;
+            background: var(--accent);
+            border: 2px solid var(--card-bg);
+            border-radius: 50%;
+            cursor: pointer;
+            z-index: 10;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            color: white;
+            transition: all 0.2s;
+        }}
+
+        .sidebar-toggle:hover {{
+            transform: scale(1.1);
         }}
 
         .sidebar-item {{
@@ -5037,9 +5772,11 @@ def get_sectors_page_html(sectors_content, select_fund_content, fund_map, userna
             transition: all 0.2s ease;
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 6px;
             color: var(--text-dim);
             text-decoration: none;
+            white-space: nowrap;
+            overflow: hidden;
         }}
 
         .sidebar-item:hover {{
@@ -5061,6 +5798,31 @@ def get_sectors_page_html(sectors_content, select_fund_content, fund_map, userna
             flex: 1;
             padding: 30px;
             overflow-y: auto;
+        }}
+
+        /* 隐藏滚动条但保留功能 */
+        ::-webkit-scrollbar {{
+            width: 6px;
+            height: 6px;
+        }}
+
+        ::-webkit-scrollbar-track {{
+            background: transparent;
+        }}
+
+        ::-webkit-scrollbar-thumb {{
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 3px;
+        }}
+
+        ::-webkit-scrollbar-thumb:hover {{
+            background: rgba(255, 255, 255, 0.2);
+        }}
+
+        /* Firefox */
+        * {{
+            scrollbar-width: thin;
+            scrollbar-color: rgba(255, 255, 255, 0.1) transparent;
         }}
 
         .page-header {{
@@ -5157,7 +5919,7 @@ def get_sectors_page_html(sectors_content, select_fund_content, fund_map, userna
         <div class="top-navbar-brand">
             <img src="/static/1.ico" alt="Logo" class="navbar-logo">
         </div>
-        <div class="top-navbar-quote">
+        <div class="top-navbar-quote" id="lyricsDisplay">
             偶然与巧合, 舞动了蝶翼, 谁的心头风起 ————《如果我们不曾相遇》
         </div>
         <div class="top-navbar-menu">
@@ -5168,21 +5930,26 @@ def get_sectors_page_html(sectors_content, select_fund_content, fund_map, userna
     <!-- 主容器 -->
     <div class="main-container">
         <!-- 左侧导航栏 -->
-        <div class="sidebar">
+        <div class="sidebar collapsed" id="sidebar">
+            <div class="sidebar-toggle" id="sidebarToggle">◀</div>
             <a href="/market" class="sidebar-item">
-                <span>📰</span>
+                <span class="sidebar-icon">📰</span>
                 <span>7*24快讯</span>
             </a>
+            <a href="/market-indices" class="sidebar-item">
+                <span class="sidebar-icon">📊</span>
+                <span>市场指数</span>
+            </a>
             <a href="/precious-metals" class="sidebar-item">
-                <span>🪙</span>
+                <span class="sidebar-icon">🪙</span>
                 <span>贵金属行情</span>
             </a>
             <a href="/portfolio" class="sidebar-item">
-                <span>💼</span>
+                <span class="sidebar-icon">💼</span>
                 <span>持仓基金</span>
             </a>
             <a href="/sectors" class="sidebar-item active">
-                <span>🏢</span>
+                <span class="sidebar-icon">🏢</span>
                 <span>行业板块</span>
             </a>
         </div>
@@ -5223,6 +5990,8 @@ def get_sectors_page_html(sectors_content, select_fund_content, fund_map, userna
         </div>
     </div>
 
+    <script src="/static/js/main.js"></script>
+    <script src="/static/js/sidebar-nav.js"></script>
     <script>
         function switchTab(tabName) {{
             // 隐藏所有 tab 内容
@@ -5242,11 +6011,8 @@ def get_sectors_page_html(sectors_content, select_fund_content, fund_map, userna
             document.getElementById('tab-btn-' + tabName).classList.add('active');
         }}
 
-        // 默认激活第一个 tab
-        document.addEventListener('DOMContentLoaded', function() {{
-            document.querySelector('.tab-button').classList.add('active');
-
-            // 自动颜色化
+        // 自动颜色化函数
+        function autoColorize() {{
             const cells = document.querySelectorAll('.style-table td');
             cells.forEach(cell => {{
                 const text = cell.textContent.trim();
@@ -5267,6 +6033,58 @@ def get_sectors_page_html(sectors_content, select_fund_content, fund_map, userna
                     }}
                 }}
             }});
+        }}
+
+        // 默认激活第一个 tab
+        document.addEventListener('DOMContentLoaded', function() {{
+            const firstTabBtn = document.querySelector('.tab-button');
+            if (firstTabBtn) {{
+                firstTabBtn.classList.add('active');
+            }}
+
+            // 侧边栏折叠控制
+            const sidebar = document.getElementById('sidebar');
+            const sidebarToggle = document.getElementById('sidebarToggle');
+            if (sidebar && sidebarToggle) {{
+                sidebarToggle.addEventListener('click', function() {{
+                    sidebar.classList.toggle('collapsed');
+                    sidebarToggle.textContent = sidebar.classList.contains('collapsed') ? '◀' : '▶';
+                }});
+            }}
+
+            // 歌词轮播
+            const lyrics = [
+                '总要有一首我的歌, 大声唱过, 再看天地辽阔 ————《一颗苹果》',
+                '苍狗又白云, 身旁有了你, 匆匆轮回又有何惧 ————《如果我们不曾相遇》',
+                '活着其实很好, 再吃一颗苹果 ————《一颗苹果》',
+                '偶然与巧合, 舞动了蝶翼, 谁的心头风起 ————《如果我们不曾相遇》'
+            ];
+            let currentLyricIndex = 0;
+            const lyricsElement = document.getElementById('lyricsDisplay');
+
+            // 随机选择初始歌词
+            currentLyricIndex = Math.floor(Math.random() * lyrics.length);
+            if (lyricsElement) {{
+                lyricsElement.textContent = lyrics[currentLyricIndex];
+
+                // 每10秒切换一次歌词
+                setInterval(function() {{
+                    // 淡出
+                    lyricsElement.style.opacity = '0';
+
+                    setTimeout(function() {{
+                        // 切换歌词
+                        currentLyricIndex = (currentLyricIndex + 1) % lyrics.length;
+                        lyricsElement.textContent = lyrics[currentLyricIndex];
+
+                        // 淡入
+                        lyricsElement.style.opacity = '1';
+                    }}, 500);
+                }}, 10000);
+            }}
+
+            // 自动颜色化
+            autoColorize();
         }});
     </script>
 </body>

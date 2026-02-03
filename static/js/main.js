@@ -119,7 +119,7 @@
         if (val === 'N/A' || val === '--' || val === '---' || val === '') {
             return -Infinity;
         }
-        const cleanedVal = val.replace(/%|亿|万|元\/克|手/g, '').replace(/,/g, '');
+        const cleanedVal = val.replace(/[%亿万元\/克手]/g, '').replace(/[¥,]/g, '');
         const num = parseFloat(cleanedVal);
         return isNaN(num) ? val.toLowerCase() : num;
     }
@@ -807,28 +807,58 @@
             // 更新总持仓金额
             const totalValueEl = document.getElementById('totalValue');
             if (totalValueEl) {
-                totalValueEl.textContent = '¥' + totalValue.toLocaleString('zh-CN', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+                totalValueEl.className = 'sensitive-value';
+                const realValueSpan = totalValueEl.querySelector('.real-value');
+                if (realValueSpan) {
+                    realValueSpan.textContent = '¥' + totalValue.toLocaleString('zh-CN', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+                }
             }
 
             // 更新今日预估
             const estimatedGainEl = document.getElementById('estimatedGain');
-            if (estimatedGainEl) {
+            const estimatedGainPctEl = document.getElementById('estimatedGainPct');
+            if (estimatedGainEl && estimatedGainPctEl) {
                 const estGainPct = totalValue > 0 ? (estimatedGain / totalValue * 100) : 0;
                 const estSign = estimatedGain >= 0 ? '+' : '';
-                const estColor = estimatedGain >= 0 ? '#f44336' : '#4caf50';
-                estimatedGainEl.innerHTML = `<span style="color: ${estColor}">${estSign}¥${Math.abs(estimatedGain).toLocaleString('zh-CN', {minimumFractionDigits: 2, maximumFractionDigits: 2})} (${estSign}${estGainPct.toFixed(2)}%)</span>`;
+                const sensitiveSpan = estimatedGainEl.querySelector('.sensitive-value');
+                if (sensitiveSpan) {
+                    sensitiveSpan.className = estimatedGain >= 0 ? 'sensitive-value positive' : 'sensitive-value negative';
+                }
+                const realValueSpan = estimatedGainEl.querySelector('.real-value');
+                if (realValueSpan) {
+                    realValueSpan.textContent = `${estSign}¥${Math.abs(estimatedGain).toLocaleString('zh-CN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+                }
+                estimatedGainPctEl.textContent = ` (${estSign}${estGainPct.toFixed(2)}%)`;
+                estimatedGainPctEl.style.color = estimatedGain >= 0 ? '#f44336' : '#4caf50';
             }
 
             // 更新今日实际（只有当有基金净值更新至今日时才显示数值）
             const actualGainEl = document.getElementById('actualGain');
-            if (actualGainEl) {
+            const actualGainPctEl = document.getElementById('actualGainPct');
+            if (actualGainEl && actualGainPctEl) {
                 if (settledValue > 0) {
                     const actGainPct = (actualGain / settledValue * 100);
                     const actSign = actualGain >= 0 ? '+' : '';
-                    const actColor = actualGain >= 0 ? '#f44336' : '#4caf50';
-                    actualGainEl.innerHTML = `<span style="color: ${actColor}">${actSign}¥${Math.abs(actualGain).toLocaleString('zh-CN', {minimumFractionDigits: 2, maximumFractionDigits: 2})} (${actSign}${actGainPct.toFixed(2)}%)</span>`;
+                    const sensitiveSpan = actualGainEl.querySelector('.sensitive-value');
+                    if (sensitiveSpan) {
+                        sensitiveSpan.className = actualGain >= 0 ? 'sensitive-value positive' : 'sensitive-value negative';
+                    }
+                    const realValueSpan = actualGainEl.querySelector('.real-value');
+                    if (realValueSpan) {
+                        realValueSpan.textContent = `${actSign}¥${Math.abs(actualGain).toLocaleString('zh-CN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+                    }
+                    actualGainPctEl.textContent = ` (${actSign}${actGainPct.toFixed(2)}%)`;
+                    actualGainPctEl.style.color = actualGain >= 0 ? '#f44336' : '#4caf50';
                 } else {
-                    actualGainEl.innerHTML = '<span style="color: var(--text-dim);">净值未更新</span>';
+                    const sensitiveSpan = actualGainEl.querySelector('.sensitive-value');
+                    if (sensitiveSpan) {
+                        sensitiveSpan.className = 'sensitive-value';
+                    }
+                    const realValueSpan = actualGainEl.querySelector('.real-value');
+                    if (realValueSpan) {
+                        realValueSpan.textContent = '净值未更新';
+                    }
+                    actualGainPctEl.textContent = '';
                 }
             }
 
@@ -847,33 +877,6 @@
                 holdCountEl.textContent = heldCount + ' 只';
             }
 
-            // Update old positionSummary if exists
-            if (summaryDiv && totalValue > 0) {
-                // 更新总持仓金额
-                summaryDiv.querySelector('#totalValue').textContent =
-                    '¥' + totalValue.toLocaleString('zh-CN', {minimumFractionDigits: 2, maximumFractionDigits: 2});
-
-                // 更新预估涨跌
-                const estGainPct = totalValue > 0 ? (estimatedGain / totalValue * 100) : 0;
-                const estSign = estimatedGain >= 0 ? '+' : '';
-                const estColor = estimatedGain >= 0 ? '#ef4444' : '#10b981';
-                summaryDiv.querySelector('#estimatedGain').innerHTML =
-                    `<span style="color: ${estColor}">${estSign}¥${Math.abs(estimatedGain).toLocaleString('zh-CN', {minimumFractionDigits: 2, maximumFractionDigits: 2})} (${estSign}${estGainPct.toFixed(2)}%)</span>`;
-
-                // 更新实际涨跌（只有当有基金净值更新至今日时才显示数值）
-                const actualGainEl = summaryDiv.querySelector('#actualGain');
-                if (actualGainEl) {
-                    if (settledValue > 0) {
-                        const actGainPct = (actualGain / settledValue * 100);
-                        const actSign = actualGain >= 0 ? '+' : '';
-                        const actColor = actualGain >= 0 ? '#f44336' : '#4caf50';
-                        actualGainEl.innerHTML = `<span style="color: ${actColor}">${actSign}¥${Math.abs(actualGain).toLocaleString('zh-CN', {minimumFractionDigits: 2, maximumFractionDigits: 2})} (${actSign}${actGainPct.toFixed(2)}%)</span>`;
-                    } else {
-                        actualGainEl.innerHTML = '<span style="color: var(--text-dim);">净值未更新</span>';
-                    }
-                }
-            }
-
             // 填充分基金明细表格
             const fundDetailsDiv = document.getElementById('fundDetailsSummary');
             if (fundDetailsDiv && fundDetailsData.length > 0) {
@@ -888,14 +891,14 @@
                         // 基金名称中已包含板块标签，不再重复添加
                         return `
                             <tr style="border-bottom: 1px solid var(--border);">
-                                <td style="padding: 10px; color: var(--accent); font-weight: 500;">${fund.code}</td>
-                                <td style="padding: 10px; color: var(--text-main);">${fund.name}</td>
-                                <td style="padding: 10px; text-align: right; font-family: var(--font-mono);">${fund.shares.toLocaleString('zh-CN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
-                                <td style="padding: 10px; text-align: right; font-family: var(--font-mono); font-weight: 600;">¥${fund.positionValue.toLocaleString('zh-CN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
-                                <td style="padding: 10px; text-align: right; font-family: var(--font-mono); color: ${estColor}; font-weight: 500;">${estSign}¥${Math.abs(fund.estimatedGain).toLocaleString('zh-CN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
-                                <td style="padding: 10px; text-align: right; font-family: var(--font-mono); color: ${estColor}; font-weight: 500;">${estSign}${fund.estimatedGainPct.toFixed(2)}%</td>
-                                <td style="padding: 10px; text-align: right; font-family: var(--font-mono); color: ${actColor}; font-weight: 500;">${actSign}¥${Math.abs(fund.actualGain).toLocaleString('zh-CN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
-                                <td style="padding: 10px; text-align: right; font-family: var(--font-mono); color: ${actColor}; font-weight: 500;">${actSign}${fund.actualGainPct.toFixed(2)}%</td>
+                                <td style="padding: 10px; text-align: center; vertical-align: middle; color: var(--accent); font-weight: 500;">${fund.code}</td>
+                                <td style="padding: 10px; text-align: center; vertical-align: middle; color: var(--text-main);">${fund.name}</td>
+                                <td class="sensitive-value" style="padding: 10px; text-align: center; vertical-align: middle; font-family: var(--font-mono);"><span class="real-value">${fund.shares.toLocaleString('zh-CN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span><span class="hidden-value">****</span></td>
+                                <td class="sensitive-value" style="padding: 10px; text-align: center; vertical-align: middle; font-family: var(--font-mono); font-weight: 600;"><span class="real-value">¥${fund.positionValue.toLocaleString('zh-CN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span><span class="hidden-value">****</span></td>
+                                <td class="sensitive-value ${estColor === '#f44336' ? 'positive' : 'negative'}" style="padding: 10px; text-align: center; vertical-align: middle; font-family: var(--font-mono); color: ${estColor}; font-weight: 500;"><span class="real-value">${estSign}¥${Math.abs(fund.estimatedGain).toLocaleString('zh-CN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span><span class="hidden-value">****</span></td>
+                                <td class="${estColor === '#f44336' ? 'positive' : 'negative'}" style="padding: 10px; text-align: center; vertical-align: middle; font-family: var(--font-mono); color: ${estColor}; font-weight: 500;">${estSign}${fund.estimatedGainPct.toFixed(2)}%</td>
+                                <td class="sensitive-value ${actColor === '#f44336' ? 'positive' : 'negative'}" style="padding: 10px; text-align: center; vertical-align: middle; font-family: var(--font-mono); color: ${actColor}; font-weight: 500;"><span class="real-value">${actSign}¥${Math.abs(fund.actualGain).toLocaleString('zh-CN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span><span class="hidden-value">****</span></td>
+                                <td class="${actColor === '#f44336' ? 'positive' : 'negative'}" style="padding: 10px; text-align: center; vertical-align: middle; font-family: var(--font-mono); color: ${actColor}; font-weight: 500;">${actSign}${fund.actualGainPct.toFixed(2)}%</td>
                             </tr>
                         `;
                     }).join('');
@@ -1472,4 +1475,39 @@
 
         // Expose refresh function globally for manual refresh button
         window.refreshCurrentPage = refreshCurrentPage;
+
+        // 切换敏感数值显示/隐藏（显示为****）
+        function initSensitiveValuesToggle() {
+            const toggleBtn = document.getElementById('toggleSensitiveValues');
+            if (!toggleBtn) return;
+
+            const positionSummary = document.getElementById('positionSummary');
+            const fundDetailsTable = document.getElementById('fundDetailsTable');
+
+            // 读取保存的状态
+            const isHidden = localStorage.getItem('hideSensitiveValues') === 'true';
+            if (isHidden) {
+                if (positionSummary) positionSummary.classList.add('hide-values');
+                if (fundDetailsTable) fundDetailsTable.classList.add('hide-values');
+                toggleBtn.textContent = '😑';
+            }
+
+            toggleBtn.addEventListener('click', function() {
+                const currentlyHidden = localStorage.getItem('hideSensitiveValues') === 'true';
+                if (currentlyHidden) {
+                    if (positionSummary) positionSummary.classList.remove('hide-values');
+                    if (fundDetailsTable) fundDetailsTable.classList.remove('hide-values');
+                    localStorage.setItem('hideSensitiveValues', 'false');
+                    toggleBtn.textContent = '😀';
+                } else {
+                    if (positionSummary) positionSummary.classList.add('hide-values');
+                    if (fundDetailsTable) fundDetailsTable.classList.add('hide-values');
+                    localStorage.setItem('hideSensitiveValues', 'true');
+                    toggleBtn.textContent = '😑';
+                }
+            });
+        }
+
+        // 初始化敏感数值显示/隐藏功能
+        initSensitiveValuesToggle();
     });

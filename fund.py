@@ -741,7 +741,7 @@ class LanFund:
                 "基金代码", "基金名称", "当前时间", "净值", "估值", "日涨幅", "连涨/跌", "近30天"
             ],
             result,
-            sortable_columns=[5, 6, 7, 8]
+            sortable_columns=[4, 5, 6, 7]
         )
 
     @staticmethod

@@ -403,6 +403,7 @@
 
         .style-table th {
             text-align: center;
+            vertical-align: middle;
             padding: 12px 16px;
             background-color: var(--gh-bg-tertiary);
             font-weight: 600;
@@ -418,6 +419,7 @@
             color: var(--gh-text-primary);
             font-weight: 400;
             text-align: center;
+            vertical-align: middle;
         }
 
         .style-table tbody tr:hover {
@@ -456,6 +458,79 @@
         .style-table th.sorted-desc::after {
             content: '↓';
             color: var(--gh-accent-fg);
+        }
+
+        /* Fund Details Table Sorting (for table without style-table class) */
+        #fundDetailsSummary th.sortable {
+            cursor: pointer;
+            user-select: none;
+            position: relative;
+        }
+
+        #fundDetailsSummary th.sortable::after {
+            content: '↕';
+            display: inline-block;
+            margin-left: 8px;
+            font-size: 0.8em;
+            color: var(--text-dim);
+        }
+
+        #fundDetailsSummary th.sortable.sorted-asc::after {
+            content: '↑';
+            color: var(--accent);
+        }
+
+        #fundDetailsSummary th.sortable.sorted-desc::after {
+            content: '↓';
+            color: var(--accent);
+        }
+
+        /* 双元素隐藏方案 */
+        .real-value {
+            display: inline !important;
+        }
+        .hidden-value {
+            display: none !important;
+        }
+
+        /* 隐藏状态 - 隐藏真实值，显示**** */
+        #positionSummary.hide-values .real-value,
+        #fundDetailsTable.hide-values .real-value,
+        .hide-values .real-value {
+            display: none !important;
+        }
+        #positionSummary.hide-values .hidden-value,
+        #fundDetailsTable.hide-values .hidden-value,
+        .hide-values .hidden-value {
+            display: inline !important;
+        }
+
+        /* 持仓统计区域 - 正常状态颜色 */
+        #positionSummary .sensitive-value.positive {
+            color: var(--up-color, #f44336);
+        }
+        #positionSummary .sensitive-value.negative {
+            color: var(--down-color, #4caf50);
+        }
+        #positionSummary .sensitive-value {
+            color: var(--text-main);
+        }
+
+        /* 隐藏状态 - **** 的颜色 */
+        #positionSummary.hide-values .hidden-value.positive,
+        #fundDetailsTable.hide-values .hidden-value.positive,
+        .hide-values .hidden-value.positive {
+            color: var(--up-color, #f44336);
+        }
+        #positionSummary.hide-values .hidden-value.negative,
+        #fundDetailsTable.hide-values .hidden-value.negative,
+        .hide-values .hidden-value.negative {
+            color: var(--down-color, #4caf50);
+        }
+        #positionSummary.hide-values .hidden-value,
+        #fundDetailsTable.hide-values .hidden-value,
+        .hide-values .hidden-value {
+            color: var(--text-main);
         }
 
         /* Numeric Columns Font (monospace for numbers) */

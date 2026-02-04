@@ -430,6 +430,45 @@ pyinstaller fund.spec
 
 打包完成后，可执行文件位于 `dist/fund.exe`（Windows）或 `dist/fund`（Linux/Mac）。
 
+## Docker 部署
+
+### 构建镜像
+
+```bash
+docker build -t lanfund .
+```
+
+### 运行容器
+
+```bash
+# 基础运行
+docker run -d -p 8311:8311 --name lanfund lanfund
+
+# 带数据持久化（推荐）
+docker run -d -p 8311:8311 --name lanfund -v /cache:/app/cache lanfund
+
+
+### 常用命令
+
+```bash
+# 查看日志
+docker logs -f lanfund
+
+# 停止容器
+docker stop lanfund
+
+# 启动已停止的容器
+docker start lanfund
+
+# 删除容器
+docker rm lanfund
+
+# 删除镜像
+docker rmi lanfund
+```
+
+访问地址：`http://localhost:8311`
+
 ## 数据展示说明
 
 ### 终端显示（CLI模式）

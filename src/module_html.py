@@ -40,21 +40,21 @@ def enhance_fund_tab_content(content, shares_map=None):
                 </div>
             </h3>
             <div class="stats-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
-                <div class="stat-item">
+                <div class="stat-item" style="text-align: center;">
                     <div style="font-size: 12px; color: var(--text-dim); margin-bottom: 5px;">总持仓金额</div>
-                    <div id="totalValue" class="sensitive-value" style="font-size: 24px; font-weight: bold; color: var(--text-main);">
+                    <div id="totalValue" class="sensitive-value" style="font-size: 24px; font-weight: bold; color: var(--text-main); text-align: center;">
                         <span class="real-value">¥0.00</span><span class="hidden-value">****</span>
                     </div>
                 </div>
-                <div class="stat-item">
+                <div class="stat-item" style="text-align: center;">
                     <div style="font-size: 12px; color: var(--text-dim); margin-bottom: 5px;">今日预估涨跌</div>
-                    <div id="estimatedGain" style="font-size: 24px; font-weight: bold; white-space: nowrap; color: var(--text-main);">
+                    <div id="estimatedGain" style="font-size: 24px; font-weight: bold; white-space: nowrap; color: var(--text-main); text-align: center;">
                         <span class="sensitive-value"><span class="real-value">¥0.00</span><span class="hidden-value">****</span></span><span id="estimatedGainPct"> (+0.00%)</span>
                     </div>
                 </div>
-                <div class="stat-item">
+                <div class="stat-item" style="text-align: center;">
                     <div style="font-size: 12px; color: var(--text-dim); margin-bottom: 5px;">今日实际涨跌(已结算部分)</div>
-                    <div id="actualGain" style="font-size: 24px; font-weight: bold; white-space: nowrap; color: var(--text-main);">
+                    <div id="actualGain" style="font-size: 24px; font-weight: bold; white-space: nowrap; color: var(--text-main); text-align: center;">
                         <span class="sensitive-value"><span class="real-value">¥0.00</span><span class="hidden-value">****</span></span><span id="actualGainPct"> (+0.00%)</span>
                     </div>
                 </div>
@@ -64,17 +64,17 @@ def enhance_fund_tab_content(content, shares_map=None):
         <div id="fundDetailsSummary" class="fund-details-summary" style="display: none; background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px; padding: 20px; margin-bottom: 20px;">
             <h3 style="margin: 0 0 15px 0; font-size: 16px; font-weight: 600; color: var(--text-main);">📊 分基金涨跌明细</h3>
             <div style="overflow-x: auto;">
-                <table id="fundDetailsTable" style="width: 100%; border-collapse: collapse; font-size: 13px;">
+                <table id="fundDetailsTable" style="width: 100%; min-width: 700px; border-collapse: collapse; font-size: 13px; table-layout: auto; white-space: nowrap;">
                     <thead>
                         <tr style="background: rgba(59, 130, 246, 0.1);">
-                            <th style="padding: 10px; text-align: center; vertical-align: middle; color: var(--text-dim); font-weight: 500;">基金代码</th>
-                            <th style="padding: 10px; text-align: center; vertical-align: middle; color: var(--text-dim); font-weight: 500;">基金名称</th>
-                            <th style="padding: 10px; text-align: center; vertical-align: middle; color: var(--text-dim); font-weight: 500;">持仓份额</th>
-                            <th class="sortable" onclick="sortTable(this.closest('table'), 3)" style="padding: 10px; text-align: center; vertical-align: middle; color: var(--text-dim); font-weight: 500; cursor: pointer; user-select: none;">持仓市值</th>
-                            <th class="sortable" onclick="sortTable(this.closest('table'), 4)" style="padding: 10px; text-align: center; vertical-align: middle; color: var(--text-dim); font-weight: 500; cursor: pointer; user-select: none;">预估收益</th>
-                            <th class="sortable" onclick="sortTable(this.closest('table'), 5)" style="padding: 10px; text-align: center; vertical-align: middle; color: var(--text-dim); font-weight: 500; cursor: pointer; user-select: none;">预估涨跌</th>
-                            <th class="sortable" onclick="sortTable(this.closest('table'), 6)" style="padding: 10px; text-align: center; vertical-align: middle; color: var(--text-dim); font-weight: 500; cursor: pointer; user-select: none;">实际收益</th>
-                            <th class="sortable" onclick="sortTable(this.closest('table'), 7)" style="padding: 10px; text-align: center; vertical-align: middle; color: var(--text-dim); font-weight: 500; cursor: pointer; user-select: none;">实际涨跌</th>
+                            <th style="padding: 10px; text-align: center; white-space: nowrap; vertical-align: middle; color: var(--text-dim); font-weight: 500;">基金代码</th>
+                            <th style="padding: 10px; text-align: center; white-space: nowrap; vertical-align: middle; color: var(--text-dim); font-weight: 500;">基金名称</th>
+                            <th style="padding: 10px; text-align: center; white-space: nowrap; vertical-align: middle; color: var(--text-dim); font-weight: 500;">持仓份额</th>
+                            <th class="sortable" onclick="sortTable(this.closest('table'), 3)" style="padding: 10px; text-align: center; white-space: nowrap; vertical-align: middle; color: var(--text-dim); font-weight: 500; cursor: pointer; user-select: none;">持仓市值</th>
+                            <th class="sortable" onclick="sortTable(this.closest('table'), 4)" style="padding: 10px; text-align: center; white-space: nowrap; vertical-align: middle; color: var(--text-dim); font-weight: 500; cursor: pointer; user-select: none;">预估收益</th>
+                            <th class="sortable" onclick="sortTable(this.closest('table'), 5)" style="padding: 10px; text-align: center; white-space: nowrap; vertical-align: middle; color: var(--text-dim); font-weight: 500; cursor: pointer; user-select: none;">预估涨跌</th>
+                            <th class="sortable" onclick="sortTable(this.closest('table'), 6)" style="padding: 10px; text-align: center; white-space: nowrap; vertical-align: middle; color: var(--text-dim); font-weight: 500; cursor: pointer; user-select: none;">实际收益</th>
+                            <th class="sortable" onclick="sortTable(this.closest('table'), 7)" style="padding: 10px; text-align: center; white-space: nowrap; vertical-align: middle; color: var(--text-dim); font-weight: 500; cursor: pointer; user-select: none;">实际涨跌</th>
                         </tr>
                     </thead>
                     <tbody id="fundDetailsTableBody">
@@ -1466,8 +1466,10 @@ def get_css_style():
 
         .style-table {
             width: 100%;
+            min-width: max-content;
             border-collapse: collapse;
             font-size: 0.9rem;
+            white-space: nowrap;
         }
 
         .style-table th {
@@ -1487,6 +1489,7 @@ def get_css_style():
             color: var(--text-main);
             font-weight: 400;
             text-align: center;
+            white-space: nowrap;
         }
 
         .style-table tbody tr:hover {
@@ -1682,6 +1685,7 @@ def get_css_style():
             .style-table td {
                 padding: 8px 10px;
                 font-size: 0.75rem;
+                white-space: nowrap;
             }
 
             /* Make numeric columns more compact on mobile */
@@ -1689,6 +1693,7 @@ def get_css_style():
             .style-table td:nth-child(n+4) {
                 padding: 8px 6px;
                 font-size: 0.7rem;
+                white-space: nowrap;
             }
 
             /* Hide less important columns on very small screens */
@@ -3441,12 +3446,11 @@ def get_javascript_code():
 
             // 更新预估涨跌
             const estGainPct = totalValue > 0 ? (estimatedGain / totalValue * 100) : 0;
-            const estSign = estimatedGain >= 0 ? '+' : '-';
             const estColor = estimatedGain >= 0 ? '#ef4444' : '#10b981';
             const estimatedGainEl = document.getElementById('estimatedGain');
             if (estimatedGainEl) {
                 estimatedGainEl.innerHTML =
-                    `<span class="sensitive-value ${estimatedGain >= 0 ? 'positive' : 'negative'}" style="color: ${estColor}"><span class="real-value">¥${Math.abs(estimatedGain).toLocaleString('zh-CN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span><span class="hidden-value">****</span></span><span id="estimatedGainPct" style="color: ${estColor}"> (${estSign}${estGainPct.toFixed(2)}%)</span>`;
+                    `<span class="sensitive-value ${estimatedGain >= 0 ? 'positive' : 'negative'}" style="color: ${estColor}"><span class="real-value">¥${Math.abs(estimatedGain).toLocaleString('zh-CN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span><span class="hidden-value">****</span></span><span id="estimatedGainPct" style="color: ${estColor}"> (${estGainPct.toFixed(2)}%)</span>`;
             }
 
             // 更新实际涨跌
@@ -3454,10 +3458,9 @@ def get_javascript_code():
             if (actualGainEl) {
                 if (settledValue > 0) {
                     const actGainPct = (actualGain / settledValue * 100);
-                    const actSign = actualGain >= 0 ? '+' : '-';
                     const actColor = actualGain >= 0 ? '#ef4444' : '#10b981';
                     actualGainEl.innerHTML =
-                        `<span class="sensitive-value ${actualGain >= 0 ? 'positive' : 'negative'}" style="color: ${actColor}"><span class="real-value">¥${Math.abs(actualGain).toLocaleString('zh-CN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span><span class="hidden-value">****</span></span><span id="actualGainPct" style="color: ${actColor}"> (${actSign}${actGainPct.toFixed(2)}%)</span>`;
+                        `<span class="sensitive-value ${actualGain >= 0 ? 'positive' : 'negative'}" style="color: ${actColor}"><span class="real-value">¥${Math.abs(actualGain).toLocaleString('zh-CN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span><span class="hidden-value">****</span></span><span id="actualGainPct" style="color: ${actColor}"> (${actGainPct.toFixed(2)}%)</span>`;
                 } else {
                     actualGainEl.innerHTML =
                         '<span style="color: var(--text-dim);">净值未更新</span>';
@@ -3472,18 +3475,16 @@ def get_javascript_code():
                     tableBody.innerHTML = fundDetailsData.map(fund => {
                         const estColor = fund.estimatedGain >= 0 ? '#f44336' : '#4caf50';
                         const actColor = fund.actualGain >= 0 ? '#f44336' : '#4caf50';
-                        const estSign = fund.estimatedGain >= 0 ? '+' : '';
-                        const actSign = fund.actualGain >= 0 ? '+' : '';
                         return `
                             <tr style="border-bottom: 1px solid var(--border);">
-                                <td style="padding: 10px; text-align: center; vertical-align: middle; color: var(--accent); font-weight: 500;">${fund.code}</td>
-                                <td style="padding: 10px; text-align: center; vertical-align: middle; color: var(--text-main); white-space: nowrap; min-width: 120px;">${fund.name}</td>
-                                <td style="padding: 10px; text-align: center; vertical-align: middle; font-family: var(--font-mono);">${fund.shares.toLocaleString('zh-CN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
-                                <td style="padding: 10px; text-align: center; vertical-align: middle; font-family: var(--font-mono); font-weight: 600;">¥${fund.positionValue.toLocaleString('zh-CN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
-                                <td style="padding: 10px; text-align: center; vertical-align: middle; font-family: var(--font-mono); color: ${estColor}; font-weight: 500;">¥${Math.abs(fund.estimatedGain).toLocaleString('zh-CN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
-                                <td style="padding: 10px; text-align: center; vertical-align: middle; font-family: var(--font-mono); color: ${estColor}; font-weight: 500;">${estSign}${fund.estimatedGainPct.toFixed(2)}%</td>
-                                <td style="padding: 10px; text-align: center; vertical-align: middle; font-family: var(--font-mono); color: ${actColor}; font-weight: 500;">¥${Math.abs(fund.actualGain).toLocaleString('zh-CN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
-                                <td style="padding: 10px; text-align: center; vertical-align: middle; font-family: var(--font-mono); color: ${actColor}; font-weight: 500;">${actSign}${fund.actualGainPct.toFixed(2)}%</td>
+                                <td style="padding: 10px; text-align: center; white-space: nowrap; vertical-align: middle; color: var(--accent); font-weight: 500;">${fund.code}</td>
+                                <td style="padding: 10px; text-align: center; white-space: nowrap; vertical-align: middle; color: var(--text-main); min-width: 120px;">${fund.name}</td>
+                                <td style="padding: 10px; text-align: center; white-space: nowrap; vertical-align: middle; font-family: var(--font-mono);">${fund.shares.toLocaleString('zh-CN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+                                <td style="padding: 10px; text-align: center; white-space: nowrap; vertical-align: middle; font-family: var(--font-mono); font-weight: 600;">¥${fund.positionValue.toLocaleString('zh-CN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+                                <td style="padding: 10px; text-align: center; white-space: nowrap; vertical-align: middle; font-family: var(--font-mono); color: ${estColor}; font-weight: 500;">¥${Math.abs(fund.estimatedGain).toLocaleString('zh-CN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+                                <td style="padding: 10px; text-align: center; white-space: nowrap; vertical-align: middle; font-family: var(--font-mono); color: ${estColor}; font-weight: 500;">${fund.estimatedGainPct.toFixed(2)}%</td>
+                                <td style="padding: 10px; text-align: center; white-space: nowrap; vertical-align: middle; font-family: var(--font-mono); color: ${actColor}; font-weight: 500;">¥${Math.abs(fund.actualGain).toLocaleString('zh-CN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+                                <td style="padding: 10px; text-align: center; white-space: nowrap; vertical-align: middle; font-family: var(--font-mono); color: ${actColor}; font-weight: 500;">${fund.actualGainPct.toFixed(2)}%</td>
                             </tr>
                         `;
                     }).join('');

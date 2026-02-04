@@ -1623,15 +1623,13 @@
                 '¥' + totalValue.toLocaleString('zh-CN', {minimumFractionDigits: 2, maximumFractionDigits: 2});
 
             const estGainEl = document.getElementById('showoffEstimatedGain');
-            const estSign = estimatedGain >= 0 ? '+' : '';
-            estGainEl.textContent = estSign + '¥' + Math.abs(estimatedGain).toLocaleString('zh-CN',
+            estGainEl.textContent = '¥' + Math.abs(estimatedGain).toLocaleString('zh-CN',
                 {minimumFractionDigits: 2, maximumFractionDigits: 2});
             estGainEl.className = 'summary-value ' + (estimatedGain >= 0 ? 'positive' : 'negative');
 
             const actGainEl = document.getElementById('showoffActualGain');
-            const actSign = actualGain >= 0 ? '+' : '';
             actGainEl.textContent = actualGainText.includes('净值') ? '净值未更新' :
-                (actSign + '¥' + Math.abs(actualGain).toLocaleString('zh-CN',
+                ('¥' + Math.abs(actualGain).toLocaleString('zh-CN',
                 {minimumFractionDigits: 2, maximumFractionDigits: 2}));
             actGainEl.className = 'summary-value ' + (actualGain > 0 ? 'positive' :
                 (actualGain < 0 ? 'negative' : ''));
@@ -1682,7 +1680,6 @@
             container.innerHTML = funds.map((fund, index) => {
                 // 优先使用实际收益，如果没有实际收益则使用预估收益
                 const gain = fund.actualGain !== 0 ? fund.actualGain : (fund.estimatedGain || 0);
-                const sign = gain >= 0 ? '+' : '';
                 const colorClass = gain >= 0 ? 'positive' : 'negative';
 
                 return `
@@ -1691,7 +1688,7 @@
                         <div class="fund-info">
                             <div class="fund-name">${fund.name}</div>
                         </div>
-                        <div class="fund-gain ${colorClass}">${sign}¥${Math.abs(gain).toLocaleString('zh-CN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</div>
+                        <div class="fund-gain ${colorClass}">¥${Math.abs(gain).toLocaleString('zh-CN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</div>
                     </div>
                 `;
             }).join('');

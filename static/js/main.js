@@ -26,6 +26,65 @@
                 sidebarToggle.title = isCollapsed ? '展开' : '折叠';
             });
         }
+
+        // Mobile Hamburger Menu for Legacy Sidebar
+        const hamburger = document.getElementById('hamburgerMenu');
+        const mobileSidebar = document.getElementById('sidebar');
+        let sidebarOverlay = document.getElementById('sidebarOverlay');
+
+        // Only initialize if hamburger menu exists (mobile support)
+        if (hamburger && mobileSidebar) {
+            // Create overlay if not exists
+            if (!sidebarOverlay) {
+                sidebarOverlay = document.createElement('div');
+                sidebarOverlay.id = 'sidebarOverlay';
+                sidebarOverlay.className = 'sidebar-overlay';
+                document.body.appendChild(sidebarOverlay);
+            }
+
+            // Toggle sidebar
+            hamburger.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                const isActive = mobileSidebar.classList.contains('mobile-active');
+
+                if (isActive) {
+                    closeMobileSidebar();
+                } else {
+                    openMobileSidebar();
+                }
+            });
+
+            // Close sidebar when clicking overlay
+            sidebarOverlay.addEventListener('click', closeMobileSidebar);
+
+            // Close sidebar when window is resized to desktop
+            window.addEventListener('resize', function() {
+                if (window.innerWidth > 768) {
+                    closeMobileSidebar();
+                }
+            });
+
+            // Close sidebar when clicking navigation links
+            const sidebarLinks = mobileSidebar.querySelectorAll('.sidebar-item');
+            sidebarLinks.forEach(link => {
+                link.addEventListener('click', closeMobileSidebar);
+            });
+
+            function openMobileSidebar() {
+                mobileSidebar.classList.add('mobile-active');
+                hamburger.classList.add('active');
+                sidebarOverlay.classList.add('active');
+                document.body.style.overflow = 'hidden'; // Prevent background scrolling
+            }
+
+            function closeMobileSidebar() {
+                mobileSidebar.classList.remove('mobile-active');
+                hamburger.classList.remove('active');
+                sidebarOverlay.classList.remove('active');
+                document.body.style.overflow = ''; // Restore scrolling
+            }
+        }
     });
 
     function autoColorize() {
@@ -902,7 +961,7 @@
                         return `
                             <tr style="border-bottom: 1px solid var(--border);">
                                 <td style="padding: 10px; text-align: center; vertical-align: middle; color: var(--accent); font-weight: 500;">${fund.code}</td>
-                                <td style="padding: 10px; text-align: center; vertical-align: middle; color: var(--text-main);">${fund.name}</td>
+                                <td style="padding: 10px; text-align: center; vertical-align: middle; color: var(--text-main); white-space: nowrap; min-width: 120px;">${fund.name}</td>
                                 <td class="sensitive-value" style="padding: 10px; text-align: center; vertical-align: middle; font-family: var(--font-mono);"><span class="real-value">${fund.shares.toLocaleString('zh-CN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span><span class="hidden-value">****</span></td>
                                 <td class="sensitive-value" style="padding: 10px; text-align: center; vertical-align: middle; font-family: var(--font-mono); font-weight: 600;"><span class="real-value">¥${fund.positionValue.toLocaleString('zh-CN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span><span class="hidden-value">****</span></td>
                                 <td class="sensitive-value ${estColor === '#f44336' ? 'positive' : 'negative'}" style="padding: 10px; text-align: center; vertical-align: middle; font-family: var(--font-mono); color: ${estColor}; font-weight: 500;"><span class="real-value">¥${Math.abs(fund.estimatedGain).toLocaleString('zh-CN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span><span class="hidden-value">****</span></td>

@@ -1174,6 +1174,215 @@
     display: none;
 }
 
+/* ========================================
+   Hamburger Menu (Mobile for legacy sidebar)
+   ======================================== */
+
+.hamburger-menu {
+    display: none;
+    position: fixed;
+    bottom: 16px;
+    right: 16px;
+    z-index: 1001;
+    background: var(--card-bg, #0d1117);
+    border: 1px solid var(--border, #30363d);
+    border-radius: 8px;
+    padding: 10px 12px;
+    cursor: pointer;
+    flex-direction: column;
+    gap: 5px;
+    width: 48px;
+    height: 48px;
+    min-width: 48px;
+    min-height: 48px;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.hamburger-menu:hover {
+    background: var(--hover-bg, #161b22);
+    border-color: var(--accent, #58a6ff);
+}
+
+.hamburger-menu span {
+    display: block;
+    width: 20px;
+    height: 2px;
+    background: var(--text-primary, #c9d1d9);
+    border-radius: 2px;
+    transition: all 0.3s ease;
+}
+
+.hamburger-menu.active span:nth-child(1) {
+    transform: rotate(45deg) translate(5px, 5px);
+}
+
+.hamburger-menu.active span:nth-child(2) {
+    opacity: 0;
+}
+
+.hamburger-menu.active span:nth-child(3) {
+    transform: rotate(-45deg) translate(7px, -6px);
+}
+
+/* Sidebar overlay for mobile */
+.sidebar-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 999;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.sidebar-overlay.active {
+    display: block;
+    opacity: 1;
+}
+
+/* ========================================
+   Mobile adaptation for legacy sidebar
+   ======================================== */
+
+@media (max-width: 768px) {
+    /* Show hamburger menu */
+    .hamburger-menu {
+        display: flex !important;
+    }
+
+    /* Hide sidebar by default */
+    .sidebar {
+        position: fixed;
+        top: 0;
+        left: -100%;
+        width: 280px;
+        max-width: 80vw;
+        height: 100vh;
+        z-index: 1000;
+        transition: left 0.3s ease;
+        box-shadow: 2px 0 10px rgba(0, 0, 0, 0.3);
+    }
+
+    /* Show sidebar when active */
+    .sidebar.mobile-active {
+        left: 0;
+    }
+
+    /* Reset collapsed state on mobile */
+    .sidebar.collapsed {
+        width: 280px;
+        max-width: 80vw;
+    }
+
+    /* Hide sidebar toggle on mobile */
+    .sidebar-toggle {
+        display: none;
+    }
+
+    /* Adjust main content for hamburger menu */
+    .app-container-sidebar > main,
+    .app-container-sidebar > .content {
+        margin-left: 0;
+        padding-top: 10px; /* 让内容紧贴歌词下方 */
+    }
+
+    /* Ensure sidebar items are fully visible on mobile */
+    .sidebar-item {
+        width: 100%;
+        justify-content: flex-start;
+        gap: 12px;
+    }
+
+    .sidebar.collapsed .sidebar-item {
+        justify-content: flex-start;
+        gap: 12px;
+        padding: 12px 16px;
+    }
+
+    .sidebar.collapsed .sidebar-item span:not(.sidebar-icon) {
+        display: inline !important;
+    }
+
+    /* 顶部导航栏改为两行布局 */
+    .top-navbar {
+        flex-direction: row;
+        flex-wrap: wrap;
+        height: auto;
+        padding: 0.5rem 1rem;
+        align-items: center;
+        border-bottom: none; /* 移除整体底部边框 */
+    }
+
+    /* Logo在第一行左侧 */
+    .top-navbar > .top-navbar-brand {
+        order: 1;
+        flex: 0 0 auto;
+        padding-bottom: 0.5rem;
+        border-bottom: 1px solid var(--border);
+    }
+
+    /* 用户菜单在第一行右侧 */
+    .top-navbar-menu {
+        order: 1;
+        flex: 0 0 auto;
+        margin-left: auto;
+        padding-bottom: 0.5rem;
+        border-bottom: 1px solid var(--border);
+    }
+
+    /* 歌词在第二行（占满整行，单行显示） */
+    .top-navbar-quote {
+        order: 2;
+        width: 100%;
+        flex-basis: 100%;
+        text-align: center;
+        padding: 0.5rem 0;
+        font-size: 0.8rem;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        border-top: 1px solid var(--border);
+        margin-top: 0.5rem;
+    }
+
+    /* 调整主容器上边距，让内容紧贴歌词下方 */
+    .main-container {
+        margin-top: 0;
+        padding-top: 10px;
+    }
+
+    .app-container-sidebar {
+        margin-top: 0;
+        padding-top: 10px;
+    }
+
+    /* 同时调整内容区域的padding */
+    .content-area {
+        padding: 15px;
+    }
+}
+
+/* Market Indices Charts Grid */
+.market-charts-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 20px;
+    margin-bottom: 20px;
+}
+
+@media (max-width: 768px) {
+    .market-charts-grid {
+        grid-template-columns: 1fr;
+        gap: 15px;
+    }
+}
+
 /* Sidebar Navigation */
 .sidebar-nav {
     width: var(--sidebar-width);

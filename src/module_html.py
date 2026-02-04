@@ -211,6 +211,114 @@ def enhance_fund_tab_content(content, shares_map=None):
     return file_operations + position_summary + operations_panel + add_fund_area + content
 
 
+def get_top_navbar_html(username=None):
+    """
+    生成顶部导航栏HTML（包含歌词）。
+    支持桌面端单行布局和移动端两行布局。
+    :param username: str, 用户名（可选）
+    :return: tuple, (navbar_html, username_display)
+    """
+    username_display = '<a href="https://github.com/lanZzV/fund" target="_blank" class="nav-star">点个赞</a>'
+    username_display += '<a href="https://github.com/lanZzV/fund/issues" target="_blank" class="nav-feedback">反馈</a>'
+    if username:
+        username_display += '<span class="nav-user">🍎 {username}</span>'.format(username=username)
+        username_display += '<a href="/logout" class="nav-logout">退出登录</a>'
+
+    navbar_html = '''
+    <!-- 顶部导航栏 -->
+    <nav class="top-navbar">
+        <div class="top-navbar-brand">
+            <img src="/static/1.ico" alt="Logo" class="navbar-logo">
+        </div>
+        <div class="top-navbar-quote" id="lyricsDisplay">
+            偶然与巧合, 舞动了蝶翼, 谁的心头风起 ————《如果我们不曾相遇》
+        </div>
+        <div class="top-navbar-menu">
+            {username_display}
+        </div>
+    </nav>
+    '''.format(username_display=username_display)
+
+    return navbar_html, username_display
+
+
+def get_legacy_sidebar_html(active_page):
+    """
+    生成传统侧边栏HTML（用于非portfolio页面）。
+    :param active_page: str, 当前激活的页面 ('market', 'market-indices', 'precious-metals', 'portfolio', 'sectors')
+    :return: str, 侧边栏HTML
+    """
+    # 定义菜单项
+    menu_items = [
+        ('market', '📰', '市场行情'),
+        ('market-indices', '📊', '市场指数'),
+        ('precious-metals', '🪙', '贵金属行情'),
+        ('portfolio', '💼', '持仓基金'),
+        ('sectors', '🏢', '行业板块'),
+    ]
+
+    # 生成菜单项HTML
+    menu_html = ''
+    for page_id, icon, label in menu_items:
+        active_class = 'active' if page_id == active_page else ''
+        href = f'/{page_id}'
+        menu_html += f'''
+            <a href="{href}" class="sidebar-item {active_class}">
+                <span class="sidebar-icon">{icon}</span>
+                <span>{label}</span>
+            </a>
+        '''
+
+    return '''
+        <!-- 汉堡菜单按钮 (移动端) -->
+        <button class="hamburger-menu" id="hamburgerMenu">
+            <span></span>
+            <span></span>
+            <span></span>
+        </button>
+
+        <!-- 左侧导航栏 -->
+        <div class="sidebar collapsed" id="sidebar">
+            <div class="sidebar-toggle" id="sidebarToggle">▶</div>
+            {menu_items}
+        </div>
+    '''.format(menu_items=menu_html)
+
+
+def get_lyrics_script():
+    """
+    生成歌词轮播的JavaScript代码。
+    :return: str, JavaScript代码
+    """
+    return '''
+    <script>
+        // 歌词轮播
+        (function() {
+            const lyrics = [
+                "偶然与巧合, 舞动了蝶翼, 谁的心头风起 ————《如果我们不曾相遇》",
+                "如海上的浪花, 如深海的鱼, 浪与鱼相依 ————《鱼仔》",
+                "阳光下的泡沫, 是彩色的, 一触就破 ————《泡沫》",
+                "如果我变成回忆, 退出了这场生命 ————《如果我变成回忆》"
+            ];
+            let currentIndex = 0;
+            const lyricsElement = document.getElementById('lyricsDisplay');
+
+            function rotateLyrics() {
+                if (!lyricsElement) return;
+                lyricsElement.style.opacity = '0';
+                setTimeout(() => {
+                    currentIndex = (currentIndex + 1) % lyrics.length;
+                    lyricsElement.textContent = lyrics[currentIndex];
+                    lyricsElement.style.opacity = '1';
+                }, 500);
+            }
+
+            setInterval(rotateLyrics, 10000);
+        })();
+    </script>
+    '''
+
+
 def get_table_html(title, data, sortable_columns=None):
     """
     生成单个表格的HTML代码。
@@ -3369,7 +3477,7 @@ def get_javascript_code():
                         return `
                             <tr style="border-bottom: 1px solid var(--border);">
                                 <td style="padding: 10px; text-align: center; vertical-align: middle; color: var(--accent); font-weight: 500;">${fund.code}</td>
-                                <td style="padding: 10px; text-align: center; vertical-align: middle; color: var(--text-main);">${fund.name}</td>
+                                <td style="padding: 10px; text-align: center; vertical-align: middle; color: var(--text-main); white-space: nowrap; min-width: 120px;">${fund.name}</td>
                                 <td style="padding: 10px; text-align: center; vertical-align: middle; font-family: var(--font-mono);">${fund.shares.toLocaleString('zh-CN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
                                 <td style="padding: 10px; text-align: center; vertical-align: middle; font-family: var(--font-mono); font-weight: 600;">¥${fund.positionValue.toLocaleString('zh-CN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
                                 <td style="padding: 10px; text-align: center; vertical-align: middle; font-family: var(--font-mono); color: ${estColor}; font-weight: 500;">¥${Math.abs(fund.estimatedGain).toLocaleString('zh-CN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
@@ -3765,13 +3873,43 @@ def get_market_page_html(market_data, username=None):
                 padding: 15px;
             }}
 
+            /* 顶部导航栏两行布局 */
             .top-navbar {{
-                padding: 0.6rem 1rem;
+                flex-direction: row;
+                flex-wrap: wrap;
+                height: auto;
+                padding: 0.5rem 1rem;
+                align-items: center;
+                border-bottom: none;
+            }}
+
+            .top-navbar > .top-navbar-brand {{
+                order: 1;
+                flex: 0 0 auto;
+                padding-bottom: 0.5rem;
+                border-bottom: 1px solid var(--border);
+            }}
+
+            .top-navbar-menu {{
+                order: 1;
+                flex: 0 0 auto;
+                margin-left: auto;
+                padding-bottom: 0.5rem;
+                border-bottom: 1px solid var(--border);
             }}
 
             .top-navbar-quote {{
-                font-size: 0.75rem;
-                padding: 0 0.5rem;
+                order: 2;
+                width: 100%;
+                flex-basis: 100%;
+                text-align: center;
+                padding: 0.5rem 0;
+                font-size: 0.8rem;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                border-top: 1px solid var(--border);
+                margin-top: 0.5rem;
             }}
         }}
     </style>
@@ -3792,18 +3930,34 @@ def get_market_page_html(market_data, username=None):
 
     <!-- 主容器 -->
     <div class="main-container">
+        <!-- 汉堡菜单按钮 (移动端) -->
+        <button class="hamburger-menu" id="hamburgerMenu">
+            <span></span>
+            <span></span>
+            <span></span>
+        </button>
+
         <!-- 左侧导航栏 -->
-        <div class="sidebar">
+        <div class="sidebar collapsed" id="sidebar">
+            <div class="sidebar-toggle" id="sidebarToggle">▶</div>
             <a href="/market" class="sidebar-item active">
-                <span>📊</span>
-                <span>市场行情</span>
+                <span class="sidebar-icon">📰</span>
+                <span>7*24快讯</span>
+            </a>
+            <a href="/market-indices" class="sidebar-item">
+                <span class="sidebar-icon">📊</span>
+                <span>市场指数</span>
+            </a>
+            <a href="/precious-metals" class="sidebar-item">
+                <span class="sidebar-icon">🪙</span>
+                <span>贵金属行情</span>
             </a>
             <a href="/portfolio" class="sidebar-item">
-                <span>💼</span>
+                <span class="sidebar-icon">💼</span>
                 <span>持仓基金</span>
             </a>
             <a href="/sectors" class="sidebar-item">
-                <span>🏢</span>
+                <span class="sidebar-icon">🏢</span>
                 <span>行业板块</span>
             </a>
         </div>
@@ -3858,6 +4012,32 @@ def get_market_page_html(market_data, username=None):
         document.addEventListener('DOMContentLoaded', function() {{
             autoColorize();
         }});
+    </script>
+    <script src="/static/js/main.js"></script>
+    <script>
+        // 歌词轮播
+        (function() {{
+            const lyrics = [
+                "偶然与巧合, 舞动了蝶翼, 谁的心头风起 ————《如果我们不曾相遇》",
+                "如海上的浪花, 如深海的鱼, 浪与鱼相依 ————《鱼仔》",
+                "阳光下的泡沫, 是彩色的, 一触就破 ————《泡沫》",
+                "如果我变成回忆, 退出了这场生命 ————《如果我变成回忆》"
+            ];
+            let currentIndex = 0;
+            const lyricsElement = document.getElementById('lyricsDisplay');
+
+            function rotateLyrics() {{
+                if (!lyricsElement) return;
+                lyricsElement.style.opacity = '0';
+                setTimeout(() => {{
+                    currentIndex = (currentIndex + 1) % lyrics.length;
+                    lyricsElement.textContent = lyrics[currentIndex];
+                    lyricsElement.style.opacity = '1';
+                }}, 500);
+            }}
+
+            setInterval(rotateLyrics, 10000);
+        }})();
     </script>
 </body>
 </html>'''.format(css_style=css_style, username_display=username_display, market_cards=market_cards)
@@ -4031,21 +4211,52 @@ def get_news_page_html(news_content, username=None):
 
         /* 响应式设计 */
         @media (max-width: 768px) {{
-            .sidebar {{
-                display: none;
+            /* 汉堡菜单显示 */
+            .hamburger-menu {{
+                display: flex !important;
             }}
 
             .content-area {{
                 padding: 15px;
             }}
 
+            /* 顶部导航栏两行布局 */
             .top-navbar {{
-                padding: 0.6rem 1rem;
+                flex-direction: row;
+                flex-wrap: wrap;
+                height: auto;
+                padding: 0.5rem 1rem;
+                align-items: center;
+                border-bottom: none;
+            }}
+
+            .top-navbar > .top-navbar-brand {{
+                order: 1;
+                flex: 0 0 auto;
+                padding-bottom: 0.5rem;
+                border-bottom: 1px solid var(--border);
+            }}
+
+            .top-navbar-menu {{
+                order: 1;
+                flex: 0 0 auto;
+                margin-left: auto;
+                padding-bottom: 0.5rem;
+                border-bottom: 1px solid var(--border);
             }}
 
             .top-navbar-quote {{
-                font-size: 0.75rem;
-                padding: 0 0.5rem;
+                order: 2;
+                width: 100%;
+                flex-basis: 100%;
+                text-align: center;
+                padding: 0.5rem 0;
+                font-size: 0.8rem;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                border-top: 1px solid var(--border);
+                margin-top: 0.5rem;
             }}
         }}
     </style>
@@ -4066,6 +4277,13 @@ def get_news_page_html(news_content, username=None):
 
     <!-- 主容器 -->
     <div class="main-container">
+        <!-- 汉堡菜单按钮 (移动端) -->
+        <button class="hamburger-menu" id="hamburgerMenu">
+            <span></span>
+            <span></span>
+            <span></span>
+        </button>
+
         <!-- 左侧导航栏 -->
         <div class="sidebar collapsed" id="sidebar">
             <div class="sidebar-toggle" id="sidebarToggle">▶</div>
@@ -4383,10 +4601,6 @@ def get_precious_metals_page_html(metals_data, username=None):
 
         /* 响应式设计 */
         @media (max-width: 768px) {{
-            .sidebar {{
-                display: none;
-            }}
-
             .metals-grid {{
                 grid-template-columns: 1fr;
             }}
@@ -4395,13 +4609,48 @@ def get_precious_metals_page_html(metals_data, username=None):
                 padding: 15px;
             }}
 
+            /* 顶部导航栏两行布局 */
             .top-navbar {{
-                padding: 0.6rem 1rem;
+                flex-direction: row;
+                flex-wrap: wrap;
+                height: auto;
+                padding: 0.5rem 1rem;
+                align-items: center;
+                border-bottom: none;
+            }}
+
+            .top-navbar > .top-navbar-brand {{
+                order: 1;
+                flex: 0 0 auto;
+                padding-bottom: 0.5rem;
+                border-bottom: 1px solid var(--border);
+            }}
+
+            .top-navbar-menu {{
+                order: 1;
+                flex: 0 0 auto;
+                margin-left: auto;
+                padding-bottom: 0.5rem;
+                border-bottom: 1px solid var(--border);
             }}
 
             .top-navbar-quote {{
-                font-size: 0.75rem;
-                padding: 0 0.5rem;
+                order: 2;
+                width: 100%;
+                flex-basis: 100%;
+                text-align: center;
+                padding: 0.5rem 0;
+                font-size: 0.8rem;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                border-top: 1px solid var(--border);
+                margin-top: 0.5rem;
+            }}
+
+            /* 汉堡菜单显示 */
+            .hamburger-menu {{
+                display: flex !important;
             }}
 
             .metal-card-history {{
@@ -4430,6 +4679,13 @@ def get_precious_metals_page_html(metals_data, username=None):
 
     <!-- 主容器 -->
     <div class="main-container">
+        <!-- 汉堡菜单按钮 (移动端) -->
+        <button class="hamburger-menu" id="hamburgerMenu">
+            <span></span>
+            <span></span>
+            <span></span>
+        </button>
+
         <!-- 左侧导航栏 -->
         <div class="sidebar collapsed" id="sidebar">
             <div class="sidebar-toggle" id="sidebarToggle">▶</div>
@@ -4691,7 +4947,7 @@ def get_market_indices_page_html(market_charts=None, chart_data=None, username=N
             </div>
 
             <!-- 第一行：全球指数和成交量趋势 -->
-            <div class="market-charts-grid" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; margin-bottom: 20px;">
+            <div class="market-charts-grid">
                 <!-- 全球指数 - 表格 -->
                 <div class="chart-card" style="background-color: var(--card-bg); border: 1px solid var(--border); border-radius: 8px; overflow: hidden;">
                     <div class="chart-card-header" style="padding: 12px 15px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center;">
@@ -4848,6 +5104,47 @@ def get_market_indices_page_html(market_charts=None, chart_data=None, username=N
         .chart-card-content::-webkit-scrollbar-thumb {{
             background: rgba(255, 255, 255, 0.05);
         }}
+
+        @media (max-width: 768px) {{
+            /* 顶部导航栏两行布局 */
+            .top-navbar {{
+                flex-direction: row;
+                flex-wrap: wrap;
+                height: auto;
+                padding: 0.5rem 1rem;
+                align-items: center;
+                border-bottom: none;
+            }}
+
+            .top-navbar > .top-navbar-brand {{
+                order: 1;
+                flex: 0 0 auto;
+                padding-bottom: 0.5rem;
+                border-bottom: 1px solid var(--border);
+            }}
+
+            .top-navbar-menu {{
+                order: 1;
+                flex: 0 0 auto;
+                margin-left: auto;
+                padding-bottom: 0.5rem;
+                border-bottom: 1px solid var(--border);
+            }}
+
+            .top-navbar-quote {{
+                order: 2;
+                width: 100%;
+                flex-basis: 100%;
+                text-align: center;
+                padding: 0.5rem 0;
+                font-size: 0.8rem;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                border-top: 1px solid var(--border);
+                margin-top: 0.5rem;
+            }}
+        }}
     </style>
 </head>
 <body>
@@ -4866,6 +5163,13 @@ def get_market_indices_page_html(market_charts=None, chart_data=None, username=N
 
     <!-- 主容器 -->
     <div class="main-container">
+        <!-- 汉堡菜单按钮 (移动端) -->
+        <button class="hamburger-menu" id="hamburgerMenu">
+            <span></span>
+            <span></span>
+            <span></span>
+        </button>
+
         <!-- 左侧导航栏 -->
         <div class="sidebar collapsed" id="sidebar">
             <div class="sidebar-toggle" id="sidebarToggle">▶</div>
@@ -5154,21 +5458,60 @@ def get_portfolio_page_html(fund_content, fund_map, market_charts=None, chart_da
                 padding: 15px;
             }}
 
+            /* 顶部导航栏两行布局 */
             .top-navbar {{
-                padding: 0.6rem 1rem;
+                flex-direction: row;
+                flex-wrap: wrap;
+                height: auto;
+                padding: 0.5rem 1rem;
+                align-items: center;
+                border-bottom: none;
+            }}
+
+            .top-navbar > .top-navbar-brand {{
+                order: 1;
+                flex: 0 0 auto;
+                padding-bottom: 0.5rem;
+                border-bottom: 1px solid var(--border);
+            }}
+
+            .top-navbar-menu {{
+                order: 1;
+                flex: 0 0 auto;
+                margin-left: auto;
+                padding-bottom: 0.5rem;
+                border-bottom: 1px solid var(--border);
             }}
 
             .top-navbar-quote {{
-                font-size: 0.75rem;
-                padding: 0 0.5rem;
+                order: 2;
+                width: 100%;
+                flex-basis: 100%;
+                text-align: center;
+                padding: 0.5rem 0;
+                font-size: 0.8rem;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                border-top: 1px solid var(--border);
+                margin-top: 0.5rem;
             }}
 
             .market-charts-grid {{
                 grid-template-columns: 1fr;
+                gap: 15px;
+            }}
+
+            .chart-card {{
+                min-height: auto;
             }}
 
             .chart-card-content {{
-                max-height: 250px;
+                max-height: 200px;
+            }}
+
+            .chart-card h3 {{
+                font-size: 0.9rem;
             }}
         }}
 
@@ -5195,6 +5538,13 @@ def get_portfolio_page_html(fund_content, fund_map, market_charts=None, chart_da
 
     <!-- 主容器 -->
     <div class="main-container">
+        <!-- 汉堡菜单按钮 (移动端) -->
+        <button class="hamburger-menu" id="hamburgerMenu">
+            <span></span>
+            <span></span>
+            <span></span>
+        </button>
+
         <!-- 左侧导航栏 -->
         <div class="sidebar collapsed" id="sidebar">
             <div class="sidebar-toggle" id="sidebarToggle">▶</div>
@@ -5787,13 +6137,43 @@ def get_sectors_page_html(sectors_content, select_fund_content, fund_map, userna
                 padding: 15px;
             }}
 
+            /* 顶部导航栏两行布局 */
             .top-navbar {{
-                padding: 0.6rem 1rem;
+                flex-direction: row;
+                flex-wrap: wrap;
+                height: auto;
+                padding: 0.5rem 1rem;
+                align-items: center;
+                border-bottom: none;
+            }}
+
+            .top-navbar > .top-navbar-brand {{
+                order: 1;
+                flex: 0 0 auto;
+                padding-bottom: 0.5rem;
+                border-bottom: 1px solid var(--border);
+            }}
+
+            .top-navbar-menu {{
+                order: 1;
+                flex: 0 0 auto;
+                margin-left: auto;
+                padding-bottom: 0.5rem;
+                border-bottom: 1px solid var(--border);
             }}
 
             .top-navbar-quote {{
-                font-size: 0.75rem;
-                padding: 0 0.5rem;
+                order: 2;
+                width: 100%;
+                flex-basis: 100%;
+                text-align: center;
+                padding: 0.5rem 0;
+                font-size: 0.8rem;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                border-top: 1px solid var(--border);
+                margin-top: 0.5rem;
             }}
         }}
     </style>
@@ -5814,6 +6194,13 @@ def get_sectors_page_html(sectors_content, select_fund_content, fund_map, userna
 
     <!-- 主容器 -->
     <div class="main-container">
+        <!-- 汉堡菜单按钮 (移动端) -->
+        <button class="hamburger-menu" id="hamburgerMenu">
+            <span></span>
+            <span></span>
+            <span></span>
+        </button>
+
         <!-- 左侧导航栏 -->
         <div class="sidebar collapsed" id="sidebar">
             <div class="sidebar-toggle" id="sidebarToggle">▶</div>

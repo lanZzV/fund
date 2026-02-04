@@ -422,6 +422,8 @@ def get_full_page_html_sidebar(tabs_data, username=None):
         </div>
         <div class="navbar-menu">
             <span class="navbar-item">实时行情</span>
+            <a href="https://github.com/lanZzV/fund" target="_blank" class="navbar-item" style="color: #8b949e; text-decoration: none;">点个赞</a>
+            <a href="https://github.com/lanZzV/fund/issues" target="_blank" class="navbar-item" style="color: #8b949e; text-decoration: none;">反馈</a>
             {f'<span class="navbar-item" style="color: #3b82f6;">🍎 {username}</span>' if username else ''}
             {f'<a href="/logout" class="navbar-item" style="color: #f85149; text-decoration: none;">退出登录</a>' if username else ''}
         </div>
@@ -606,6 +608,8 @@ def get_full_page_html(tabs_data, username=None, use_sidebar=False):
             <div class="navbar-brand">BuBu Fund LanFund助手</div>
             <div class="navbar-menu">
                 <span class="navbar-item">实时行情</span>
+                <a href="https://github.com/lanZzV/fund" target="_blank" class="navbar-item" style="color: #8b949e; text-decoration: none;">点个赞</a>
+                <a href="https://github.com/lanZzV/fund/issues" target="_blank" class="navbar-item" style="color: #8b949e; text-decoration: none;">反馈</a>
                 {f'<span class="navbar-item" style="color: #3b82f6;">🍎 {username}</span>' if username else ''}
                 {f'<a href="/logout" class="navbar-item" style="color: #f85149; text-decoration: none;">退出登录</a>' if username else ''}
             </div>
@@ -746,6 +750,8 @@ def get_sse_loading_page(css_style, js_script):
             </div>
             <div class="navbar-menu">
                 <span class="navbar-item">加载中...</span>
+                <a href="https://github.com/lanZzV/fund" target="_blank" class="navbar-item" style="color: #8b949e; text-decoration: none;">点个赞</a>
+                <a href="https://github.com/lanZzV/fund/issues" target="_blank" class="navbar-item" style="color: #8b949e; text-decoration: none;">反馈</a>
             </div>
         </nav>
         
@@ -3506,9 +3512,10 @@ def get_market_page_html(market_data, username=None):
         </div>
         '''.format(card_id=card_id, icon=icon, title=data['title'], content=data['content'])
 
-    username_display = ''
+    username_display = '<a href="https://github.com/lanZzV/fund" target="_blank" class="nav-star">点个赞</a>'
+    username_display += '<a href="https://github.com/lanZzV/fund/issues" target="_blank" class="nav-feedback">反馈</a>'
     if username:
-        username_display = '<span class="nav-user">🍎 {username}</span>'.format(username=username)
+        username_display += '<span class="nav-user">🍎 {username}</span>'.format(username=username)
         username_display += '<a href="/logout" class="nav-logout">退出登录</a>'
 
     html = '''<!DOCTYPE html>
@@ -3576,6 +3583,26 @@ def get_market_page_html(market_data, username=None):
             color: #f85149;
             text-decoration: none;
             font-weight: 500;
+        }}
+
+        .nav-star {{
+            color: #e3b341;
+            text-decoration: none;
+            font-weight: 500;
+        }}
+
+        .nav-star:hover {{
+            color: #f2c94c;
+        }}
+
+        .nav-feedback {{
+            color: #8b949e;
+            text-decoration: none;
+            font-weight: 500;
+        }}
+
+        .nav-feedback:hover {{
+            color: #58a6ff;
         }}
 
         /* 主容器 */
@@ -3841,9 +3868,10 @@ def get_news_page_html(news_content, username=None):
     """生成7*24快讯页面 - 简洁布局"""
     css_style = get_css_style()
 
-    username_display = ''
+    username_display = '<a href="https://github.com/lanZzV/fund" target="_blank" class="nav-star">点个赞</a>'
+    username_display += '<a href="https://github.com/lanZzV/fund/issues" target="_blank" class="nav-feedback">反馈</a>'
     if username:
-        username_display = '<span class="nav-user">🍎 {username}</span>'.format(username=username)
+        username_display += '<span class="nav-user">🍎 {username}</span>'.format(username=username)
         username_display += '<a href="/logout" class="nav-logout">退出登录</a>'
 
     html = '''<!DOCTYPE html>
@@ -3911,6 +3939,26 @@ def get_news_page_html(news_content, username=None):
             color: #f85149;
             text-decoration: none;
             font-weight: 500;
+        }}
+
+        .nav-star {{
+            color: #e3b341;
+            text-decoration: none;
+            font-weight: 500;
+        }}
+
+        .nav-star:hover {{
+            color: #f2c94c;
+        }}
+
+        .nav-feedback {{
+            color: #8b949e;
+            text-decoration: none;
+            font-weight: 500;
+        }}
+
+        .nav-feedback:hover {{
+            color: #58a6ff;
         }}
 
         .nav-user {{
@@ -4121,9 +4169,10 @@ def get_precious_metals_page_html(metals_data, username=None):
     """生成贵金属行情页面"""
     css_style = get_css_style()
 
-    username_display = ''
+    username_display = '<a href="https://github.com/lanZzV/fund" target="_blank" class="nav-star">点个赞</a>'
+    username_display += '<a href="https://github.com/lanZzV/fund/issues" target="_blank" class="nav-feedback">反馈</a>'
     if username:
-        username_display = '<span class="nav-user">🍎 {username}</span>'.format(username=username)
+        username_display += '<span class="nav-user">🍎 {username}</span>'.format(username=username)
         username_display += '<a href="/logout" class="nav-logout">退出登录</a>'
 
     html = '''<!DOCTYPE html>
@@ -4192,6 +4241,26 @@ def get_precious_metals_page_html(metals_data, username=None):
             color: #f85149;
             text-decoration: none;
             font-weight: 500;
+        }}
+
+        .nav-star {{
+            color: #e3b341;
+            text-decoration: none;
+            font-weight: 500;
+        }}
+
+        .nav-star:hover {{
+            color: #f2c94c;
+        }}
+
+        .nav-feedback {{
+            color: #8b949e;
+            text-decoration: none;
+            font-weight: 500;
+        }}
+
+        .nav-feedback:hover {{
+            color: #58a6ff;
         }}
 
         .nav-user {{
@@ -4600,9 +4669,10 @@ def get_market_indices_page_html(market_charts=None, chart_data=None, username=N
     css_style = get_css_style()
     import json
 
-    username_display = ''
+    username_display = '<a href="https://github.com/lanZzV/fund" target="_blank" class="nav-star">点个赞</a>'
+    username_display += '<a href="https://github.com/lanZzV/fund/issues" target="_blank" class="nav-feedback">反馈</a>'
     if username:
-        username_display = '<span class="nav-user">🍎 {username}</span>'.format(username=username)
+        username_display += '<span class="nav-user">🍎 {username}</span>'.format(username=username)
         username_display += '<a href="/logout" class="nav-logout">退出登录</a>'
 
     # 准备图表数据JSON (optional, for future chart enhancements)
@@ -4712,6 +4782,26 @@ def get_market_indices_page_html(market_charts=None, chart_data=None, username=N
             color: #f85149;
             text-decoration: none;
             font-weight: 500;
+        }}
+
+        .nav-star {{
+            color: #e3b341;
+            text-decoration: none;
+            font-weight: 500;
+        }}
+
+        .nav-star:hover {{
+            color: #f2c94c;
+        }}
+
+        .nav-feedback {{
+            color: #8b949e;
+            text-decoration: none;
+            font-weight: 500;
+        }}
+
+        .nav-feedback:hover {{
+            color: #58a6ff;
         }}
 
         /* 主容器 */
@@ -4879,9 +4969,10 @@ def get_portfolio_page_html(fund_content, fund_map, market_charts=None, chart_da
     css_style = get_css_style()
     import json
 
-    username_display = ''
+    username_display = '<a href="https://github.com/lanZzV/fund" target="_blank" class="nav-star">点个赞</a>'
+    username_display += '<a href="https://github.com/lanZzV/fund/issues" target="_blank" class="nav-feedback">反馈</a>'
     if username:
-        username_display = '<span class="nav-user">🍎 {username}</span>'.format(username=username)
+        username_display += '<span class="nav-user">🍎 {username}</span>'.format(username=username)
         username_display += '<a href="/logout" class="nav-logout">退出登录</a>'
 
     # 准备图表数据JSON
@@ -4969,6 +5060,26 @@ def get_portfolio_page_html(fund_content, fund_map, market_charts=None, chart_da
             color: #f85149;
             text-decoration: none;
             font-weight: 500;
+        }}
+
+        .nav-star {{
+            color: #e3b341;
+            text-decoration: none;
+            font-weight: 500;
+        }}
+
+        .nav-star:hover {{
+            color: #f2c94c;
+        }}
+
+        .nav-feedback {{
+            color: #8b949e;
+            text-decoration: none;
+            font-weight: 500;
+        }}
+
+        .nav-feedback:hover {{
+            color: #58a6ff;
         }}
 
         /* 主容器 */
@@ -5468,9 +5579,10 @@ def get_sectors_page_html(sectors_content, select_fund_content, fund_map, userna
     """生成行业板块基金查询页面"""
     css_style = get_css_style()
 
-    username_display = ''
+    username_display = '<a href="https://github.com/lanZzV/fund" target="_blank" class="nav-star">点个赞</a>'
+    username_display += '<a href="https://github.com/lanZzV/fund/issues" target="_blank" class="nav-feedback">反馈</a>'
     if username:
-        username_display = '<span class="nav-user">🍎 {username}</span>'.format(username=username)
+        username_display += '<span class="nav-user">🍎 {username}</span>'.format(username=username)
         username_display += '<a href="/logout" class="nav-logout">退出登录</a>'
 
     html = '''<!DOCTYPE html>
@@ -5538,6 +5650,26 @@ def get_sectors_page_html(sectors_content, select_fund_content, fund_map, userna
             color: #f85149;
             text-decoration: none;
             font-weight: 500;
+        }}
+
+        .nav-star {{
+            color: #e3b341;
+            text-decoration: none;
+            font-weight: 500;
+        }}
+
+        .nav-star:hover {{
+            color: #f2c94c;
+        }}
+
+        .nav-feedback {{
+            color: #8b949e;
+            text-decoration: none;
+            font-weight: 500;
+        }}
+
+        .nav-feedback:hover {{
+            color: #58a6ff;
         }}
 
         /* 主容器 */

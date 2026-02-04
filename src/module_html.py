@@ -853,7 +853,7 @@ def get_sidebar_navigation_html():
     </button>\n'''
 
     html += '''    <button class="sidebar-toggle" id="sidebarToggle">
-      <span>◀</span>
+      <span>▶</span>
       <span class="toggle-text">展开</span>
     </button>
 '''
@@ -3327,12 +3327,12 @@ def get_javascript_code():
 
             // 更新预估涨跌
             const estGainPct = totalValue > 0 ? (estimatedGain / totalValue * 100) : 0;
-            const estSign = estimatedGain >= 0 ? '+' : '';
+            const estSign = estimatedGain >= 0 ? '+' : '-';
             const estColor = estimatedGain >= 0 ? '#ef4444' : '#10b981';
             const estimatedGainEl = document.getElementById('estimatedGain');
             if (estimatedGainEl) {
                 estimatedGainEl.innerHTML =
-                    `<span style="color: ${estColor}">${estSign}¥${Math.abs(estimatedGain).toLocaleString('zh-CN', {minimumFractionDigits: 2, maximumFractionDigits: 2})} (${estSign}${estGainPct.toFixed(2)}%)</span>`;
+                    `<span class="sensitive-value ${estimatedGain >= 0 ? 'positive' : 'negative'}" style="color: ${estColor}"><span class="real-value">¥${Math.abs(estimatedGain).toLocaleString('zh-CN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span><span class="hidden-value">****</span></span><span id="estimatedGainPct" style="color: ${estColor}"> (${estSign}${estGainPct.toFixed(2)}%)</span>`;
             }
 
             // 更新实际涨跌
@@ -3340,10 +3340,10 @@ def get_javascript_code():
             if (actualGainEl) {
                 if (settledValue > 0) {
                     const actGainPct = (actualGain / settledValue * 100);
-                    const actSign = actualGain >= 0 ? '+' : '';
+                    const actSign = actualGain >= 0 ? '+' : '-';
                     const actColor = actualGain >= 0 ? '#ef4444' : '#10b981';
                     actualGainEl.innerHTML =
-                        `<span style="color: ${actColor}">${actSign}¥${Math.abs(actualGain).toLocaleString('zh-CN', {minimumFractionDigits: 2, maximumFractionDigits: 2})} (${actSign}${actGainPct.toFixed(2)}%)</span>`;
+                        `<span class="sensitive-value ${actualGain >= 0 ? 'positive' : 'negative'}" style="color: ${actColor}"><span class="real-value">¥${Math.abs(actualGain).toLocaleString('zh-CN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span><span class="hidden-value">****</span></span><span id="actualGainPct" style="color: ${actColor}"> (${actSign}${actGainPct.toFixed(2)}%)</span>`;
                 } else {
                     actualGainEl.innerHTML =
                         '<span style="color: var(--text-dim);">净值未更新</span>';
@@ -3366,9 +3366,9 @@ def get_javascript_code():
                                 <td style="padding: 10px; text-align: center; vertical-align: middle; color: var(--text-main);">${fund.name}</td>
                                 <td style="padding: 10px; text-align: center; vertical-align: middle; font-family: var(--font-mono);">${fund.shares.toLocaleString('zh-CN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
                                 <td style="padding: 10px; text-align: center; vertical-align: middle; font-family: var(--font-mono); font-weight: 600;">¥${fund.positionValue.toLocaleString('zh-CN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
-                                <td style="padding: 10px; text-align: center; vertical-align: middle; font-family: var(--font-mono); color: ${estColor}; font-weight: 500;">${estSign}¥${Math.abs(fund.estimatedGain).toLocaleString('zh-CN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+                                <td style="padding: 10px; text-align: center; vertical-align: middle; font-family: var(--font-mono); color: ${estColor}; font-weight: 500;">¥${Math.abs(fund.estimatedGain).toLocaleString('zh-CN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
                                 <td style="padding: 10px; text-align: center; vertical-align: middle; font-family: var(--font-mono); color: ${estColor}; font-weight: 500;">${estSign}${fund.estimatedGainPct.toFixed(2)}%</td>
-                                <td style="padding: 10px; text-align: center; vertical-align: middle; font-family: var(--font-mono); color: ${actColor}; font-weight: 500;">${actSign}¥${Math.abs(fund.actualGain).toLocaleString('zh-CN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+                                <td style="padding: 10px; text-align: center; vertical-align: middle; font-family: var(--font-mono); color: ${actColor}; font-weight: 500;">¥${Math.abs(fund.actualGain).toLocaleString('zh-CN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
                                 <td style="padding: 10px; text-align: center; vertical-align: middle; font-family: var(--font-mono); color: ${actColor}; font-weight: 500;">${actSign}${fund.actualGainPct.toFixed(2)}%</td>
                             </tr>
                         `;
@@ -4020,7 +4020,7 @@ def get_news_page_html(news_content, username=None):
     <div class="main-container">
         <!-- 左侧导航栏 -->
         <div class="sidebar collapsed" id="sidebar">
-            <div class="sidebar-toggle" id="sidebarToggle">◀</div>
+            <div class="sidebar-toggle" id="sidebarToggle">▶</div>
             <a href="/market" class="sidebar-item active">
                 <span class="sidebar-icon">📰</span>
                 <span>7*24快讯</span>
@@ -4363,7 +4363,7 @@ def get_precious_metals_page_html(metals_data, username=None):
     <div class="main-container">
         <!-- 左侧导航栏 -->
         <div class="sidebar collapsed" id="sidebar">
-            <div class="sidebar-toggle" id="sidebarToggle">◀</div>
+            <div class="sidebar-toggle" id="sidebarToggle">▶</div>
             <a href="/market" class="sidebar-item">
                 <span class="sidebar-icon">📰</span>
                 <span>7*24快讯</span>
@@ -4778,7 +4778,7 @@ def get_market_indices_page_html(market_charts=None, chart_data=None, username=N
     <div class="main-container">
         <!-- 左侧导航栏 -->
         <div class="sidebar collapsed" id="sidebar">
-            <div class="sidebar-toggle" id="sidebarToggle">◀</div>
+            <div class="sidebar-toggle" id="sidebarToggle">▶</div>
             <a href="/market" class="sidebar-item">
                 <span class="sidebar-icon">📰</span>
                 <span>市场行情</span>
@@ -5086,7 +5086,7 @@ def get_portfolio_page_html(fund_content, fund_map, market_charts=None, chart_da
     <div class="main-container">
         <!-- 左侧导航栏 -->
         <div class="sidebar collapsed" id="sidebar">
-            <div class="sidebar-toggle" id="sidebarToggle">◀</div>
+            <div class="sidebar-toggle" id="sidebarToggle">▶</div>
             <a href="/market" class="sidebar-item">
                 <span class="sidebar-icon">📰</span>
                 <span>7*24快讯</span>
@@ -5684,7 +5684,7 @@ def get_sectors_page_html(sectors_content, select_fund_content, fund_map, userna
     <div class="main-container">
         <!-- 左侧导航栏 -->
         <div class="sidebar collapsed" id="sidebar">
-            <div class="sidebar-toggle" id="sidebarToggle">◀</div>
+            <div class="sidebar-toggle" id="sidebarToggle">▶</div>
             <a href="/market" class="sidebar-item">
                 <span class="sidebar-icon">📰</span>
                 <span>7*24快讯</span>

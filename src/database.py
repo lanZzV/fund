@@ -99,6 +99,17 @@ class Database:
                            )
                        ''')
 
+        # 检查并添加chart_default字段
+        cursor.execute("PRAGMA table_info(user_funds)")
+        columns = [col[1] for col in cursor.fetchall()]
+        if 'chart_default' not in columns:
+            try:
+                cursor.execute('ALTER TABLE user_funds ADD COLUMN chart_default BOOLEAN DEFAULT 0')
+                logger.debug("Added chart_default column to user_funds table")
+            except Exception as e:
+                if "duplicate column" not in str(e).lower():
+                    logger.warning(f"Failed to add chart_default column: {e}")
+
         conn.commit()
         conn.close()
         logger.debug("Database initialized successfully")
@@ -350,3 +361,75 @@ class Database:
         except Exception as e:
             logger.error(f"Failed to delete fund: {e}")
             return False
+
+    def update_chart_default(self, user_id, fund_code):
+        """设置估值趋势图默认基金
+
+        Args:
+            user_id: 用户ID
+            fund_code: 基金代码
+
+        Returns:
+            bool: 是否成功
+        """
+        try:
+            conn = self.get_connection()
+            cursor = conn.cursor()
+
+            # 先清除该用户的所有chart_default标记
+            cursor.execute('UPDATE user_funds SET chart_default = 0 WHERE user_id = ?', (user_id,))
+
+            # 设置新的默认基金
+            cursor.execute('''
+                           UPDATE user_funds
+                           SET chart_default = 1
+                           WHERE user_id = ?
+                             AND fund_code = ?
+                           ''', (user_id, fund_code))
+
+            conn.commit()
+            affected_rows = cursor.rowcount
+            conn.close()
+
+            if affected_rows > 0:
+                logger.debug(f"Set chart default fund for user {user_id}: {fund_code}")
+                return True
+            else:
+                logger.warning(f"No fund found to set as default: user {user_id}, fund {fund_code}")
+                return False
+
+        except Exception as e:
+            logger.error(f"Failed to update chart default: {e}")
+            return False
+
+    def get_chart_default_fund(self, user_id):
+        """获取估值趋势图默认基金
+
+        Args:
+            user_id: 用户ID
+
+        Returns:
+            dict or None: {'fund_code': str, 'fund_key': str, 'fund_name': str}
+        """
+        try:
+            conn = self.get_connection()
+            cursor = conn.cursor()
+            cursor.execute('''
+                           SELECT fund_code, fund_key, fund_name
+                           FROM user_funds
+                           WHERE user_id = ? AND chart_default = 1
+                           ''', (user_id,))
+            row = cursor.fetchone()
+            conn.close()
+
+            if row:
+                return {
+                    'fund_code': row['fund_code'],
+                    'fund_key': row['fund_key'],
+                    'fund_name': row['fund_name']
+                }
+            return None
+
+        except Exception as e:
+            logger.error(f"Failed to get chart default fund for user {user_id}: {e}")
+            return None

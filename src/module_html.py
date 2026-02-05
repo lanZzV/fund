@@ -4921,8 +4921,8 @@ def get_precious_metals_page_html(metals_data, username=None):
     return html
 
 
-def get_market_indices_page_html(market_charts=None, chart_data=None, username=None):
-    """生成市场指数页面 - 全球指数和成交量趋势"""
+def get_market_indices_page_html(market_charts=None, chart_data=None, timing_data=None, username=None):
+    """生成市场指数页面 - 上证分时、全球指数和成交量趋势"""
     css_style = get_css_style()
     import json
 
@@ -4936,6 +4936,9 @@ def get_market_indices_page_html(market_charts=None, chart_data=None, username=N
     indices_data_json = json.dumps(chart_data.get('indices', {'labels': [], 'prices': [], 'changes': []}) if chart_data else {'labels': [], 'prices': [], 'changes': []})
     volume_data_json = json.dumps(chart_data.get('volume', {'labels': [], 'total': [], 'sh': [], 'sz': [], 'bj': []}) if chart_data else {'labels': [], 'total': [], 'sh': [], 'sz': [], 'bj': []})
 
+    # 准备上证分时数据JSON
+    timing_data_json = json.dumps(timing_data if timing_data else {'labels': [], 'prices': [], 'change_pcts': [], 'change_amounts': [], 'volumes': [], 'amounts': []})
+
     # 生成市场指数HTML - 两行布局
     market_content = '''
         <!-- 市场指数区域 -->
@@ -4947,7 +4950,19 @@ def get_market_indices_page_html(market_charts=None, chart_data=None, username=N
                 </h1>
             </div>
 
-            <!-- 第一行：全球指数和成交量趋势 -->
+            <!-- 第一行：上证分时（全宽） -->
+            <div class="timing-chart-row" style="margin-bottom: 20px;">
+                <div class="chart-card" style="background-color: var(--card-bg); border: 1px solid var(--border); border-radius: 8px; overflow: hidden;">
+                    <div class="chart-card-header" style="padding: 12px 15px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center;">
+                        <h3 id="timingChartTitle" style="margin: 0; font-size: 1rem; color: var(--text-main);">📉 上证分时</h3>
+                    </div>
+                    <div class="chart-card-content" style="padding: 15px; height: 350px;">
+                        <canvas id="timingChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 第二行：全球指数和成交量趋势 -->
             <div class="market-charts-grid">
                 <!-- 全球指数 - 表格 -->
                 <div class="chart-card" style="background-color: var(--card-bg); border: 1px solid var(--border); border-radius: 8px; overflow: hidden;">
@@ -4983,6 +4998,7 @@ def get_market_indices_page_html(market_charts=None, chart_data=None, username=N
     <link rel="icon" href="/static/1.ico">
     {css_style}
     <link rel="stylesheet" href="/static/css/style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <style>
         body {{
             background-color: var(--terminal-bg);
@@ -5145,6 +5161,10 @@ def get_market_indices_page_html(market_charts=None, chart_data=None, username=N
                 border-top: 1px solid var(--border);
                 margin-top: 0.5rem;
             }}
+
+            .timing-chart-row .chart-card-content {{
+                height: 250px;
+            }}
         }}
     </style>
 </head>
@@ -5205,6 +5225,9 @@ def get_market_indices_page_html(market_charts=None, chart_data=None, username=N
     <script src="/static/js/main.js"></script>
     <script src="/static/js/sidebar-nav.js"></script>
     <script>
+        // 上证分时数据
+        const timingData = {timing_data_json};
+
         document.addEventListener('DOMContentLoaded', function() {{
             // 歌词轮播
             const lyrics = [
@@ -5258,18 +5281,174 @@ def get_market_indices_page_html(market_charts=None, chart_data=None, username=N
                     }}
                 }}
             }});
+
+            // 初始化上证分时图表
+            initTimingChart();
         }});
+
+        // 上证分时图表 - 使用API返回的实际涨跌幅
+        function initTimingChart() {{
+            const ctx = document.getElementById('timingChart');
+            if (!ctx || timingData.labels.length === 0) return;
+
+            // 使用API返回的实际数据（已经处理好的）
+            const changePercentages = timingData.change_pcts || [];
+            const changeAmounts = timingData.change_amounts || [];  // 原始涨跌额数据
+            const basePrice = timingData.prices[0];
+            const lastPrice = timingData.prices[timingData.prices.length - 1];
+
+            // 使用最后一个实际涨跌幅值
+            const lastPct = changePercentages.length > 0 ? changePercentages[changePercentages.length - 1] : 0;
+            const titleColor = lastPct >= 0 ? '#f44336' : '#4caf50';
+
+            // 更新标题颜色 - 现在主要显示实际涨跌幅
+            const titleElement = document.getElementById('timingChartTitle');
+            if (titleElement) {{
+                titleElement.style.color = titleColor;
+                titleElement.innerHTML = '📉 上证分时 <span style="font-size:0.9em;">' +
+                    (lastPct >= 0 ? '+' : '') + lastPct.toFixed(2) + '% (' + lastPrice.toFixed(2) + ')</span>';
+            }}
+
+            // 保存图表实例到全局变量，方便后续更新
+            window.timingChartInstance = new Chart(ctx, {{
+                type: 'line',
+                data: {{
+                    labels: timingData.labels,
+                    datasets: [{{
+                        label: '涨跌幅 (%)',
+                        data: changePercentages,
+                        borderColor: function(context) {{
+                            // 动态返回颜色：>0% 红色，<0% 绿色，=0% 灰色
+                            const index = context.dataIndex;
+                            if (index === undefined || index < 0) return '#9ca3af';
+                            const pct = changePercentages[index];
+                            return pct > 0 ? '#f44336' : (pct < 0 ? '#4caf50' : '#9ca3af');
+                        }},
+                        segment: {{
+                            borderColor: function(context) {{
+                                // 根据线段的结束点判断颜色
+                                const pct = changePercentages[context.p1DataIndex];
+                                return pct > 0 ? '#f44336' : (pct < 0 ? '#4caf50' : '#9ca3af');
+                            }}
+                        }},
+                        backgroundColor: function(context) {{
+                            const chart = context.chart;
+                            const {{ctx, chartArea}} = chart;
+                            if (!chartArea) return null;
+                            // 根据当前最新涨跌幅判断整体涨跌来设置背景色
+                            const lastPct = changePercentages[changePercentages.length - 1];
+                            const color = lastPct >= 0 ? '244, 67, 54' : '76, 175, 80';
+                            const gradient = ctx.createLinearGradient(0, chartArea.top, 0, chartArea.bottom);
+                            gradient.addColorStop(0, 'rgba(' + color + ', 0.2)');
+                            gradient.addColorStop(1, 'rgba(' + color + ', 0.0)');
+                            return gradient;
+                        }},
+                        fill: true,
+                        tension: 0.4,
+                        pointRadius: 0,
+                        pointHoverRadius: 4,
+                        borderWidth: 2
+                    }}]
+                }},
+                options: {{
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: {{
+                        mode: 'index',
+                        intersect: false,
+                    }},
+                    plugins: {{
+                        legend: {{
+                            display: true,
+                            position: 'top',
+                            labels: {{
+                                font: {{ size: 11 }},
+                                boxWidth: 12,
+                                generateLabels: function(chart) {{
+                                    const lastPct = changePercentages[changePercentages.length - 1];
+                                    const color = lastPct >= 0 ? '#ff4d4f' : '#52c41a';
+                                    return [{{
+                                        text: '涨跌幅: ' + (lastPct >= 0 ? '+' : '') + lastPct.toFixed(2) + '% (' + lastPrice.toFixed(2) + ')',
+                                        fillStyle: color,
+                                        strokeStyle: color,
+                                        fontColor: color,
+                                        lineWidth: 2,
+                                        hidden: false,
+                                        index: 0
+                                    }}];
+                                }}
+                            }}
+                        }},
+                        tooltip: {{
+                            callbacks: {{
+                                title: function(context) {{
+                                    return '时间: ' + context[0].label;
+                                }},
+                                label: function(context) {{
+                                    const index = context.dataIndex;
+                                    const pct = changePercentages[index];
+                                    const price = timingData.prices[index];
+                                    const changeAmt = changeAmounts[index];  // 使用原始涨跌额数据
+                                    const volume = timingData.volumes ? timingData.volumes[index] : 0;
+                                    const amount = timingData.amounts ? timingData.amounts[index] : 0;
+                                    return [
+                                        '涨跌幅: ' + (pct >= 0 ? '+' : '') + pct.toFixed(2) + '%',
+                                        '上证指数: ' + price.toFixed(2),
+                                        '涨跌额: ' + (changeAmt >= 0 ? '+' : '') + changeAmt.toFixed(2),
+                                        '成交量: ' + volume.toFixed(0) + '万手',
+                                        '成交额: ' + amount.toFixed(2) + '亿'
+                                    ];
+                                }}
+                            }}
+                        }},
+                        datalabels: {{
+                            display: false
+                        }}
+                    }},
+                    scales: {{
+                        x: {{
+                            ticks: {{
+                                color: '#9ca3af',
+                                font: {{ size: 10 }},
+                                maxTicksLimit: 6
+                            }},
+                            grid: {{
+                                color: 'rgba(255, 255, 255, 0.1)'
+                            }}
+                        }},
+                        y: {{
+                            title: {{
+                                display: true,
+                                text: '涨跌幅 (%)',
+                                color: '#9ca3af',
+                                font: {{ size: 11 }}
+                            }},
+                            ticks: {{
+                                color: '#9ca3af',
+                                callback: function(value) {{
+                                    return (value >= 0 ? '+' : '') + value.toFixed(2) + '%';
+                                }}
+                            }},
+                            grid: {{
+                                color: 'rgba(255, 255, 255, 0.1)'
+                            }}
+                        }}
+                    }}
+                }}
+            }});
+        }}
     </script>
 </body>
 </html>'''.format(
         css_style=css_style,
         username_display=username_display,
-        market_content=market_content
+        market_content=market_content,
+        timing_data_json=timing_data_json
     )
     return html
 
 
-def get_portfolio_page_html(fund_content, fund_map, market_charts=None, chart_data=None, username=None):
+def get_portfolio_page_html(fund_content, fund_map, fund_chart_data=None, fund_chart_info=None, username=None):
     """生成持仓基金页面"""
     css_style = get_css_style()
     import json
@@ -5280,24 +5459,9 @@ def get_portfolio_page_html(fund_content, fund_map, market_charts=None, chart_da
         username_display += '<span class="nav-user">🍎 {username}</span>'.format(username=username)
         username_display += '<a href="/logout" class="nav-logout">退出登录</a>'
 
-    # 准备图表数据JSON
-    timing_data_json = json.dumps(chart_data.get('timing', {'labels': [], 'prices': [], 'volumes': []}) if chart_data else {'labels': [], 'prices': [], 'volumes': []})
-
-    # 生成市场图表HTML - 只保留上证分时
-    market_charts_html = '''
-        <!-- 市场指数区域 -->
-        <div class="market-charts-section" style="margin-bottom: 30px;">
-            <!-- 上证分时 - 单独一行，使用Chart.js -->
-            <div class="chart-card" style="background-color: var(--card-bg); border: 1px solid var(--border); border-radius: 8px; overflow: hidden;">
-                <div class="chart-card-header" style="padding: 12px 15px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center;">
-                    <h3 id="timingChartTitle" style="margin: 0; font-size: 1rem; color: var(--text-main);">📉 上证分时</h3>
-                </div>
-                <div class="chart-card-content" style="padding: 15px; height: 300px;">
-                    <canvas id="timingChart"></canvas>
-                </div>
-            </div>
-        </div>
-    '''
+    # 准备估值趋势图数据JSON
+    fund_chart_data_json = json.dumps(fund_chart_data if fund_chart_data else {'labels': [], 'growth': [], 'net_values': []})
+    fund_chart_info_json = json.dumps(fund_chart_info if fund_chart_info else {})
 
     html = '''<!DOCTYPE html>
 <html lang="zh-CN">
@@ -5521,6 +5685,78 @@ def get_portfolio_page_html(fund_content, fund_map, market_charts=None, chart_da
                 grid-template-columns: repeat(2, 1fr);
             }}
         }}
+
+        /* 基金选择器容器 */
+        .fund-selector-wrapper {{
+            position: relative;
+            display: flex;
+            align-items: center;
+            flex: 1;
+            min-width: 200px;
+            max-width: 500px;
+        }}
+
+        /* 输入框样式 - 隐藏原生箭头 */
+        #fundSelector {{
+            flex: 1;
+            width: 100%;
+            min-width: 150px;
+            padding: 6px 32px 6px 12px;
+            background: var(--card-bg);
+            color: var(--text-main);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            font-size: 14px;
+            line-height: 1.5;
+            /* 隐藏原生datalist箭头 */
+            appearance: none;
+            -webkit-appearance: none;
+            -moz-appearance: none;
+        }}
+
+        /* 隐藏Webkit浏览器的下拉按钮 */
+        #fundSelector::-webkit-calendar-picker-indicator {{
+            opacity: 0;
+            display: none;
+        }}
+
+        /* 输入框焦点样式 */
+        #fundSelector:focus {{
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+        }}
+
+        /* 清除按钮 */
+        .input-clear-btn {{
+            position: absolute;
+            right: 8px;
+            top: 50%;
+            transform: translateY(-50%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background-color: #9ca3af;
+            color: #fff !important;
+            font-size: 10px !important;
+            font-weight: bold;
+            cursor: pointer;
+            opacity: 0;
+            transition: opacity 0.2s ease, background-color 0.2s ease;
+            z-index: 2;
+        }}
+
+        /* 有内容且hover时显示清除按钮 */
+        .fund-selector-wrapper.has-value:hover .input-clear-btn {{
+            opacity: 1;
+        }}
+
+        .input-clear-btn:hover {{
+            background-color: #6b7280;
+        }}
     </style>
 </head>
 <body>
@@ -5623,8 +5859,24 @@ def get_portfolio_page_html(fund_content, fund_map, market_charts=None, chart_da
                 </p>
             </div>
 
-            <!-- 市场图表 (上证分时) -->
-            {market_charts_html}
+            <!-- 基金估值趋势图 -->
+            <div id="fundChartContainer" class="chart-card" style="background-color: var(--card-bg); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; margin-bottom: 20px;">
+                <div class="chart-card-header" style="padding: 12px 15px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center;">
+                    <div style="display: flex; align-items: center; gap: 15px; flex-wrap: wrap;">
+                        <h3 id="fundChartTitle" style="margin: 0; font-size: 1rem; color: var(--text-main); flex-shrink: 0;">📈 基金估值</h3>
+                        <div class="fund-selector-wrapper" id="fundSelectorWrapper" style="flex: 1; min-width: 280px; max-width: 100%;">
+                            <input type="text" id="fundSelector" list="fundList" placeholder="选择或搜索基金代码/名称..." autocomplete="off">
+                            <span id="fundSelectorClear" class="input-clear-btn">✕</span>
+                            <datalist id="fundList">
+                                <!-- 动态填充基金选项 -->
+                            </datalist>
+                        </div>
+                    </div>
+                </div>
+                <div class="chart-card-content" style="padding: 15px; height: 300px;">
+                    <canvas id="fundChart"></canvas>
+                </div>
+            </div>
 
             <!-- 基金内容 -->
             <div class="fund-content">
@@ -5693,9 +5945,6 @@ def get_portfolio_page_html(fund_content, fund_map, market_charts=None, chart_da
 
     <script src="/static/js/main.js"></script>
     <script>
-        // 上证分时数据
-        const timingData = {timing_data_json};
-
         document.addEventListener('DOMContentLoaded', function() {{
             // 自动颜色化
             const cells = document.querySelectorAll('.style-table td');
@@ -5750,52 +5999,137 @@ def get_portfolio_page_html(fund_content, fund_map, market_charts=None, chart_da
                 }}, 10000);
             }}
 
-            // 初始化上证分时图表
-            initTimingChart();
+            // 初始化基金估值趋势图
+            initFundChartSelector();
+            initFundChart();
         }});
 
-                        // 上证分时图表 - 使用API返回的实际涨跌幅
-        function initTimingChart() {{
-            const ctx = document.getElementById('timingChart');
-            if (!ctx || timingData.labels.length === 0) return;
+        // 基金估值趋势数据和选择器
+        let fundChartData = {fund_chart_data_json};
+        let fundChartInfo = {fund_chart_info_json};
 
-            // 使用API返回的实际数据（已经处理好的）
-            const changePercentages = timingData.change_pcts || [];
-            const changeAmounts = timingData.change_amounts || [];  // 原始涨跌额数据
-            const basePrice = timingData.prices[0];
-            const lastPrice = timingData.prices[timingData.prices.length - 1];
+        function initFundChartSelector() {{
+            const selector = document.getElementById('fundSelector');
+            const datalist = document.getElementById('fundList');
 
-            // 使用最后一个实际涨跌幅值
-            const lastPct = changePercentages.length > 0 ? changePercentages[changePercentages.length - 1] : 0;
-            const titleColor = lastPct >= 0 ? '#f44336' : '#4caf50';
-
-            // 更新标题颜色 - 现在主要显示实际涨跌幅
-            const titleElement = document.getElementById('timingChartTitle');
-            if (titleElement) {{
-                titleElement.style.color = titleColor;
-                titleElement.innerHTML = '📉 上证分时 <span style="font-size:0.9em;">' +
-                    (lastPct >= 0 ? '+' : '') + lastPct.toFixed(2) + '% (' + lastPrice.toFixed(2) + ')</span>';
+            if (!selector || !datalist || !fundChartInfo || Object.keys(fundChartInfo).length === 0) {{
+                // 如果没有基金数据，隐藏图表容器
+                const container = document.getElementById('fundChartContainer');
+                if (container) {{
+                    container.style.display = 'none';
+                }}
+                return;
             }}
 
-            // 保存图表实例到全局变量，方便后续更新
-            window.timingChartInstance = new Chart(ctx, {{
+            // 填充datalist选项，value使用"code - name"格式
+            Object.entries(fundChartInfo).forEach(([code, info]) => {{
+                const option = document.createElement('option');
+                option.value = `${{code}} - ${{info.name}}`;
+                // 同时保存code作为data属性，方便解析
+                option.dataset.code = code;
+                datalist.appendChild(option);
+
+                // 设置默认值
+                if (info.is_default) {{
+                    selector.value = `${{code}} - ${{info.name}}`;
+                }}
+            }});
+
+            // 从输入值中提取基金代码
+            const extractFundCode = (input) => {{
+                const trimmed = input.trim();
+                // 如果直接是基金代码（6位数字）
+                if (/^\d{{6}}$/.test(trimmed)) {{
+                    return trimmed;
+                }}
+                // 如果是"code - name"格式，提取code部分
+                const match = trimmed.match(/^(\d{{6}})\s*-\s*/);
+                if (match) {{
+                    return match[1];
+                }}
+                return null;
+            }};
+
+            // 监听选择变化（用户从下拉列表选择或输入有效代码后按回车/失焦时触发）
+            selector.addEventListener('change', function() {{
+                const fundCode = extractFundCode(this.value);
+                // 检查输入的是有效的基金代码
+                if (fundCode && fundChartInfo[fundCode]) {{
+                    // 更新输入框显示为完整格式
+                    const info = fundChartInfo[fundCode];
+                    this.value = `${{fundCode}} - ${{info.name}}`;
+                    loadFundChartData(fundCode);
+                }}
+            }});
+
+            // 清空按钮功能
+            const clearBtn = document.getElementById('fundSelectorClear');
+            const wrapper = document.getElementById('fundSelectorWrapper');
+            if (clearBtn && wrapper) {{
+                // 监听输入，控制清空按钮显示/隐藏
+                const updateClearButtonVisibility = () => {{
+                    if (selector.value.trim()) {{
+                        wrapper.classList.add('has-value');
+                    }} else {{
+                        wrapper.classList.remove('has-value');
+                    }}
+                }};
+
+                clearBtn.addEventListener('click', function(e) {{
+                    e.preventDefault();
+                    e.stopPropagation();
+                    selector.value = '';
+                    selector.focus();
+                    updateClearButtonVisibility();
+                    // 触发input事件以便其他监听器知道值已清空
+                    selector.dispatchEvent(new Event('input', {{ bubbles: true }}));
+                }});
+
+                selector.addEventListener('input', updateClearButtonVisibility);
+                selector.addEventListener('change', updateClearButtonVisibility);
+
+                // 初始化时检查
+                updateClearButtonVisibility();
+            }}
+
+        }}
+
+        function initFundChart() {{
+            if (!fundChartData.labels || fundChartData.labels.length === 0) {{
+                return;
+            }}
+
+            const ctx = document.getElementById('fundChart');
+            if (!ctx) return;
+
+            const growthData = fundChartData.growth || [];
+            const netValues = fundChartData.net_values || [];
+            const lastGrowth = growthData.length > 0 ? growthData[growthData.length - 1] : 0;
+            const lastNetValue = netValues.length > 0 ? netValues[netValues.length - 1] : 0;
+
+            // 更新标题
+            const titleEl = document.getElementById('fundChartTitle');
+            if (titleEl) {{
+                const color = lastGrowth > 0 ? '#f44336' : (lastGrowth < 0 ? '#4caf50' : '#9ca3af');
+                titleEl.innerHTML = `📈 基金估值`;
+            }}
+
+            window.fundChartInstance = new Chart(ctx, {{
                 type: 'line',
                 data: {{
-                    labels: timingData.labels,
+                    labels: fundChartData.labels,
                     datasets: [{{
-                        label: '涨跌幅 (%)',
-                        data: changePercentages,
+                        label: '涨幅 (%)',
+                        data: growthData,
                         borderColor: function(context) {{
-                            // 动态返回颜色：>0% 红色，<0% 绿色，=0% 灰色
                             const index = context.dataIndex;
                             if (index === undefined || index < 0) return '#9ca3af';
-                            const pct = changePercentages[index];
+                            const pct = growthData[index];
                             return pct > 0 ? '#f44336' : (pct < 0 ? '#4caf50' : '#9ca3af');
                         }},
                         segment: {{
                             borderColor: function(context) {{
-                                // 根据线段的结束点判断颜色
-                                const pct = changePercentages[context.p1DataIndex];
+                                const pct = growthData[context.p1DataIndex];
                                 return pct > 0 ? '#f44336' : (pct < 0 ? '#4caf50' : '#9ca3af');
                             }}
                         }},
@@ -5803,8 +6137,7 @@ def get_portfolio_page_html(fund_content, fund_map, market_charts=None, chart_da
                             const chart = context.chart;
                             const {{ctx, chartArea}} = chart;
                             if (!chartArea) return null;
-                            // 根据当前最新涨跌幅判断整体涨跌来设置背景色
-                            const lastPct = changePercentages[changePercentages.length - 1];
+                            const lastPct = growthData[growthData.length - 1];
                             const color = lastPct >= 0 ? '244, 67, 54' : '76, 175, 80';
                             const gradient = ctx.createLinearGradient(0, chartArea.top, 0, chartArea.bottom);
                             gradient.addColorStop(0, 'rgba(' + color + ', 0.2)');
@@ -5833,10 +6166,10 @@ def get_portfolio_page_html(fund_content, fund_map, market_charts=None, chart_da
                                 font: {{ size: 11 }},
                                 boxWidth: 12,
                                 generateLabels: function(chart) {{
-                                    const lastPct = changePercentages[changePercentages.length - 1];
+                                    const lastPct = growthData[growthData.length - 1];
                                     const color = lastPct >= 0 ? '#ff4d4f' : '#52c41a';
                                     return [{{
-                                        text: '涨跌幅: ' + (lastPct >= 0 ? '+' : '') + lastPct.toFixed(2) + '% (' + lastPrice.toFixed(2) + ')',
+                                        text: '涨幅: ' + (lastPct >= 0 ? '+' : '') + lastPct.toFixed(2) + '% | 净值: ' + lastNetValue.toFixed(4),
                                         fillStyle: color,
                                         strokeStyle: color,
                                         fontColor: color,
@@ -5854,23 +6187,15 @@ def get_portfolio_page_html(fund_content, fund_map, market_charts=None, chart_da
                                 }},
                                 label: function(context) {{
                                     const index = context.dataIndex;
-                                    const pct = changePercentages[index];
-                                    const price = timingData.prices[index];
-                                    const changeAmt = changeAmounts[index];  // 使用原始涨跌额数据
-                                    const volume = timingData.volumes ? timingData.volumes[index] : 0;
-                                    const amount = timingData.amounts ? timingData.amounts[index] : 0;
+                                    const growth = growthData[index];
+                                    const netValue = netValues[index];
+                                    const color = growth > 0 ? '#f44336' : (growth < 0 ? '#4caf50' : '#9ca3af');
                                     return [
-                                        '涨跌幅: ' + (pct >= 0 ? '+' : '') + pct.toFixed(2) + '%',
-                                        '上证指数: ' + price.toFixed(2),
-                                        '涨跌额: ' + (changeAmt >= 0 ? '+' : '') + changeAmt.toFixed(2),
-                                        '成交量: ' + volume.toFixed(0) + '万手',
-                                        '成交额: ' + amount.toFixed(2) + '亿'
+                                        '涨幅: ' + (growth >= 0 ? '+' : '') + growth.toFixed(2) + '%',
+                                        '净值: ' + netValue.toFixed(4)
                                     ];
                                 }}
                             }}
-                        }},
-                        datalabels: {{
-                            display: false
                         }}
                     }},
                     scales: {{
@@ -5887,7 +6212,7 @@ def get_portfolio_page_html(fund_content, fund_map, market_charts=None, chart_da
                         y: {{
                             title: {{
                                 display: true,
-                                text: '涨跌幅 (%)',
+                                text: '涨幅 (%)',
                                 color: '#9ca3af',
                                 font: {{ size: 11 }}
                             }},
@@ -5905,9 +6230,35 @@ def get_portfolio_page_html(fund_content, fund_map, market_charts=None, chart_da
                 }}
             }});
         }}
+
+        async function loadFundChartData(fundCode) {{
+            try {{
+                const response = await fetch('/api/fund/chart-data?code=' + fundCode);
+                const data = await response.json();
+
+                // 更新全局数据
+                fundChartData = data.chart_data;
+
+                // 重新渲染图表
+                const canvas = document.getElementById('fundChart');
+                if (window.fundChartInstance) {{
+                    window.fundChartInstance.destroy();
+                }}
+                initFundChart();
+
+                // 保存用户偏好
+                await fetch('/api/fund/chart-default', {{
+                    method: 'POST',
+                    headers: {{ 'Content-Type': 'application/json' }},
+                    body: JSON.stringify({{ fund_code: fundCode }})
+                }});
+            }} catch (error) {{
+                console.error('Failed to load fund chart data:', error);
+            }}
+        }}
     </script>
 </body>
-</html>'''.format(css_style=css_style, username_display=username_display, market_charts_html=market_charts_html, fund_content=fund_content, timing_data_json=timing_data_json)
+</html>'''.format(css_style=css_style, username_display=username_display, fund_content=fund_content, fund_chart_data_json=fund_chart_data_json, fund_chart_info_json=fund_chart_info_json)
     return html
 
 

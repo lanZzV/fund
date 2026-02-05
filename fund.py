@@ -474,6 +474,87 @@ class LanFund:
             except Exception as e:
                 logger.error(f"查询基金代码【{fund}】失败: {e}")
 
+    def get_fund_today_data(self, fund, fund_data):
+        fund_key = fund_data["fund_key"]
+        fund_name = fund_data["fund_name"]
+
+        headers = {
+            "Accept-Language": "zh-CN,zh;q=0.9",
+            "Connection": "keep-alive",
+            "Content-Type": "application/json",
+            "Origin": "https://www.fund123.cn",
+            "Referer": "https://www.fund123.cn/fund",
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36",
+            "X-API-Key": "foobar",
+            "accept": "json"
+        }
+
+        url = "https://www.fund123.cn/api/fund/queryFundEstimateIntraday"
+        params = {
+            "_csrf": self._csrf
+        }
+        today = datetime.datetime.now().strftime("%Y-%m-%d")
+        tomorrow = (datetime.datetime.now() + datetime.timedelta(days=1)).strftime("%Y-%m-%d")
+        data = {
+            "startTime": today,
+            "endTime": tomorrow,
+            "limit": 200,
+            "productId": fund_key,
+            "format": True,
+            "source": "WEALTHBFFWEB"
+        }
+        response = self.session.post(url, headers=headers, params=params, json=data, timeout=10, verify=False)
+        if response.json()["success"]:
+            if not response.json()["list"]:
+                return []
+            else:
+                results = []
+                for fund_info in response.json()["list"]:
+                    now_time = datetime.datetime.fromtimestamp(fund_info["time"] / 1000).strftime(
+                        "%H:%M"
+                    )
+                    forecastGrowth = str(round(float(fund_info["forecastGrowth"]) * 100, 2)) + "%"
+                    forecastNetValue = str(round(float(fund_info["forecastNetValue"]), 4))
+                    results.append({
+                        "fund_name": fund_name,
+                        "fund_code": fund,
+                        "now_time": now_time,
+                        "forecastGrowth": forecastGrowth,
+                        "forecastNetValue": forecastNetValue
+                    })
+                return results
+        else:
+            logger.error(f"查询基金代码【{fund}】失败: {response.text.strip()}")
+        return []
+
+    def get_fund_chart_data(self, fund_code, fund_data):
+        """获取基金估值趋势图数据
+
+        Args:
+            fund_code: 基金代码
+            fund_data: 基金数据字典，包含fund_key和fund_name
+
+        Returns:
+            dict: {
+                'labels': ['09:30', '09:45', ...],  # 时间标签
+                'growth': [1.2, 1.5, ...],           # 涨幅数值
+                'net_values': [1.2345, 1.2360, ...] # 净值数值
+            }
+        """
+        raw_data = self.get_fund_today_data(fund_code, fund_data)
+        if not raw_data:
+            return {
+                'labels': [],
+                'growth': [],
+                'net_values': []
+            }
+
+        return {
+            'labels': [point['now_time'] for point in raw_data],
+            'growth': [float(point['forecastGrowth'].replace('%', '')) for point in raw_data],
+            'net_values': [float(point['forecastNetValue']) for point in raw_data]
+        }
+
     def search_code(self, is_return=False):
         self.result = []
         threads = []
@@ -559,7 +640,8 @@ class LanFund:
                         ])
 
                     for line_msg in format_table_msg([
-                        ["基金代码", "基金名称", "持仓份额", "持仓市值", "预估收益", "预估涨跌", "实际收益", "实际涨跌"],
+                        ["基金代码", "基金名称", "持仓份额", "持仓市值", "预估收益", "预估涨跌", "实际收益",
+                         "实际涨跌"],
                         *table_data
                     ]).split("\n"):
                         logger.info(line_msg)
@@ -1858,4 +1940,4 @@ if __name__ == '__main__':
     # 只有指定了 -o 参数时才传入 report_dir，否则传入 None 表示不保存报告
     report_dir = args.output if args.output is not None else None
     lan_fund.run(args.add, args.delete, args.hold, args.not_hold, report_dir, args.deep, args.fast, args.with_ai,
-                  args.select, args.mark_sector, args.unmark_sector, args.modify_shares)
+                 args.select, args.mark_sector, args.unmark_sector, args.modify_shares)

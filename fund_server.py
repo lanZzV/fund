@@ -828,10 +828,20 @@ def get_market_indices():
         market_charts['volume'] = f"<p style='color:#f44336;'>加载失败: {str(e)}</p>"
         chart_data['volume'] = {'labels': [], 'total': [], 'sh': [], 'sz': [], 'bj': []}
 
+    # 加载上证分时数据
+    try:
+        market_charts['timing'] = my_fund.A_html()
+        chart_data['timing'] = my_fund.get_timing_chart_data()
+        logger.debug("✓ 上证分时")
+    except Exception as e:
+        market_charts['timing'] = f"<p style='color:#f44336;'>加载失败: {str(e)}</p>"
+        chart_data['timing'] = {'labels': [], 'prices': [], 'change_pcts': [], 'change_amounts': [], 'volumes': [], 'amounts': []}
+
     from src.module_html import get_market_indices_page_html
     html = get_market_indices_page_html(
         market_charts=market_charts,
         chart_data=chart_data,
+        timing_data=chart_data.get('timing'),
         username=get_current_username()
     )
     return html
@@ -861,26 +871,110 @@ def get_portfolio():
     except Exception as e:
         fund_content = f"<p style='color:#f44336;'>数据加载失败: {str(e)}</p>"
 
-    # 加载上证分时数据
-    market_charts = {}
-    chart_data = {}
-    try:
-        market_charts['timing'] = my_fund.A_html()
-        chart_data['timing'] = my_fund.get_timing_chart_data()
-        logger.debug("✓ 上证分时")
-    except Exception as e:
-        market_charts['timing'] = f"<p style='color:#f44336;'>加载失败: {str(e)}</p>"
-        chart_data['timing'] = {'labels': [], 'prices': [], 'volumes': []}
+    # 获取用户基金列表
+    user_funds = db.get_user_funds(user_id)
+
+    # 确定默认显示的基金
+    default_fund = None
+    fund_chart_data = None
+    fund_chart_info = {}
+
+    if user_funds:
+        # 1. 检查是否有用户设置的默认基金
+        saved_default = db.get_chart_default_fund(user_id)
+        if saved_default and saved_default['fund_code'] in user_funds:
+            default_fund = saved_default
+        # 2. 选择有持仓的基金（预估收益最高的）
+        else:
+            held_funds = {code: data for code, data in user_funds.items() if data.get('shares', 0) > 0}
+            if held_funds:
+                # 简化处理：选择第一个有持仓的基金
+                first_code = list(held_funds.keys())[0]
+                default_fund = {
+                    'fund_code': first_code,
+                    'fund_key': held_funds[first_code]['fund_key'],
+                    'fund_name': held_funds[first_code]['fund_name']
+                }
+            # 3. 选择自选列表第一个
+            else:
+                first_code = list(user_funds.keys())[0]
+                default_fund = {
+                    'fund_code': first_code,
+                    'fund_key': user_funds[first_code]['fund_key'],
+                    'fund_name': user_funds[first_code]['fund_name']
+                }
+
+        # 加载图表数据
+        if default_fund:
+            fund_chart_data = my_fund.get_fund_chart_data(default_fund['fund_code'], default_fund)
+
+        # 准备基金选择器信息
+        for code, data in user_funds.items():
+            fund_chart_info[code] = {
+                'name': data['fund_name'],
+                'is_default': (default_fund and code == default_fund['fund_code'])
+            }
 
     from src.module_html import get_portfolio_page_html
     html = get_portfolio_page_html(
         fund_content=fund_content,
         fund_map=my_fund.CACHE_MAP,
-        market_charts=market_charts,
-        chart_data=chart_data,
+        fund_chart_data=fund_chart_data,
+        fund_chart_info=fund_chart_info,
         username=get_current_username()
     )
     return html
+
+
+@app.route('/api/fund/chart-data')
+@login_required
+def api_fund_chart_data():
+    """获取基金估值趋势图数据"""
+    fund_code = request.args.get('code')
+    if not fund_code:
+        return jsonify({'error': 'Missing fund code'}), 400
+
+    user_id = get_current_user_id()
+    user_funds = db.get_user_funds(user_id)
+
+    if fund_code not in user_funds:
+        return jsonify({'error': 'Fund not in user list'}), 400
+
+    fund_data = {
+        'fund_key': user_funds[fund_code]['fund_key'],
+        'fund_name': user_funds[fund_code]['fund_name']
+    }
+
+    importlib.reload(fund)
+    my_fund = fund.LanFund(user_id=user_id, db=db)
+    chart_data = my_fund.get_fund_chart_data(fund_code, fund_data)
+
+    return jsonify({
+        'chart_data': chart_data,
+        'fund_info': {
+            'code': fund_code,
+            'name': fund_data['fund_name']
+        }
+    })
+
+
+@app.route('/api/fund/chart-default', methods=['POST'])
+@login_required
+def api_fund_chart_default():
+    """设置估值趋势图默认基金"""
+    data = request.json
+    fund_code = data.get('fund_code')
+    if not fund_code:
+        return jsonify({'error': 'Missing fund code'}), 400
+
+    user_id = get_current_user_id()
+    user_funds = db.get_user_funds(user_id)
+
+    if fund_code not in user_funds:
+        return jsonify({'error': 'Fund not in user list'}), 400
+
+    db.update_chart_default(user_id, fund_code)
+    return jsonify({'success': True})
 
 
 @app.route('/sectors', methods=['GET'])

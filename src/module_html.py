@@ -4751,6 +4751,25 @@ def get_precious_metals_page_html(metals_data, username=None):
                     </div>
                 </div>
 
+                <!-- 分时黄金价格 -->
+                <div class="metal-card metal-card-history">
+                    <div class="metal-card-header">
+                        <h3 class="metal-card-title">
+                            <span>📊</span>
+                            <span>分时黄金价格</span>
+                        </h3>
+                    </div>
+                    <div class="metal-card-content">
+                        <!-- Hidden div to store one day gold data for parsing -->
+                        <div id="goldOneDayData" style="display:none;">
+                            {one_day_content}
+                        </div>
+                        <div class="chart-container">
+                            <canvas id="goldOneDayChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- 历史金价 -->
                 <div class="metal-card metal-card-history">
                     <div class="metal-card-header">
@@ -4888,6 +4907,98 @@ def get_precious_metals_page_html(metals_data, username=None):
             }});
         }}
 
+        // 解析分时黄金价格数据并创建图表
+        function createGoldOneDayChart() {{
+            // 从隐藏的div中获取分时黄金价格数据
+            const oneDayContainer = document.getElementById('goldOneDayData');
+            if (!oneDayContainer) return;
+
+            const dataText = oneDayContainer.textContent.trim();
+            if (!dataText || dataText === 'None' || dataText === '') return;
+
+            let data;
+            try {{
+                data = JSON.parse(dataText);
+            }} catch (e) {{
+                console.error('Failed to parse gold one day data:', e);
+                return;
+            }}
+
+            if (!data || !Array.isArray(data) || data.length === 0) return;
+
+            const labels = [];
+            const prices = [];
+
+            data.forEach(item => {{
+                if (item.date && item.price !== undefined) {{
+                    // 只显示时间部分 (HH:MM:SS)
+                    const timePart = item.date.split(' ')[1] || item.date;
+                    labels.push(timePart);
+                    prices.push(parseFloat(item.price));
+                }}
+            }});
+
+            // 创建图表
+            const ctx = document.getElementById('goldOneDayChart').getContext('2d');
+
+            new Chart(ctx, {{
+                type: 'line',
+                data: {{
+                    labels: labels,
+                    datasets: [{{
+                        label: '金价 (元/克)',
+                        data: prices,
+                        borderColor: '#f59e0b',
+                        backgroundColor: 'rgba(245, 158, 11, 0.1)',
+                        fill: true,
+                        tension: 0.4,
+                        pointRadius: 0,
+                        pointHoverRadius: 0
+                    }}]
+                }},
+                options: {{
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {{
+                        legend: {{
+                            labels: {{
+                                color: '#9ca3af'
+                            }}
+                        }},
+                        tooltip: {{
+                            enabled: true,
+                            mode: 'index',
+                            intersect: false
+                        }}
+                    }},
+                    scales: {{
+                        x: {{
+                            ticks: {{
+                                color: '#9ca3af',
+                                maxTicksLimit: 12
+                            }},
+                            grid: {{
+                                color: 'rgba(255, 255, 255, 0.1)'
+                            }}
+                        }},
+                        y: {{
+                            ticks: {{
+                                color: '#9ca3af'
+                            }},
+                            grid: {{
+                                color: 'rgba(255, 255, 255, 0.1)'
+                            }}
+                        }}
+                    }},
+                    interaction: {{
+                        mode: 'nearest',
+                        axis: 'x',
+                        intersect: false
+                    }}
+                }}
+            }});
+        }}
+
         document.addEventListener('DOMContentLoaded', function() {{
             // 歌词轮播
             const lyrics = [
@@ -4922,6 +5033,7 @@ def get_precious_metals_page_html(metals_data, username=None):
 
             autoColorize();
             createGoldChart();
+            createGoldOneDayChart();
         }});
     </script>
 </body>
@@ -4929,6 +5041,7 @@ def get_precious_metals_page_html(metals_data, username=None):
         css_style=css_style,
         username_display=username_display,
         real_time_content=metals_data.get('real_time', ''),
+        one_day_content=metals_data.get('one_day', ''),
         history_content=metals_data.get('history', '')
     )
     return html

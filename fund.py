@@ -43,6 +43,104 @@ def format_table_msg(table, tablefmt="pretty"):
     return tabulate(table, tablefmt=tablefmt, missingval="N/A")
 
 
+class ClientConfig:
+    """客户端服务器配置管理"""
+
+    CONFIG_FILE = "cache/user_account.json"
+
+    @classmethod
+    def is_initialized(cls):
+        """检查是否已初始化"""
+        return os.path.exists(cls.CONFIG_FILE)
+
+    @classmethod
+    def load_config(cls):
+        """加载配置"""
+        if not os.path.exists(cls.CONFIG_FILE):
+            return None
+        try:
+            with open(cls.CONFIG_FILE, 'r', encoding='utf-8') as f:
+                return json.load(f)
+        except Exception as e:
+            logger.error(f"加载配置文件失败: {e}")
+            return None
+
+    @classmethod
+    def save_config(cls, server_url, username, password):
+        """保存配置"""
+        try:
+            config = {
+                'server_url': server_url.rstrip('/'),
+                'username': username,
+                'password': password,
+                'last_sync': None
+            }
+            os.makedirs("cache", exist_ok=True)
+            with open(cls.CONFIG_FILE, 'w', encoding='utf-8') as f:
+                json.dump(config, f, ensure_ascii=False, indent=4)
+            logger.info(f"配置已保存到 {cls.CONFIG_FILE}")
+            return True
+        except Exception as e:
+            logger.error(f"保存配置失败: {e}")
+            return False
+
+    @classmethod
+    def verify_server_connection(cls, server_url, username, password):
+        """验证服务器连接"""
+        try:
+            response = requests.post(
+                f"{server_url}/api/client/fund/config",
+                json={'username': username, 'password': password, 'action': 'get'},
+                timeout=10
+            )
+            if response.status_code == 200:
+                data = response.json()
+                if data.get('success'):
+                    logger.info("服务器连接验证成功")
+                    return True
+                else:
+                    logger.error(f"认证失败: {data.get('message')}")
+            else:
+                logger.error(f"服务器返回错误: {response.status_code}")
+        except requests.exceptions.ConnectionError:
+            logger.error("无法连接到服务器，请检查地址和网络")
+        except requests.exceptions.Timeout:
+            logger.error("连接超时")
+        except Exception as e:
+            logger.error(f"连接验证失败: {e}")
+        return False
+
+    @classmethod
+    def init_interactive(cls):
+        """交互式初始化配置"""
+        logger.info("=== 初始化服务器连接配置 ===")
+        server_url = input(f"请输入服务器地址 (默认: http://localhost:8311): ").strip()
+        if not server_url:
+            server_url = "http://localhost:8311"
+        server_url = server_url.rstrip("/")
+        username = input("请输入用户名: ").strip()
+        if not username:
+            logger.error("用户名不能为空")
+            return False
+
+        import getpass
+        password = getpass.getpass("请输入密码: ")
+        if not password:
+            logger.error("密码不能为空")
+            return False
+
+        logger.info("正在验证服务器连接...")
+        if not cls.verify_server_connection(server_url, username, password):
+            logger.error("服务器连接验证失败，请检查配置")
+            return False
+
+        logger.info("连接验证成功，正在保存配置...")
+        if cls.save_config(server_url, username, password):
+            logger.info("配置初始化完成！")
+            return True
+        return False
+
+
 class LanFund:
     CACHE_MAP = {}
 
@@ -104,12 +202,22 @@ class LanFund:
         self.result = []
 
     def load_cache(self):
-        """加载缓存数据，优先从数据库加载（如果有user_id），否则从文件加载"""
+        """加载缓存数据，优先从服务器获取，否则从本地加载"""
+        # 检查是否配置了服务器
+        if ClientConfig.is_initialized():
+            logger.info("检测到服务器配置，正在从服务器获取数据...")
+            fund_map = self._load_from_server()
+            if fund_map is not None:
+                self.CACHE_MAP = fund_map
+                logger.info(f"从服务器加载了 {len(self.CACHE_MAP)} 个基金代码")
+                return
+            else:
+                logger.warning("从服务器加载失败，尝试本地加载")
+
+        # 原有逻辑保持不变
         if self.user_id is not None and self.db is not None:
-            # 从数据库加载
             self.CACHE_MAP = self.db.get_user_funds(self.user_id)
         else:
-            # 从文件加载（CLI模式）
             if not os.path.exists("cache"):
                 os.mkdir("cache")
             if os.path.exists("cache/fund_map.json"):
@@ -119,14 +227,93 @@ class LanFund:
         #     logger.debug(f"加载 {len(self.CACHE_MAP)} 个基金代码缓存成功")
 
     def save_cache(self):
-        """保存缓存数据，优先保存到数据库（如果有user_id），否则保存到文件"""
+        """保存缓存数据，优先同步到服务器"""
+        # 检查是否配置了服务器
+        if ClientConfig.is_initialized():
+            if self._save_to_server():
+                logger.info("配置已同步到服务器")
+                return
+            else:
+                logger.warning("同步到服务器失败，尝试本地保存")
+
+        # 原有逻辑保持不变
         if self.user_id is not None and self.db is not None:
-            # 保存到数据库
             self.db.save_user_funds(self.user_id, self.CACHE_MAP)
         else:
-            # 保存到文件（CLI模式）
             with open("cache/fund_map.json", "w", encoding="gbk") as f:
                 json.dump(self.CACHE_MAP, f, ensure_ascii=False, indent=4)
+
+    def _load_from_server(self):
+        """从服务器加载配置"""
+        config = ClientConfig.load_config()
+        if not config:
+            return None
+
+        try:
+            response = requests.post(
+                f"{config['server_url']}/api/client/fund/config",
+                json={
+                    'username': config['username'],
+                    'password': config['password'],
+                    'action': 'get'
+                },
+                timeout=10
+            )
+
+            if response.status_code == 200:
+                data = response.json()
+                if data.get('success'):
+                    fund_map = data.get('fund_map')
+                    # 更新同步时间
+                    config['last_sync'] = datetime.datetime.now().isoformat()
+                    with open(ClientConfig.CONFIG_FILE, 'w', encoding='utf-8') as f:
+                        json.dump(config, f, ensure_ascii=False, indent=4)
+                    return fund_map
+                else:
+                    logger.error(f"获取配置失败: {data.get('message')}")
+            else:
+                logger.error(f"服务器返回错误: {response.status_code}")
+
+        except Exception as e:
+            logger.error(f"从服务器加载配置失败: {e}")
+
+        return None
+
+    def _save_to_server(self):
+        """保存配置到服务器"""
+        config = ClientConfig.load_config()
+        if not config:
+            return False
+
+        try:
+            response = requests.post(
+                f"{config['server_url']}/api/client/fund/config",
+                json={
+                    'username': config['username'],
+                    'password': config['password'],
+                    'action': 'push',
+                    'fund_map': self.CACHE_MAP
+                },
+                timeout=10
+            )
+
+            if response.status_code == 200:
+                data = response.json()
+                if data.get('success'):
+                    # 更新同步时间
+                    config['last_sync'] = datetime.datetime.now().isoformat()
+                    with open(ClientConfig.CONFIG_FILE, 'w', encoding='utf-8') as f:
+                        json.dump(config, f, ensure_ascii=False, indent=4)
+                    return True
+                else:
+                    logger.error(f"同步失败: {data.get('message')}")
+            else:
+                logger.error(f"服务器返回错误: {response.status_code}")
+
+        except Exception as e:
+            logger.error(f"同步到服务器失败: {e}")
+
+        return False
 
     def init(self):
         res = self.session.get("https://www.fund123.cn/fund", headers={
@@ -1708,6 +1895,54 @@ class LanFund:
                 result
             )
 
+    def one_day_gold_html(self):
+        """分时黄金价格HTML - 返回原始数据用于图表展示"""
+        result = self.one_day_gold()
+        if result:
+            # 返回JSON格式的数据字符串，用于前端生成图表
+            import json
+            return json.dumps(result)
+        return None
+
+    @staticmethod
+    def one_day_gold():
+        headers = {
+            "accept": "*/*",
+            "accept-language": "zh-CN,zh;q=0.9",
+            "referer": "https://quote.cngold.org/gjs/gjhj.html",
+            "sec-ch-ua": "\"Not;A=Brand\";v=\"99\", \"Google Chrome\";v=\"139\", \"Chromium\";v=\"139\"",
+            "sec-ch-ua-mobile": "?0",
+            "sec-ch-ua-platform": "\"Windows\"",
+            "sec-fetch-dest": "script",
+            "sec-fetch-mode": "no-cors",
+            "sec-fetch-site": "cross-site",
+            "sec-fetch-storage-access": "active",
+            "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36"
+        }
+        try:
+            url = "https://api.jijinhao.com/sQuoteCenter/todayMin.htm"
+            params = {
+                "code": "JO_92233",
+                "isCalc": True
+            }
+            response = requests.get(url, headers=headers, params=params, timeout=10, verify=False)
+            data = json.loads(response.text.replace("var hq_str_ml = ", ""))
+            result = []
+            data = data["data"]
+            data = [x for x in data if x["price"] != -1]
+            for i in data:
+                date = i["date"]
+                date = datetime.datetime.fromtimestamp(date / 1000).strftime("%Y-%m-%d %H:%M:%S")
+                price = round(float(i["price"]), 2)
+                result.append({
+                    "date": date,
+                    "price": price
+                })
+            return result
+        except Exception as e:
+            logger.error(f"获取今日贵金价走势失败: {e}")
+            return None
+
     def A(self, is_return=False):
         url = "https://finance.pae.baidu.com/vapi/v1/getquotation"
         params = {
@@ -1934,7 +2169,14 @@ if __name__ == '__main__':
     parser.add_argument("-f", "--fast", action="store_true", help="启用快速分析模式")
     parser.add_argument("-D", "--deep", action="store_true", help="启用深度研究模式")
     parser.add_argument("-W", "--with-ai", action="store_true", help="AI分析")
+    parser.add_argument('--init', action='store_true', help='初始化服务器连接配置')
     args = parser.parse_args()
+
+    # 处理 --init 命令
+    if args.init:
+        import sys
+        success = ClientConfig.init_interactive()
+        sys.exit(0 if success else 1)
 
     lan_fund = LanFund()
     # 只有指定了 -o 参数时才传入 report_dir，否则传入 None 表示不保存报告

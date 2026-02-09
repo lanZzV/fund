@@ -383,6 +383,46 @@ def api_fund_data():
         return jsonify({'error': str(e)}), 500
 
 
+@app.route('/api/client/fund/config', methods=['POST'])
+def api_client_fund_config():
+    """客户端配置同步接口（使用账号密码认证，无需session）"""
+    try:
+        data = request.json
+        username = data.get('username', '').strip()
+        password = data.get('password', '')
+        action = data.get('action', 'get')
+
+        if not username or not password:
+            return jsonify({'success': False, 'message': '请提供用户名和密码'}), 400
+
+        # 验证用户名密码
+        success, user_id = db.verify_password(username, password)
+        if not success:
+            return jsonify({'success': False, 'message': '用户名或密码错误'}), 401
+
+        if action == 'get':
+            # 获取用户配置
+            fund_map = db.get_user_funds(user_id)
+            return jsonify({'success': True, 'fund_map': fund_map})
+
+        elif action == 'push':
+            # 推送配置到服务器
+            fund_map = data.get('fund_map')
+            if not isinstance(fund_map, dict):
+                return jsonify({'success': False, 'message': '配置格式错误'}), 400
+
+            if db.save_user_funds(user_id, fund_map):
+                return jsonify({'success': True, 'message': '配置已同步'})
+            else:
+                return jsonify({'success': False, 'message': '保存失败'}), 500
+
+        return jsonify({'success': False, 'message': '无效的操作类型'}), 400
+
+    except Exception as e:
+        logger.error(f"客户端配置同步失败: {e}")
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
 @app.route('/api/tab/<tab_id>', methods=['GET'])
 @login_required
 def api_get_tab_data(tab_id):
@@ -789,6 +829,12 @@ def get_precious_metals():
         logger.debug("✓ 实时贵金属")
     except Exception as e:
         precious_metals_data['real_time'] = f"<p style='color:#f44336;'>加载失败: {str(e)}</p>"
+
+    try:
+        precious_metals_data['one_day'] = my_fund.one_day_gold_html()
+        logger.debug("✓ 分时黄金价格")
+    except Exception as e:
+        precious_metals_data['one_day'] = f"<p style='color:#f44336;'>加载失败: {str(e)}</p>"
 
     try:
         precious_metals_data['history'] = my_fund.gold_html()

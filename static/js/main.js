@@ -307,7 +307,7 @@
             <div class="sector-item" style="text-align: left; padding: 12px; margin-bottom: 8px; cursor: pointer; display: flex; align-items: center; gap: 10px;"
                  onclick="toggleFundSelection('${fund.code}', this)">
                 <input type="checkbox" class="fund-selection-checkbox" data-code="${fund.code}"
-                       style="width: 18px; height: 18px; cursor: pointer;" onclick="event.stopPropagation();">
+                       style="width: 18px; height: 18px; cursor: pointer;" onclick="event.stopPropagation(); toggleFundSelectionByCheckbox('${fund.code}', this)">
                 <div style="flex: 1;">
                     <div style="font-weight: 600;">${fund.code} - ${fund.name}</div>
                     ${fund.is_hold ? '<span style="color: #667eea; font-size: 12px;">⭐ 持有</span>' : ''}
@@ -317,12 +317,22 @@
         `).join('');
     }
 
-    // 切换基金选择状态
+    // 切换基金选择状态（点击整个行）
     function toggleFundSelection(code, element) {
         const checkbox = element.querySelector('.fund-selection-checkbox');
         checkbox.checked = !checkbox.checked;
+        updateFundSelection(code, checkbox.checked, element);
+    }
 
-        if (checkbox.checked) {
+    // 切换基金选择状态（点击复选框）
+    function toggleFundSelectionByCheckbox(code, checkbox) {
+        const element = checkbox.closest('.sector-item');
+        updateFundSelection(code, checkbox.checked, element);
+    }
+
+    // 更新基金选择状态
+    function updateFundSelection(code, checked, element) {
+        if (checked) {
             if (!selectedFundsForOperation.includes(code)) {
                 selectedFundsForOperation.push(code);
             }

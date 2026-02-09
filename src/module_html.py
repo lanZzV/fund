@@ -1696,12 +1696,14 @@ def get_css_style():
                 white-space: nowrap;
             }
 
-            /* Hide less important columns on very small screens */
-            @media (max-width: 480px) {
-                .style-table td:nth-child(n+7),
-                .style-table th:nth-child(n+7) {
-                    display: none;
-                }
+            /* Ensure table container supports horizontal scroll on small screens */
+            .table-container {
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+            }
+
+            .style-table {
+                min-width: max-content;
             }
 
             /* Loading page adjustments */
@@ -4598,6 +4600,17 @@ def get_precious_metals_page_html(metals_data, username=None):
             position: relative;
             height: 400px;
             width: 100%;
+        }}
+
+        /* 确保表格容器支持横向滚动 */
+        .metal-card-realtime .table-container {{
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+        }}
+
+        .metal-card-realtime .style-table {{
+            min-width: max-content;
+            white-space: nowrap;
         }}
 
         /* 响应式设计 */

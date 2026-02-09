@@ -669,14 +669,15 @@
                 font-size: 0.7rem;
             }
 
-            /* Hide less important columns on very small screens */
-            @media (max-width: 480px) {
-                .style-table td:nth-child(n+7),
-                .style-table th:nth-child(n+7) {
-                    display: none;
-                }
+            /* Ensure table container supports horizontal scroll on small screens */
+            .table-container {
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
             }
 
+            .style-table {
+                min-width: max-content;
+            }
 
             /* Loading page adjustments */
             .loading-container {

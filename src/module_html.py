@@ -5883,6 +5883,88 @@ def get_portfolio_page_html(fund_content, fund_map, fund_chart_data=None, fund_c
         .input-clear-btn:hover {{
             background-color: #6b7280;
         }}
+
+        /* 基金选择器下拉箭头 */
+        .fund-selector-dropdown-arrow {{
+            position: absolute;
+            right: 8px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-dim);
+            font-size: 10px;
+            pointer-events: none;
+            transition: transform 0.2s ease;
+        }}
+
+        .fund-selector-wrapper:hover .fund-selector-dropdown-arrow {{
+            color: var(--text-main);
+        }}
+
+        /* 清除按钮位置调整 */
+        .input-clear-btn {{
+            right: 24px; /* 为箭头留出空间 */
+        }}
+
+        /* 基金选择列表项 */
+        .fund-chart-selector-item {{
+            padding: 12px;
+            margin-bottom: 8px;
+            cursor: pointer;
+            border-radius: 6px;
+            transition: background-color 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }}
+
+        .fund-chart-selector-item:hover {{
+            background-color: rgba(59, 130, 246, 0.1);
+        }}
+
+        .fund-chart-selector-item .fund-code {{
+            font-weight: 600;
+            color: var(--text-main);
+            min-width: 70px;
+        }}
+
+        .fund-chart-selector-item .fund-name {{
+            flex: 1;
+            color: var(--text-dim);
+        }}
+
+        .fund-chart-selector-item.is-default {{
+            background-color: rgba(59, 130, 246, 0.15);
+            border-left: 3px solid #3b82f6;
+        }}
+
+        /* 移动端优化 */
+        @media (max-width: 768px) {{
+            #fundSelector {{
+                font-size: 16px; /* 防止iOS自动缩放 */
+                padding: 8px 36px 8px 12px;
+            }}
+
+            .input-clear-btn {{
+                width: 20px;
+                height: 20px;
+                font-size: 12px;
+                right: 26px;
+            }}
+
+            .fund-selector-dropdown-arrow {{
+                font-size: 12px;
+                right: 10px;
+            }}
+
+            .fund-chart-selector-item {{
+                padding: 16px 12px; /* 增大点击区域 */
+            }}
+
+            #fundChartSelectorModal .sector-modal-content {{
+                width: 95%;
+                max-height: 85vh;
+            }}
+        }}
     </style>
 </head>
 <body>
@@ -5991,11 +6073,9 @@ def get_portfolio_page_html(fund_content, fund_map, fund_chart_data=None, fund_c
                     <div style="display: flex; align-items: center; gap: 15px; flex-wrap: wrap;">
                         <h3 id="fundChartTitle" style="margin: 0; font-size: 1rem; color: var(--text-main); flex-shrink: 0;">📈 基金估值</h3>
                         <div class="fund-selector-wrapper" id="fundSelectorWrapper" style="flex: 1; min-width: 280px; max-width: 100%;">
-                            <input type="text" id="fundSelector" list="fundList" placeholder="选择或搜索基金代码/名称..." autocomplete="off">
+                            <input type="text" id="fundSelector" placeholder="选择或搜索基金代码/名称..." autocomplete="off" readonly>
                             <span id="fundSelectorClear" class="input-clear-btn">✕</span>
-                            <datalist id="fundList">
-                                <!-- 动态填充基金选项 -->
-                            </datalist>
+                            <span class="fund-selector-dropdown-arrow" id="fundSelectorArrow">▼</span>
                         </div>
                     </div>
                 </div>
@@ -6043,6 +6123,20 @@ def get_portfolio_page_html(fund_content, fund_map, fund_chart_data=None, fund_c
             <div class="confirm-actions">
                 <button class="btn btn-secondary" onclick="closeConfirmDialog()">取消</button>
                 <button class="btn btn-primary" id="confirmBtn">确定</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 基金图表选择模态框 -->
+    <div class="sector-modal" id="fundChartSelectorModal">
+        <div class="sector-modal-content" style="max-width: 500px;">
+            <div class="sector-modal-header">选择基金</div>
+            <input type="text" class="sector-modal-search" id="fundChartSelectorSearch" placeholder="搜索基金代码或名称...">
+            <div id="fundChartSelectorList" style="max-height: 400px; overflow-y: auto;">
+                <!-- 基金列表将通过JS动态生成 -->
+            </div>
+            <div class="sector-modal-footer">
+                <button class="btn btn-secondary" onclick="closeFundChartSelectorModal()">取消</button>
             </div>
         </div>
     </div>
@@ -6134,12 +6228,16 @@ def get_portfolio_page_html(fund_content, fund_map, fund_chart_data=None, fund_c
         let fundChartData = {fund_chart_data_json};
         let fundChartInfo = {fund_chart_info_json};
 
+        // 基金图表选择器相关变量
+        let fundChartSelectorFunds = [];
+        let selectedFundCode = null;
+
         function initFundChartSelector() {{
             const selector = document.getElementById('fundSelector');
-            const datalist = document.getElementById('fundList');
+            const clearBtn = document.getElementById('fundSelectorClear');
+            const wrapper = document.getElementById('fundSelectorWrapper');
 
-            if (!selector || !datalist || !fundChartInfo || Object.keys(fundChartInfo).length === 0) {{
-                // 如果没有基金数据，隐藏图表容器
+            if (!selector || !fundChartInfo || Object.keys(fundChartInfo).length === 0) {{
                 const container = document.getElementById('fundChartContainer');
                 if (container) {{
                     container.style.display = 'none';
@@ -6147,52 +6245,34 @@ def get_portfolio_page_html(fund_content, fund_map, fund_chart_data=None, fund_c
                 return;
             }}
 
-            // 填充datalist选项，value使用"code - name"格式
-            Object.entries(fundChartInfo).forEach(([code, info]) => {{
-                const option = document.createElement('option');
-                option.value = `${{code}} - ${{info.name}}`;
-                // 同时保存code作为data属性，方便解析
-                option.dataset.code = code;
-                datalist.appendChild(option);
+            // 转换基金信息为数组
+            fundChartSelectorFunds = Object.entries(fundChartInfo).map(([code, info]) => ({{
+                code: code,
+                name: info.name,
+                is_default: info.is_default || false
+            }}));
 
-                // 设置默认值
-                if (info.is_default) {{
-                    selector.value = `${{code}} - ${{info.name}}`;
-                }}
-            }});
+            // 设置默认值
+            const defaultFund = fundChartSelectorFunds.find(f => f.is_default);
+            if (defaultFund) {{
+                selector.value = `${{defaultFund.code}} - ${{defaultFund.name}}`;
+                selectedFundCode = defaultFund.code;
+            }}
 
-            // 从输入值中提取基金代码
-            const extractFundCode = (input) => {{
-                const trimmed = input.trim();
-                // 如果直接是基金代码（6位数字）
-                if (/^\d{{6}}$/.test(trimmed)) {{
-                    return trimmed;
-                }}
-                // 如果是"code - name"格式，提取code部分
-                const match = trimmed.match(/^(\d{{6}})\s*-\s*/);
-                if (match) {{
-                    return match[1];
-                }}
-                return null;
+            // 点击输入框打开模态框
+            const openModal = () => {{
+                renderFundChartSelectorList(fundChartSelectorFunds);
+                document.getElementById('fundChartSelectorModal').classList.add('active');
+                setTimeout(() => {{
+                    const searchInput = document.getElementById('fundChartSelectorSearch');
+                    if (searchInput) searchInput.focus();
+                }}, 100);
             }};
 
-            // 监听选择变化（用户从下拉列表选择或输入有效代码后按回车/失焦时触发）
-            selector.addEventListener('change', function() {{
-                const fundCode = extractFundCode(this.value);
-                // 检查输入的是有效的基金代码
-                if (fundCode && fundChartInfo[fundCode]) {{
-                    // 更新输入框显示为完整格式
-                    const info = fundChartInfo[fundCode];
-                    this.value = `${{fundCode}} - ${{info.name}}`;
-                    loadFundChartData(fundCode);
-                }}
-            }});
+            selector.addEventListener('click', openModal);
 
-            // 清空按钮功能
-            const clearBtn = document.getElementById('fundSelectorClear');
-            const wrapper = document.getElementById('fundSelectorWrapper');
+            // 清空按钮
             if (clearBtn && wrapper) {{
-                // 监听输入，控制清空按钮显示/隐藏
                 const updateClearButtonVisibility = () => {{
                     if (selector.value.trim()) {{
                         wrapper.classList.add('has-value');
@@ -6205,20 +6285,88 @@ def get_portfolio_page_html(fund_content, fund_map, fund_chart_data=None, fund_c
                     e.preventDefault();
                     e.stopPropagation();
                     selector.value = '';
-                    selector.focus();
+                    selectedFundCode = null;
                     updateClearButtonVisibility();
-                    // 触发input事件以便其他监听器知道值已清空
-                    selector.dispatchEvent(new Event('input', {{ bubbles: true }}));
                 }});
 
-                selector.addEventListener('input', updateClearButtonVisibility);
-                selector.addEventListener('change', updateClearButtonVisibility);
-
-                // 初始化时检查
                 updateClearButtonVisibility();
             }}
-
         }}
+
+        // 渲染基金选择列表
+        function renderFundChartSelectorList(funds) {{
+            const listContainer = document.getElementById('fundChartSelectorList');
+            if (!listContainer) return;
+
+            if (funds.length === 0) {{
+                listContainer.innerHTML = '<div style="text-align: center; padding: 40px; color: var(--text-dim);">未找到匹配的基金</div>';
+                return;
+            }}
+
+            listContainer.innerHTML = funds.map(fund => `
+                <div class="fund-chart-selector-item ${{fund.is_default ? 'is-default' : ''}}"
+                     onclick="selectFundForChart('${{fund.code}}')">
+                    <div class="fund-code">${{fund.code}}</div>
+                    <div class="fund-name">${{fund.name}}</div>
+                    ${{fund.is_default ? '<span style="color: #3b82f6; font-size: 12px;">⭐ 默认</span>' : ''}}
+                </div>
+            `).join('');
+        }}
+
+        // 选择基金并更新图表
+        function selectFundForChart(fundCode) {{
+            const fund = fundChartSelectorFunds.find(f => f.code === fundCode);
+            if (!fund) return;
+
+            const selector = document.getElementById('fundSelector');
+            selector.value = `${{fund.code}} - ${{fund.name}}`;
+            selectedFundCode = fund.code;
+
+            const wrapper = document.getElementById('fundSelectorWrapper');
+            if (wrapper) wrapper.classList.add('has-value');
+
+            closeFundChartSelectorModal();
+            loadFundChartData(fundCode);
+        }}
+
+        // 关闭模态框
+        function closeFundChartSelectorModal() {{
+            const modal = document.getElementById('fundChartSelectorModal');
+            if (modal) modal.classList.remove('active');
+
+            const searchInput = document.getElementById('fundChartSelectorSearch');
+            if (searchInput) searchInput.value = '';
+        }}
+
+        // 搜索功能和模态框事件
+        document.addEventListener('DOMContentLoaded', function() {{
+            // 搜索过滤
+            const searchInput = document.getElementById('fundChartSelectorSearch');
+            if (searchInput) {{
+                searchInput.addEventListener('input', function() {{
+                    const keyword = this.value.toLowerCase().trim();
+                    if (!keyword) {{
+                        renderFundChartSelectorList(fundChartSelectorFunds);
+                        return;
+                    }}
+                    const filtered = fundChartSelectorFunds.filter(fund =>
+                        fund.code.includes(keyword) ||
+                        fund.name.toLowerCase().includes(keyword)
+                    );
+                    renderFundChartSelectorList(filtered);
+                }});
+            }}
+
+            // 点击背景关闭
+            const modal = document.getElementById('fundChartSelectorModal');
+            if (modal) {{
+                modal.addEventListener('click', function(e) {{
+                    if (e.target === modal) {{
+                        closeFundChartSelectorModal();
+                    }}
+                }});
+            }}
+        }});
 
         function initFundChart() {{
             if (!fundChartData.labels || fundChartData.labels.length === 0) {{

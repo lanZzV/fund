@@ -4941,12 +4941,20 @@ def get_precious_metals_page_html(metals_data, username=None):
             // 创建图表
             const ctx = document.getElementById('goldOneDayChart').getContext('2d');
 
+            // 获取最新价格和时间用于图例显示
+            let labelText = '金价 (元/克)';
+            if (data.length > 0) {{
+                const latestData = data[data.length - 1];
+                const timePart = latestData.date.split(' ')[1] || latestData.date;
+                labelText = `金价 (元/克)  最新: ¥${{latestData.price}}  ${{timePart}}`;
+            }}
+
             new Chart(ctx, {{
                 type: 'line',
                 data: {{
                     labels: labels,
                     datasets: [{{
-                        label: '金价 (元/克)',
+                        label: labelText,
                         data: prices,
                         borderColor: '#f59e0b',
                         backgroundColor: 'rgba(245, 158, 11, 0.1)',

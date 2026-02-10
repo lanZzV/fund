@@ -1363,12 +1363,19 @@
                 const realtimeRes = await fetch('/api/gold/real-time');
                 const realtimeResult = await realtimeRes.json();
 
+                // Fetch gold one-day (timing) data
+                const oneDayRes = await fetch('/api/gold/one-day');
+                const oneDayResult = await oneDayRes.json();
+
                 // Fetch gold history
                 const historyRes = await fetch('/api/gold/history');
                 const historyResult = await historyRes.json();
 
                 if (realtimeResult.success) {
                     updateRealtimeGoldTable(realtimeResult.data);
+                }
+                if (oneDayResult.success) {
+                    updateGoldOneDayChart(oneDayResult.data);
                 }
                 if (historyResult.success) {
                     updateGoldHistoryTable(historyResult.data);
@@ -1480,6 +1487,39 @@
                         </tr>
                     `).join('');
                 }
+            }
+        }
+
+        function updateGoldOneDayChart(data) {
+            // Update gold one-day timing chart if exists
+            if (!data || !Array.isArray(data) || data.length === 0) return;
+
+            const labels = [];
+            const prices = [];
+
+            data.forEach(item => {
+                if (item.date && item.price !== undefined) {
+                    // 只显示时间部分 (HH:MM:SS)
+                    const timePart = item.date.split(' ')[1] || item.date;
+                    labels.push(timePart);
+                    prices.push(parseFloat(item.price));
+                }
+            });
+
+            // 获取最新价格和时间用于图例显示
+            let labelText = '金价 (元/克)';
+            if (data.length > 0) {
+                const latestData = data[data.length - 1];
+                const timePart = latestData.date.split(' ')[1] || latestData.date;
+                labelText = `金价 (元/克)  最新: ¥${latestData.price}  ${timePart}`;
+            }
+
+            if (window.goldOneDayChartInstance) {
+                // 更新现有图表
+                window.goldOneDayChartInstance.data.labels = labels;
+                window.goldOneDayChartInstance.data.datasets[0].data = prices;
+                window.goldOneDayChartInstance.data.datasets[0].label = labelText;
+                window.goldOneDayChartInstance.update();
             }
         }
 

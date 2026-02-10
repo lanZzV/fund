@@ -14,7 +14,14 @@ from loguru import logger
 import fund
 from src.auth import login_required, get_current_user_id, get_current_username, login_user, logout_user
 from src.database import Database
-from src.module_html import enhance_fund_tab_content
+from src.module_html import (
+    enhance_fund_tab_content,
+    get_news_page_html,
+    get_precious_metals_page_html,
+    get_market_indices_page_html,
+    get_portfolio_page_html,
+    get_sectors_page_html
+)
 
 # 加载环境变量
 load_dotenv()
@@ -663,6 +670,24 @@ def api_gold_history():
         return jsonify({'success': False, 'message': f'数据加载失败: {str(e)}'}), 500
 
 
+@app.route('/api/gold/one-day', methods=['GET'])
+@login_required
+def api_gold_one_day():
+    """获取分时黄金价格数据"""
+    try:
+        importlib.reload(fund)
+        my_fund = fund.LanFund(user_id=get_current_user_id(), db=db)
+
+        # 获取分时黄金数据 (one_day_gold 是静态方法，返回 raw data)
+        result = my_fund.one_day_gold()
+
+        # one_day_gold 返回格式: [{"date": "2024-01-01 09:30:00", "price": 123.45}, ...]
+        return jsonify({'success': True, 'data': result})
+    except Exception as e:
+        logger.error(f"获取分时黄金数据失败: {e}")
+        return jsonify({'success': False, 'message': f'数据加载失败: {str(e)}'}), 500
+
+
 @app.route('/api/sectors', methods=['GET'])
 @login_required
 def api_sectors():
@@ -809,7 +834,6 @@ def get_market():
     except Exception as e:
         news_content = f"<p style='color:#f44336;'>加载失败: {str(e)}</p>"
 
-    from src.module_html import get_news_page_html
     html = get_news_page_html(news_content, username=get_current_username())
     return html
 
@@ -842,7 +866,6 @@ def get_precious_metals():
     except Exception as e:
         precious_metals_data['history'] = f"<p style='color:#f44336;'>加载失败: {str(e)}</p>"
 
-    from src.module_html import get_precious_metals_page_html
     html = get_precious_metals_page_html(precious_metals_data, username=get_current_username())
     return html
 
@@ -881,9 +904,9 @@ def get_market_indices():
         logger.debug("✓ 上证分时")
     except Exception as e:
         market_charts['timing'] = f"<p style='color:#f44336;'>加载失败: {str(e)}</p>"
-        chart_data['timing'] = {'labels': [], 'prices': [], 'change_pcts': [], 'change_amounts': [], 'volumes': [], 'amounts': []}
+        chart_data['timing'] = {'labels': [], 'prices': [], 'change_pcts': [], 'change_amounts': [], 'volumes': [],
+                                'amounts': []}
 
-    from src.module_html import get_market_indices_page_html
     html = get_market_indices_page_html(
         market_charts=market_charts,
         chart_data=chart_data,
@@ -961,7 +984,6 @@ def get_portfolio():
                 'is_default': (default_fund and code == default_fund['fund_code'])
             }
 
-    from src.module_html import get_portfolio_page_html
     html = get_portfolio_page_html(
         fund_content=fund_content,
         fund_map=my_fund.CACHE_MAP,
@@ -1045,7 +1067,6 @@ def get_sectors():
     except Exception as e:
         select_fund_content = f"<p style='color:#f44336;'>数据加载失败: {str(e)}</p>"
 
-    from src.module_html import get_sectors_page_html
     html = get_sectors_page_html(
         sectors_content=sectors_content,
         select_fund_content=select_fund_content,

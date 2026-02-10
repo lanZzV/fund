@@ -2,10 +2,12 @@
 
 import argparse
 import datetime
+import getpass
 import json
 import os
 import random
 import re
+import sys
 import threading
 import time
 
@@ -123,7 +125,6 @@ class ClientConfig:
             logger.error("用户名不能为空")
             return False
 
-        import getpass
         password = getpass.getpass("请输入密码: ")
         if not password:
             logger.error("密码不能为空")
@@ -2174,7 +2175,6 @@ if __name__ == '__main__':
 
     # 处理 --init 命令
     if args.init:
-        import sys
         success = ClientConfig.init_interactive()
         sys.exit(0 if success else 1)
 

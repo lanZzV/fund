@@ -1,4 +1,6 @@
 # -*- coding: UTF-8 -*-
+import html
+import json
 import re
 
 
@@ -166,8 +168,8 @@ def enhance_fund_tab_content(content, shares_map=None):
 
     # 在"近30天"列后添加"持仓份额"列
     content = re.sub(r'(<th[^>]*>近30天</th>)',
-                   r'\1\n                    <th>持仓份额</th>',
-                   content, count=1)
+                     r'\1\n                    <th>持仓份额</th>',
+                     content, count=1)
 
     # 在每个数据行添加份额输入框
     # 先找到所有表格行，然后在包含基金代码的行末尾添加份额输入框
@@ -1021,8 +1023,6 @@ def get_summary_bar_html():
 
 def generate_fund_row_html(fund_code, fund_data, is_held=True):
     """Generate a single fund row (replaces holdings cards)"""
-    import html
-
     # Extract fund data
     name = fund_data.get('fund_name', '')
     sectors = fund_data.get('sectors', [])
@@ -4949,7 +4949,7 @@ def get_precious_metals_page_html(metals_data, username=None):
                 labelText = `金价 (元/克)  最新: ¥${{latestData.price}}  ${{timePart}}`;
             }}
 
-            new Chart(ctx, {{
+            window.goldOneDayChartInstance = new Chart(ctx, {{
                 type: 'line',
                 data: {{
                     labels: labels,
@@ -5058,7 +5058,6 @@ def get_precious_metals_page_html(metals_data, username=None):
 def get_market_indices_page_html(market_charts=None, chart_data=None, timing_data=None, username=None):
     """生成市场指数页面 - 上证分时、全球指数和成交量趋势"""
     css_style = get_css_style()
-    import json
 
     username_display = '<a href="https://github.com/lanZzV/fund" target="_blank" class="nav-star">点个赞</a>'
     username_display += '<a href="https://github.com/lanZzV/fund/issues" target="_blank" class="nav-feedback">反馈</a>'
@@ -5067,11 +5066,18 @@ def get_market_indices_page_html(market_charts=None, chart_data=None, timing_dat
         username_display += '<a href="/logout" class="nav-logout">退出登录</a>'
 
     # 准备图表数据JSON (optional, for future chart enhancements)
-    indices_data_json = json.dumps(chart_data.get('indices', {'labels': [], 'prices': [], 'changes': []}) if chart_data else {'labels': [], 'prices': [], 'changes': []})
-    volume_data_json = json.dumps(chart_data.get('volume', {'labels': [], 'total': [], 'sh': [], 'sz': [], 'bj': []}) if chart_data else {'labels': [], 'total': [], 'sh': [], 'sz': [], 'bj': []})
+    indices_data_json = json.dumps(
+        chart_data.get('indices', {'labels': [], 'prices': [], 'changes': []}) if chart_data else {'labels': [],
+                                                                                                   'prices': [],
+                                                                                                   'changes': []})
+    volume_data_json = json.dumps(
+        chart_data.get('volume', {'labels': [], 'total': [], 'sh': [], 'sz': [], 'bj': []}) if chart_data else {
+            'labels': [], 'total': [], 'sh': [], 'sz': [], 'bj': []})
 
     # 准备上证分时数据JSON
-    timing_data_json = json.dumps(timing_data if timing_data else {'labels': [], 'prices': [], 'change_pcts': [], 'change_amounts': [], 'volumes': [], 'amounts': []})
+    timing_data_json = json.dumps(
+        timing_data if timing_data else {'labels': [], 'prices': [], 'change_pcts': [], 'change_amounts': [],
+                                         'volumes': [], 'amounts': []})
 
     # 生成市场指数HTML - 两行布局
     market_content = '''
@@ -5585,7 +5591,6 @@ def get_market_indices_page_html(market_charts=None, chart_data=None, timing_dat
 def get_portfolio_page_html(fund_content, fund_map, fund_chart_data=None, fund_chart_info=None, username=None):
     """生成持仓基金页面"""
     css_style = get_css_style()
-    import json
 
     username_display = '<a href="https://github.com/lanZzV/fund" target="_blank" class="nav-star">点个赞</a>'
     username_display += '<a href="https://github.com/lanZzV/fund/issues" target="_blank" class="nav-feedback">反馈</a>'
@@ -5594,7 +5599,8 @@ def get_portfolio_page_html(fund_content, fund_map, fund_chart_data=None, fund_c
         username_display += '<a href="/logout" class="nav-logout">退出登录</a>'
 
     # 准备估值趋势图数据JSON
-    fund_chart_data_json = json.dumps(fund_chart_data if fund_chart_data else {'labels': [], 'growth': [], 'net_values': []})
+    fund_chart_data_json = json.dumps(
+        fund_chart_data if fund_chart_data else {'labels': [], 'growth': [], 'net_values': []})
     fund_chart_info_json = json.dumps(fund_chart_info if fund_chart_info else {})
 
     html = '''<!DOCTYPE html>
@@ -6540,7 +6546,8 @@ def get_portfolio_page_html(fund_content, fund_map, fund_chart_data=None, fund_c
         }}
     </script>
 </body>
-</html>'''.format(css_style=css_style, username_display=username_display, fund_content=fund_content, fund_chart_data_json=fund_chart_data_json, fund_chart_info_json=fund_chart_info_json)
+</html>'''.format(css_style=css_style, username_display=username_display, fund_content=fund_content,
+                  fund_chart_data_json=fund_chart_data_json, fund_chart_info_json=fund_chart_info_json)
     return html
 
 
@@ -6997,4 +7004,3 @@ def get_sectors_page_html(sectors_content, select_fund_content, fund_map, userna
         select_fund_content=select_fund_content
     )
     return html
-

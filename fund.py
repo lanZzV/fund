@@ -224,8 +224,6 @@ class LanFund:
             if os.path.exists("cache/fund_map.json"):
                 with open("cache/fund_map.json", "r", encoding="gbk") as f:
                     self.CACHE_MAP = json.load(f)
-        # if self.CACHE_MAP:
-        #     logger.debug(f"加载 {len(self.CACHE_MAP)} 个基金代码缓存成功")
 
     def save_cache(self):
         """保存缓存数据，优先同步到服务器"""
@@ -330,10 +328,6 @@ class LanFund:
             "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36",
             "referer": "https://gushitong.baidu.com/"
         }, timeout=10, verify=False)
-        # self.baidu_session.cookies.update({
-        #     "BDUSS": "3hJYkhPNEM3Z2xOeH5TLVU4OEhhU1hPUFYxdVV3V0pkd1VEMEhCTEgxRENMWEJsSVFBQUFBJCQAAAAAAAAAAAEAAAAVl0lPamRrZGpiZGIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAMKgSGXCoEhlM",
-        #     "BDUSS_BFESS": "3hJYkhPNEM3Z2xOeH5TLVU4OEhhU1hPUFYxdVV3V0pkd1VEMEhCTEgxRENMWEJsSVFBQUFBJCQAAAAAAAAAAAEAAAAVl0lPamRrZGpiZGIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAMKgSGXCoEhlM",
-        # })
 
     def add_code(self, codes):
         codes = codes.split(",")

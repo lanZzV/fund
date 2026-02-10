@@ -24,7 +24,6 @@
             overflow: hidden;
         }
 
-        /* Animated gradient background */
         body::before {
             content: '';
             position: absolute;
@@ -44,7 +43,6 @@
             100% { background-position: 0% 50%; }
         }
 
-        /* Grid pattern overlay */
         body::after {
             content: '';
             position: absolute;
@@ -298,7 +296,6 @@
             font-size: 13px;
         }
 
-        /* Responsive Design */
         @media (max-width: 768px) {
             body {
                 padding: 15px;
@@ -323,7 +320,7 @@
             }
 
             .form-group input {
-                font-size: 16px; /* Prevent zoom on iOS */
+                font-size: 16px;
             }
 
             .btn {

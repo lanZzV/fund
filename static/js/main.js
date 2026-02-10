@@ -11,7 +11,7 @@
 
         // Legacy Sidebar Toggle (id="sidebar")
         // Used by /market, /market-indices, /precious-metals, /sectors pages
-        // Note: /portfolio uses sidebarNav with sidebar-nav.js instead
+        // Note: /portfolio/ uses sidebarNav with sidebar-nav.js instead
         const sidebar = document.getElementById('sidebar');
         const sidebarToggle = document.getElementById('sidebarToggle');
 
@@ -556,38 +556,6 @@
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ codes: codes.join(',') })
-                    });
-                    const result = await response.json();
-                    if (result.success) {
-                        alert(result.message);
-                        location.reload();
-                    } else {
-                        alert(result.message);
-                    }
-                } catch (e) {
-                    alert('操作失败: ' + e.message);
-                }
-            }
-        );
-    }
-
-    // 取消持有
-    async function unmarkHold() {
-        const codes = selectedFundsForOperation;
-        if (codes.length === 0) {
-            alert('请先选择要取消持有的基金');
-            return;
-        }
-
-        showConfirmDialog(
-            '取消持有',
-            `确定要取消 ${codes.length} 只基金的持有标记吗？`,
-            async () => {
-                try {
-                    const response = await fetch('/api/fund/hold', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ codes: codes.join(','), hold: false })
                     });
                     const result = await response.json();
                     if (result.success) {
@@ -1324,7 +1292,6 @@
                     updateTimingChart(timingResult.data);
                 }
 
-                // Note: Fund list is already loaded via sharesData
                 // Auto-colorize will be called after table updates
                 autoColorize();
             } catch (e) {

@@ -1,13 +1,11 @@
 // Sidebar Navigation Controller
-// Only initializes for pages that use sidebarNav (portfolio page)
-// Other pages use the legacy sidebar (id="sidebar") with inline JavaScript
+// This file handles the new sidebarNav (portfolio page at /portfolio/)
+// Other pages use the legacy sidebar (id="sidebar") with inline JavaScript in main.js
 
 class SidebarNavigation {
   constructor() {
-    // Only initialize if sidebarNav exists on this page
     const sidebarNavElement = document.getElementById('sidebarNav');
     if (!sidebarNavElement) {
-      // This page doesn't use sidebarNav, it uses legacy sidebar
       return;
     }
 

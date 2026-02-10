@@ -12,6 +12,7 @@ import datetime
 import os
 import re
 import time
+import json
 
 import requests
 from bs4 import BeautifulSoup
@@ -43,7 +44,7 @@ def search_news(query: str) -> str:
     """
     try:
         # 解析参数（支持直接传入字符串或JSON字符串）
-        import json
+
         if isinstance(query, str):
             if query.strip().startswith('{'):
                 # 如果是JSON格式: {"query": "关键词"}
@@ -104,7 +105,7 @@ def fetch_webpage(url: str) -> str:
     """
     try:
         # 解析参数（支持直接传入字符串或JSON字符串）
-        import json
+
         if isinstance(url, str):
             if url.strip().startswith('{'):
                 # 如果是JSON格式: {"url": "https://..."}
@@ -895,7 +896,7 @@ class AIAnalyzer:
                 """
                 try:
                     # 解析参数（支持直接传入数字或JSON字符串）
-                    import json
+
                     if isinstance(count, str):
                         if count.strip().startswith('{'):
                             # 如果是JSON格式: {"count": 30}
@@ -1092,7 +1093,7 @@ class AIAnalyzer:
                 """
                 try:
                     # 解析参数（支持直接传入字符串或JSON字符串）
-                    import json
+
                     if isinstance(url, str):
                         if url.strip().startswith('{'):
                             # 如果是JSON格式: {"url": "https://..."}

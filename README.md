@@ -27,7 +27,7 @@ CLI 模式现在支持从服务器自动同步基金配置，实现多端数据�
 首次使用需要初始化服务器连接配置：
 
 ```bash
-python fund.py --init / fund.exe --int
+python fund.py --init / fund.exe --init
 ```
 
 按提示输入：

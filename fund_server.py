@@ -50,19 +50,15 @@ db = Database()  # 初始化数据库
 def login():
     """登录页面和处理"""
     if request.method == 'GET':
-        # 检查是否有记住我的cookie
         remember_token = request.cookies.get('remember_token')
         if remember_token:
-            # 尝试从token中解析用户信息并自动登录
             try:
                 import hashlib
-                # token格式: username:hashed_password
                 parts = remember_token.split(':')
                 if len(parts) == 2:
                     username, token_hash = parts
                     user = db.get_user_by_username(username)
                     if user:
-                        # 验证token是否匹配
                         expected_hash = hashlib.sha256(f"{username}:{user['password_hash']}".encode()).hexdigest()
                         if token_hash == expected_hash:
                             login_user(user['id'], username)
@@ -72,7 +68,6 @@ def login():
 
         return render_template('login.html')
 
-    # POST request - handle login
     username = request.form.get('username', '').strip()
     password = request.form.get('password', '')
     remember_me = request.form.get('remember_me') == '1'
@@ -85,7 +80,6 @@ def login():
         login_user(user_id, username)
         response = redirect(url_for('get_fund'))
 
-        # 如果勾选了记住我，设置cookie（7天有效）
         if remember_me:
             import hashlib
             user = db.get_user_by_username(username)
@@ -105,12 +99,10 @@ def register():
     if request.method == 'GET':
         return render_template('register.html')
 
-    # POST request - handle registration
     username = request.form.get('username', '').strip()
     password = request.form.get('password', '')
     confirm_password = request.form.get('confirm_password', '')
 
-    # 验证输入
     if not username or not password:
         return render_template('register.html', error='请输入用户名和密码')
 
@@ -123,10 +115,8 @@ def register():
     if password != confirm_password:
         return render_template('register.html', error='两次输入的密码不一致')
 
-    # 创建用户
     success, message, user_id = db.create_user(username, password)
     if success:
-        # 注册成功，自动登录
         login_user(user_id, username)
         return redirect(url_for('get_fund'))
     else:
@@ -138,7 +128,6 @@ def logout():
     """登出"""
     logout_user()
     response = redirect(url_for('login'))
-    # 清除记住我的cookie
     response.set_cookie('remember_token', '', max_age=0)
     return response
 
@@ -233,7 +222,6 @@ def api_fund_sector():
         importlib.reload(fund)
         my_fund = fund.LanFund(user_id=user_id, db=db)
         code_list = [c.strip() for c in codes.split(',')]
-        # 使用Web专用方法
         my_fund.mark_fund_sector_web(code_list, sectors)
         return {'success': True, 'message': f'已标注板块: {codes} -> {", ".join(sectors)}'}
     except Exception as e:
@@ -254,15 +242,12 @@ def api_fund_sector_remove():
         importlib.reload(fund)
         my_fund = fund.LanFund(user_id=user_id, db=db)
         code_list = [c.strip() for c in codes.split(',')]
-        # 使用Web专用方法
         my_fund.unmark_fund_sector_web(code_list)
         return {'success': True, 'message': f'已删除板块标记: {codes}'}
     except Exception as e:
         logger.error(f"删除板块标记失败: {e}")
         return {'success': False, 'message': f'操作失败: {str(e)}'}
 
-
-# ==================== File Upload/Download ====================
 
 @app.route('/api/fund/upload', methods=['POST'])
 @login_required
@@ -279,11 +264,9 @@ def api_fund_upload():
         if not file.filename.endswith('.json'):
             return {'success': False, 'message': '只支持JSON文件'}
 
-        # 读取并解析JSON
-        content = file.read().decode('gbk')  # 使用GBK编码
+        content = file.read().decode('gbk')
         fund_map = json.loads(content)
 
-        # 验证数据格式
         if not isinstance(fund_map, dict):
             return {'success': False, 'message': '文件格式错误：应为JSON对象'}
 
@@ -293,7 +276,6 @@ def api_fund_upload():
             if 'fund_key' not in fund_data or 'fund_name' not in fund_data:
                 return {'success': False, 'message': f'基金{code}缺少必要字段'}
 
-        # 保存到数据库
         user_id = get_current_user_id()
         success = db.save_user_funds(user_id, fund_map)
 
@@ -317,7 +299,6 @@ def api_fund_download():
         user_id = get_current_user_id()
         fund_map = db.get_user_funds(user_id)
 
-        # 生成JSON文件
         import tempfile
         with tempfile.NamedTemporaryFile(mode='w', encoding='gbk', suffix='.json', delete=False) as f:
             json.dump(fund_map, f, ensure_ascii=False, indent=4)
@@ -335,7 +316,6 @@ def api_fund_download():
         return {'success': False, 'message': f'下载失败: {str(e)}'}
 
 
-# ==================== Shares Management ====================
 
 @app.route('/api/fund/shares', methods=['POST'])
 @login_required
@@ -360,7 +340,6 @@ def api_fund_shares():
         success = db.update_fund_shares(user_id, code, shares)
 
         if success:
-            # 如果份额>0，自动标记为持有
             if shares > 0:
                 fund_map = db.get_user_funds(user_id)
                 if code in fund_map:
@@ -396,14 +375,21 @@ def api_fund_refresh():
     """刷新基金数据（获取最新估值等）"""
     try:
         user_id = get_current_user_id()
+        held_only = request.args.get('held_only', 'false').lower() == 'true'
+
         importlib.reload(fund)
         my_fund = fund.LanFund(user_id=user_id, db=db)
 
-        # 调用基础函数获取最新基金数据
-        # search_code(True) 返回格式: [[代码, 名称, 时间, 净值, 估值, 日涨幅, 连涨/跌, 近30天], ...]
+        if held_only:
+            fund_map = db.get_user_funds(user_id)
+            held_codes = [code for code, data in fund_map.items()
+                          if data.get('is_hold', False) or data.get('shares', 0) > 0]
+            if held_codes:
+                original_cache = dict(my_fund.CACHE_MAP)
+                my_fund.CACHE_MAP = {code: original_cache[code] for code in held_codes if code in original_cache}
+
         result = my_fund.search_code(is_return=True)
 
-        # 转换为 JSON 格式
         funds = []
         for item in result:
             funds.append({

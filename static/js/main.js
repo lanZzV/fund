@@ -86,7 +86,6 @@
                     return;
                 }
 
-                // Handle "利好" (bullish/positive) and "利空" (bearish/negative) for news
                 if (text === '利好') {
                     cell.classList.add('positive');
                     return;
@@ -165,6 +164,13 @@
     function parseValue(val) {
         if (val === 'N/A' || val === '--' || val === '---' || val === '') {
             return -Infinity;
+        }
+        const percentMatch = val.match(/(-?[\d.]+)%/);
+        if (percentMatch) {
+            const num = parseFloat(percentMatch[1]);
+            if (!isNaN(num)) {
+                return num;
+            }
         }
         const cleanedVal = val.replace(/[%亿万元\/克手]/g, '').replace(/[¥,]/g, '');
         const num = parseFloat(cleanedVal);
@@ -790,15 +796,12 @@
                 }
                 const realValueSpan = estimatedGainEl.querySelector('.real-value');
                 if (realValueSpan) {
-                    // 不显示 +/- 符号，用颜色区分
                     realValueSpan.textContent = `¥${Math.abs(estimatedGain).toLocaleString('zh-CN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
                 }
-                // 百分比也不显示 +/- 符号
-                estimatedGainPctEl.textContent = ` (${Math.abs(estGainPct).toFixed(2)}%)`;
+                estimatedGainPctEl.textContent = ` (${estGainPct >= 0 ? estGainPct.toFixed(2) : '-' + Math.abs(estGainPct).toFixed(2)}%)`;
                 estimatedGainPctEl.style.color = estimatedGain >= 0 ? '#f44336' : '#4caf50';
             }
 
-            // 更新今日实际（只有当有基金净值更新至今日时才显示数值）
             const actualGainEl = document.getElementById('actualGain');
             const actualGainPctEl = document.getElementById('actualGainPct');
             if (actualGainEl && actualGainPctEl) {
@@ -812,7 +815,7 @@
                     if (realValueSpan) {
                         realValueSpan.textContent = `¥${Math.abs(actualGain).toLocaleString('zh-CN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
                     }
-                    actualGainPctEl.textContent = ` (${Math.abs(actGainPct).toFixed(2)}%)`;
+                    actualGainPctEl.textContent = ` (${actGainPct >= 0 ? actGainPct.toFixed(2) : '-' + Math.abs(actGainPct).toFixed(2)}%)`;
                     actualGainPctEl.style.color = actualGain >= 0 ? '#f44336' : '#4caf50';
                 } else {
                     const sensitiveSpan = actualGainEl.querySelector('.sensitive-value');
@@ -864,9 +867,9 @@
                                 <td style="padding: 10px; text-align: center; vertical-align: middle;"><button onclick="openSharesModal('${fund.code}')" style="padding: 4px 10px; background: ${sharesBtnColor}; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px; transition: all 0.2s;">${sharesBtnText}</button></td>
                                 <td class="sensitive-value" style="padding: 10px; text-align: center; vertical-align: middle; font-family: var(--font-mono); font-weight: 600;"><span class="real-value">¥${fund.positionValue.toLocaleString('zh-CN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span><span class="hidden-value">****</span></td>
                                 <td class="sensitive-value ${fund.estimatedGain >= 0 ? 'positive' : 'negative'}" style="padding: 10px; text-align: center; vertical-align: middle; font-family: var(--font-mono); color: ${estColor}; font-weight: 500;"><span class="real-value">${estGainText}</span><span class="hidden-value">****</span></td>
-                                <td class="${fund.estimatedGain >= 0 ? 'positive' : 'negative'}" style="padding: 10px; text-align: center; vertical-align: middle; font-family: var(--font-mono); color: ${estColor}; font-weight: 500;">${Math.abs(fund.estimatedGainPct).toFixed(2)}%</td>
+                                <td class="${fund.estimatedGain >= 0 ? 'positive' : 'negative'}" style="padding: 10px; text-align: center; vertical-align: middle; font-family: var(--font-mono); color: ${estColor}; font-weight: 500;">${fund.estimatedGainPct >= 0 ? fund.estimatedGainPct.toFixed(2) : '-' + Math.abs(fund.estimatedGainPct).toFixed(2)}%</td>
                                 <td class="sensitive-value ${fund.actualGain >= 0 ? 'positive' : 'negative'}" style="padding: 10px; text-align: center; vertical-align: middle; font-family: var(--font-mono); color: ${actColor}; font-weight: 500;"><span class="real-value">${actGainText}</span><span class="hidden-value">****</span></td>
-                                <td class="${fund.actualGain >= 0 ? 'positive' : 'negative'}" style="padding: 10px; text-align: center; vertical-align: middle; font-family: var(--font-mono); color: ${actColor}; font-weight: 500;">${Math.abs(fund.actualGainPct).toFixed(2)}%</td>
+                                <td class="${fund.actualGain >= 0 ? 'positive' : 'negative'}" style="padding: 10px; text-align: center; vertical-align: middle; font-family: var(--font-mono); color: ${actColor}; font-weight: 500;">${fund.actualGainPct >= 0 ? fund.actualGainPct.toFixed(2) : '-' + Math.abs(fund.actualGainPct).toFixed(2)}%</td>
                             </tr>
                         `;
                     }).join('');
@@ -1089,6 +1092,32 @@
         window.confirmShares = confirmShares;
         window.getFundShares = getFundShares;
 
+        window.filterHeldFunds = function() {
+            const filterCheckbox = document.getElementById('filterHeldOnly');
+            const isFiltered = filterCheckbox ? filterCheckbox.checked : false;
+            const table = document.querySelector('.fund-content .style-table');
+            if (!table) return;
+
+            const rows = table.querySelectorAll('tbody tr');
+            rows.forEach(row => {
+                const nameCell = row.cells[1];
+                if (nameCell) {
+                    const nameText = nameCell.textContent.trim();
+                    const isHeld = nameText.includes('⭐');
+                    row.style.display = (isFiltered && !isHeld) ? 'none' : '';
+                }
+            });
+
+            if (typeof calculatePositionSummary === 'function') {
+                calculatePositionSummary();
+            }
+        };
+
+        window.getFilterHeldOnly = function() {
+            const filterCheckbox = document.getElementById('filterHeldOnly');
+            return filterCheckbox ? filterCheckbox.checked : false;
+        };
+
         let refreshInterval;
         const REFRESH_INTERVAL = 60000;
 
@@ -1142,7 +1171,6 @@
             } catch (e) {
                 console.error('Refresh failed:', e);
             } finally {
-                // Restore button state
                 if (refreshBtn) {
                     refreshBtn.disabled = false;
                     refreshBtn.innerHTML = '🔄 刷新';
@@ -1158,7 +1186,8 @@
                     updateTimingChart(timingResult.data);
                 }
 
-                const fundRes = await fetch('/api/fund/refresh');
+                const isFiltered = window.getFilterHeldOnly ? window.getFilterHeldOnly() : false;
+                const fundRes = await fetch(`/api/fund/refresh?held_only=${isFiltered}`);
                 const fundResult = await fundRes.json();
                 if (fundResult.success && fundResult.data) {
                     updateFundTable(fundResult.data);
@@ -1355,7 +1384,6 @@
         }
 
         function updateGoldOneDayChart(data) {
-            // Update gold one-day timing chart if exists
             if (!data || !Array.isArray(data) || data.length === 0) return;
 
             const labels = [];
@@ -1363,14 +1391,12 @@
 
             data.forEach(item => {
                 if (item.date && item.price !== undefined) {
-                    // 只显示时间部分 (HH:MM:SS)
                     const timePart = item.date.split(' ')[1] || item.date;
                     labels.push(timePart);
                     prices.push(parseFloat(item.price));
                 }
             });
 
-            // 获取最新价格和时间用于图例显示
             let labelText = '金价 (元/克)';
             if (data.length > 0) {
                 const latestData = data[data.length - 1];
@@ -1379,7 +1405,6 @@
             }
 
             if (window.goldOneDayChartInstance) {
-                // 更新现有图表
                 window.goldOneDayChartInstance.data.labels = labels;
                 window.goldOneDayChartInstance.data.datasets[0].data = prices;
                 window.goldOneDayChartInstance.data.datasets[0].label = labelText;
@@ -1388,7 +1413,6 @@
         }
 
         function updateGoldHistoryTable(data) {
-            // Similar implementation for gold history table
             const tables = document.querySelectorAll('.style-table');
             if (tables.length > 1 && data) {
                 const tbody = tables[1].querySelector('tbody');
@@ -1431,7 +1455,6 @@
                 const tbody = table.querySelector('tbody');
                 if (tbody) {
                     tbody.innerHTML = data.map(item => {
-                        // 为利好/利空添加颜色类
                         let sourceClass = '';
                         if (item.source === '利好') {
                             sourceClass = 'positive';

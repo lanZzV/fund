@@ -54,7 +54,6 @@ def enhance_fund_tab_content(content, shares_map=None):
         content: HTML content to enhance
         shares_map: Dict mapping fund_code -> shares value (optional)
     """
-    # 添加文件操作和持仓统计区域
     file_operations = """
         <div class="file-operations" style="margin-bottom: 15px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
             <button class="btn btn-secondary" onclick="downloadFundMap()" style="padding: 8px 16px;">📥 导出基金列表</button>
@@ -66,7 +65,6 @@ def enhance_fund_tab_content(content, shares_map=None):
         </div>
     """
 
-    # 添加持仓统计区域（将通过JavaScript动态填充）
     position_summary = """
         <div id="positionSummary" class="position-summary" style="display: none; background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px; padding: 20px; margin-bottom: 20px;">
             <h3 style="margin: 0 0 15px 0; font-size: 18px; font-weight: 600; color: var(--text-main); display: flex; justify-content: space-between; align-items: center;">
@@ -107,7 +105,7 @@ def enhance_fund_tab_content(content, shares_map=None):
         </div>
 
         <div id="fundDetailsSummary" class="fund-details-summary" style="display: none; background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px; padding: 20px; margin-bottom: 20px;">
-            <h3 style="margin: 0 0 15px 0; font-size: 16px; font-weight: 600; color: var(--text-main);">📊 分基金涨跌明细</h3>
+            <h3 style="margin: 0 0 15px 0; font-size: 16px; font-weight: 600; color: var(--text-main);">📊 持仓基金涨跌明细</h3>
             <div style="overflow-x: auto;">
                 <table id="fundDetailsTable" style="width: 100%; min-width: 700px; border-collapse: collapse; font-size: 13px; table-layout: auto; white-space: nowrap;">
                     <thead>
@@ -189,20 +187,22 @@ def enhance_fund_tab_content(content, shares_map=None):
         </div>
     """
 
-    # 添加操作按钮面板
     operations_panel = """
         <div class="fund-operations">
             <div class="operation-group">
-                <button class="btn btn-success" onclick="openFundSelectionModal('hold')">⭐ 标记持有</button>
-                <button class="btn btn-secondary" onclick="openFundSelectionModal('unhold')">☆ 取消持有</button>
+                <button class="btn btn-success" onclick="openFundSelectionModal('hold')">⭐ 添加标记</button>
+                <button class="btn btn-secondary" onclick="openFundSelectionModal('unhold')">☆ 删除标记</button>
                 <button class="btn btn-info" onclick="openFundSelectionModal('sector')">🏷️ 标注板块</button>
                 <button class="btn btn-warning" onclick="openFundSelectionModal('unsector')">🏷️ 删除板块</button>
                 <button class="btn btn-danger" onclick="openFundSelectionModal('delete')">🗑️ 删除基金</button>
+                <label class="filter-hold-label" style="margin-left: 15px; display: flex; align-items: center; cursor: pointer; white-space: nowrap;">
+                    <input type="checkbox" id="filterHeldOnly" onchange="filterHeldFunds()" style="margin-right: 5px; width: 16px; height: 16px; cursor: pointer;">
+                    <span style="font-size: 14px; color: var(--text-main);">仅展示标记基金</span>
+                </label>
             </div>
         </div>
     """
 
-    # 简化的添加基金输入框
     add_fund_area = """
         <div class="add-fund-input">
             <input type="text" id="fundCodesInput" placeholder="输入基金代码（逗号分隔，如：016858,007872）">
@@ -210,21 +210,16 @@ def enhance_fund_tab_content(content, shares_map=None):
         </div>
     """
 
-    # 在"近30天"列后添加"持仓份额"列
     content = re.sub(r'(<th[^>]*>近30天</th>)',
                      r'\1\n                    <th>持仓份额</th>',
                      content, count=1)
 
-    # 在每个数据行添加份额输入框
-    # 先找到所有表格行，然后在包含基金代码的行末尾添加份额输入框
     def add_shares_to_row(match):
         row_content = match.group(0)
-        # 从行内容中提取第一个6位数字（基金代码）- 假设第一列是基金代码
         code_match = re.search(r'<td[^>]*>(\d{6})</td>', row_content)
         if code_match:
             fund_code = code_match.group(1)
 
-            # 根据份额数据确定按钮状态
             shares = 0
             if shares_map and fund_code in shares_map:
                 try:
@@ -232,15 +227,13 @@ def enhance_fund_tab_content(content, shares_map=None):
                 except (ValueError, TypeError):
                     shares = 0
 
-            # 根据份额值设置按钮文本和颜色
             if shares > 0:
                 button_text = '修改'
-                button_color = '#10b981'  # 绿色
+                button_color = '#10b981'
             else:
                 button_text = '设置'
-                button_color = '#3b82f6'  # 蓝色
+                button_color = '#3b82f6'
 
-            # 在行末添加份额设置按钮（在</tr>之前）- 去掉最后的</tr>，添加按钮后再加回
             row_with_shares = row_content[:-5] + f'''<td>
                 <button class="shares-button" id="sharesBtn_{fund_code}"
                         onclick="openSharesModal('{fund_code}')"
@@ -251,7 +244,6 @@ def enhance_fund_tab_content(content, shares_map=None):
             return row_with_shares
         return row_content
 
-    # 匹配完整的表格行（非贪婪匹配行内容）
     content = re.sub(r'<tr>.*?</tr>', add_shares_to_row, content, flags=re.DOTALL)
 
     return file_operations + position_summary + operations_panel + add_fund_area + content
@@ -305,25 +297,20 @@ def get_table_html(title, data, sortable_columns=None):
 
 def generate_fund_row_html(fund_code, fund_data, is_held=True):
     """Generate a single fund row (replaces holdings cards)"""
-    # Extract fund data
     name = fund_data.get('fund_name', '')
     sectors = fund_data.get('sectors', [])
     shares = fund_data.get('shares', 0)
 
-    # Escape fund_code and name for safe HTML/JavaScript usage
     safe_code = html.escape(str(fund_code))
     safe_name = html.escape(str(name))
 
-    # Build sector tags
     sector_tags = ''
     if is_held:
         sector_tags += '<span class="tag tag-hold">⭐ 持有</span>'
     if sectors:
-        # Display sectors with icon and gray text (like delete sector popup style)
         safe_sectors = html.escape(', '.join(str(s) for s in sectors))
         sector_tags += f'<span style="color: #8b949e; font-size: 12px;"> 🏷️ {safe_sectors}</span>'
 
-    # Shares input (only for held funds)
     shares_html = ''
     if is_held:
         shares_html = f'''<div class="metric metric-shares">
@@ -2106,7 +2093,6 @@ def get_market_indices_page_html(market_charts=None, chart_data=None, timing_dat
         username_display += '<span class="nav-user">🍎 {username}</span>'.format(username=username)
         username_display += '<a href="/logout" class="nav-logout">退出登录</a>'
 
-    # 准备图表数据JSON (optional, for future chart enhancements)
     indices_data_json = json.dumps(
         chart_data.get('indices', {'labels': [], 'prices': [], 'changes': []}) if chart_data else {'labels': [],
                                                                                                    'prices': [],
@@ -2115,12 +2101,10 @@ def get_market_indices_page_html(market_charts=None, chart_data=None, timing_dat
         chart_data.get('volume', {'labels': [], 'total': [], 'sh': [], 'sz': [], 'bj': []}) if chart_data else {
             'labels': [], 'total': [], 'sh': [], 'sz': [], 'bj': []})
 
-    # 准备上证分时数据JSON
     timing_data_json = json.dumps(
         timing_data if timing_data else {'labels': [], 'prices': [], 'change_pcts': [], 'change_amounts': [],
                                          'volumes': [], 'amounts': []})
 
-    # 生成市场指数HTML - 两行布局
     market_content = '''
         <!-- 市场指数区域 -->
         <div class="market-indices-section" style="padding: 30px;">
@@ -2610,7 +2594,6 @@ def get_portfolio_page_html(fund_content, fund_map, fund_chart_data=None, fund_c
         username_display += '<span class="nav-user">🍎 {username}</span>'.format(username=username)
         username_display += '<a href="/logout" class="nav-logout">退出登录</a>'
 
-    # 准备估值趋势图数据JSON
     fund_chart_data_json = json.dumps(
         fund_chart_data if fund_chart_data else {'labels': [], 'growth': [], 'net_values': []})
     fund_chart_info_json = json.dumps(fund_chart_info if fund_chart_info else {})

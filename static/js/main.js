@@ -6,12 +6,8 @@
     };
 
     document.addEventListener('DOMContentLoaded', function() {
-        // Initialize Auto Colorize
         autoColorize();
 
-        // Legacy Sidebar Toggle (id="sidebar")
-        // Used by /market, /market-indices, /precious-metals, /sectors pages
-        // Note: /portfolio/ uses sidebarNav with sidebar-nav.js instead
         const sidebar = document.getElementById('sidebar');
         const sidebarToggle = document.getElementById('sidebarToggle');
 
@@ -20,21 +16,17 @@
                 e.preventDefault();
                 e.stopPropagation();
                 sidebar.classList.toggle('collapsed');
-                // Update toggle button direction
                 const isCollapsed = sidebar.classList.contains('collapsed');
                 sidebarToggle.textContent = isCollapsed ? '▶' : '◀';
                 sidebarToggle.title = isCollapsed ? '展开' : '折叠';
             });
         }
 
-        // Mobile Hamburger Menu for Legacy Sidebar
         const hamburger = document.getElementById('hamburgerMenu');
         const mobileSidebar = document.getElementById('sidebar');
         let sidebarOverlay = document.getElementById('sidebarOverlay');
 
-        // Only initialize if hamburger menu exists (mobile support)
         if (hamburger && mobileSidebar) {
-            // Create overlay if not exists
             if (!sidebarOverlay) {
                 sidebarOverlay = document.createElement('div');
                 sidebarOverlay.id = 'sidebarOverlay';
@@ -42,12 +34,10 @@
                 document.body.appendChild(sidebarOverlay);
             }
 
-            // Toggle sidebar
             hamburger.addEventListener('click', function(e) {
                 e.preventDefault();
                 e.stopPropagation();
                 const isActive = mobileSidebar.classList.contains('mobile-active');
-
                 if (isActive) {
                     closeMobileSidebar();
                 } else {
@@ -55,17 +45,14 @@
                 }
             });
 
-            // Close sidebar when clicking overlay
             sidebarOverlay.addEventListener('click', closeMobileSidebar);
 
-            // Close sidebar when window is resized to desktop
             window.addEventListener('resize', function() {
                 if (window.innerWidth > 768) {
                     closeMobileSidebar();
                 }
             });
 
-            // Close sidebar when clicking navigation links
             const sidebarLinks = mobileSidebar.querySelectorAll('.sidebar-item');
             sidebarLinks.forEach(link => {
                 link.addEventListener('click', closeMobileSidebar);
@@ -75,29 +62,26 @@
                 mobileSidebar.classList.add('mobile-active');
                 hamburger.classList.add('active');
                 sidebarOverlay.classList.add('active');
-                document.body.style.overflow = 'hidden'; // Prevent background scrolling
+                document.body.style.overflow = 'hidden';
             }
 
             function closeMobileSidebar() {
                 mobileSidebar.classList.remove('mobile-active');
                 hamburger.classList.remove('active');
                 sidebarOverlay.classList.remove('active');
-                document.body.style.overflow = ''; // Restore scrolling
+                document.body.style.overflow = '';
             }
         }
     });
 
     function autoColorize() {
-        // Use requestAnimationFrame to ensure DOM is updated
         requestAnimationFrame(() => {
             const cells = document.querySelectorAll('.style-table td');
             cells.forEach(cell => {
-                // Clear existing color classes first
                 cell.classList.remove('positive', 'negative');
 
                 const text = cell.textContent.trim();
 
-                // Skip empty cells or non-data cells
                 if (!text || text === '-' || text === 'N/A' || text === '---') {
                     return;
                 }
@@ -111,14 +95,11 @@
                     return;
                 }
 
-                // Check for percentage format (including cases like +0.15% or -0.15%)
                 if (text.includes('%')) {
-                    // Special handling for "X/Y Z%" format (近30天列) - extract the last percentage
                     let cleanText;
                     if (text.includes('/') && text.includes(' ')) {
-                        // Format like "10/21 -1.14%" - extract the percentage part after space
                         const parts = text.split(' ');
-                        const percentPart = parts[parts.length - 1]; // Get last part
+                        const percentPart = parts[parts.length - 1];
                         cleanText = percentPart.replace(/[%,亿万手]/g, '');
                     } else {
                         cleanText = text.replace(/[%,亿万手]/g, '');
@@ -127,14 +108,12 @@
 
                     if (!isNaN(val)) {
                         if (val < 0 || text.includes('-')) {
-                            cell.classList.add('negative');  // Green for negative
+                            cell.classList.add('negative');
                         } else if (val > 0 || text.includes('+')) {
-                            cell.classList.add('positive');   // Red for positive
+                            cell.classList.add('positive');
                         }
-                        // val === 0 gets no color (neutral)
                     }
                 }
-                // Check for values starting with + or - (not percentages)
                 else if (text.startsWith('+')) {
                     cell.classList.add('positive');
                 } else if (text.startsWith('-')) {
@@ -193,25 +172,20 @@
     }
 
     function openTab(evt, tabId) {
-        // Hide all tab contents
         const allContents = document.querySelectorAll('.tab-content');
         allContents.forEach(content => {
             content.classList.remove('active');
         });
 
-        // Remove active class from all tab buttons
         const allButtons = document.querySelectorAll('.tab-button');
         allButtons.forEach(button => {
             button.classList.remove('active');
         });
 
-        // Show the clicked tab's content and add active class to the button
         document.getElementById(tabId).classList.add('active');
         evt.currentTarget.classList.add('active');
     }
 
-    // Fund Operations Functions
-    // 板块分类数据
     const SECTOR_CATEGORIES = {
         "科技": ["人工智能", "半导体", "云计算", "5G", "光模块", "CPO", "F5G", "通信设备", "PCB", "消费电子",
                 "计算机", "软件开发", "信创", "网络安全", "IT服务", "国产软件", "计算机设备", "光通信",
@@ -241,18 +215,15 @@
                 "国家安防", "安全主题", "农牧主题", "农林牧渔", "养殖业", "猪肉", "高端装备"]
     };
 
-    // 基金选择模态框相关变量
     let currentOperation = null;
     let selectedFundsForOperation = [];
     let allFunds = [];
-    let currentFilteredFunds = []; // 当前过滤后的基金列表
+    let currentFilteredFunds = [];
 
-    // 打开基金选择模态框
     async function openFundSelectionModal(operation) {
         currentOperation = operation;
         selectedFundsForOperation = [];
 
-        // 设置标题
         const titles = {
             'hold': '选择要标记持有的基金',
             'unhold': '选择要取消持有的基金',
@@ -262,7 +233,6 @@
         };
         document.getElementById('fundSelectionTitle').textContent = titles[operation] || '选择基金';
 
-        // 获取所有基金列表
         try {
             const response = await fetch('/api/fund/data');
             const fundMap = await response.json();
@@ -273,43 +243,32 @@
                 sectors: data.sectors || []
             }));
 
-            // 根据操作类型过滤基金列表
             let filteredFunds = allFunds;
             switch (operation) {
                 case 'hold':
-                    // 标记持有：只显示未持有的基金
                     filteredFunds = allFunds.filter(fund => !fund.is_hold);
                     break;
                 case 'unhold':
-                    // 取消持有：只显示已持有的基金
                     filteredFunds = allFunds.filter(fund => fund.is_hold);
                     break;
                 case 'unsector':
-                    // 删除板块：只显示有板块标记的基金
                     filteredFunds = allFunds.filter(fund => fund.sectors && fund.sectors.length > 0);
                     break;
                 case 'sector':
                 case 'delete':
                 default:
-                    // 标注板块、删除基金：显示所有基金
                     filteredFunds = allFunds;
                     break;
             }
 
-            // 保存当前过滤后的列表，供搜索使用
             currentFilteredFunds = filteredFunds;
-
-            // 渲染基金列表
             renderFundSelectionList(filteredFunds);
-
-            // 显示模态框
             document.getElementById('fundSelectionModal').classList.add('active');
         } catch (e) {
             alert('获取基金列表失败: ' + e.message);
         }
     }
 
-    // 渲染基金选择列表
     function renderFundSelectionList(funds) {
         const listContainer = document.getElementById('fundSelectionList');
         listContainer.innerHTML = funds.map(fund => `
@@ -326,20 +285,17 @@
         `).join('');
     }
 
-    // 切换基金选择状态（点击整个行）
     function toggleFundSelection(code, element) {
         const checkbox = element.querySelector('.fund-selection-checkbox');
         checkbox.checked = !checkbox.checked;
         updateFundSelection(code, checkbox.checked, element);
     }
 
-    // 切换基金选择状态（点击复选框）
     function toggleFundSelectionByCheckbox(code, checkbox) {
         const element = checkbox.closest('.sector-item');
         updateFundSelection(code, checkbox.checked, element);
     }
 
-    // 更新基金选择状态
     function updateFundSelection(code, checked, element) {
         if (checked) {
             if (!selectedFundsForOperation.includes(code)) {
@@ -352,21 +308,18 @@
         }
     }
 
-    // 关闭基金选择模态框
     function closeFundSelectionModal() {
         document.getElementById('fundSelectionModal').classList.remove('active');
         currentOperation = null;
         selectedFundsForOperation = [];
     }
 
-    // 确认基金选择
     async function confirmFundSelection() {
         if (selectedFundsForOperation.length === 0) {
             alert('请至少选择一个基金');
             return;
         }
 
-        // 根据操作类型执行相应的操作
         switch (currentOperation) {
             case 'hold':
                 await markHold(selectedFundsForOperation);
@@ -375,10 +328,10 @@
                 await unmarkHold(selectedFundsForOperation);
                 break;
             case 'sector':
-                const selectedCodes = selectedFundsForOperation; // 先保存选中的基金代码
+                const selectedCodes = selectedFundsForOperation;
                 closeFundSelectionModal();
                 openSectorModal(selectedCodes);
-                return; // 不关闭，等待板块选择
+                return;
             case 'unsector':
                 await removeSector(selectedFundsForOperation);
                 break;
@@ -390,13 +343,11 @@
         closeFundSelectionModal();
     }
 
-    // 基金选择搜索
     document.addEventListener('DOMContentLoaded', function() {
         const searchInput = document.getElementById('fundSelectionSearch');
         if (searchInput) {
             searchInput.addEventListener('input', function() {
                 const keyword = this.value.toLowerCase();
-                // 在当前过滤后的列表中搜索，而不是在所有基金中搜索
                 const filtered = currentFilteredFunds.filter(fund =>
                     fund.code.includes(keyword) || fund.name.toLowerCase().includes(keyword)
                 );
@@ -405,7 +356,6 @@
         }
     });
 
-    // 确认对话框相关函数
     let confirmCallback = null;
 
     function showConfirmDialog(title, message, onConfirm) {
@@ -420,7 +370,6 @@
         confirmCallback = null;
     }
 
-    // 确认对话框按钮事件 - confirmBtn 只在 portfolio 页面存在
     const confirmBtn = document.getElementById('confirmBtn');
     if (confirmBtn) {
         confirmBtn.addEventListener('click', function() {
@@ -431,7 +380,6 @@
         });
     }
 
-    // 添加基金
     async function addFunds() {
         const input = document.getElementById('fundCodesInput');
         const codes = input.value.trim();
@@ -458,7 +406,6 @@
         }
     }
 
-    // 删除基金
     async function deleteFunds(codes) {
         showConfirmDialog(
             '删除基金',
@@ -484,7 +431,6 @@
         );
     }
 
-    // 标记持有
     async function markHold(codes) {
         showConfirmDialog(
             '标记持有',
@@ -510,7 +456,6 @@
         );
     }
 
-    // 取消持有
     async function unmarkHold(codes) {
         showConfirmDialog(
             '取消持有',
@@ -536,7 +481,6 @@
         );
     }
 
-    // 打开板块选择模态框（用于标注板块）
     let selectedCodesForSector = [];
 
     function openSectorModal(codes) {
@@ -545,7 +489,6 @@
         renderSectorCategories();
     }
 
-    // 删除板块标记
     async function removeSector(codes) {
         showConfirmDialog(
             '删除板块标记',
@@ -571,11 +514,9 @@
         );
     }
 
-    // 板块选择相关
     let selectedSectors = [];
 
     function renderSectorCategories() {
-        // 生成板块分类HTML
         const container = document.getElementById('sectorCategories');
         container.innerHTML = '';
 
@@ -656,7 +597,6 @@
         }
     }
 
-    // 板块搜索功能
     document.addEventListener('DOMContentLoaded', function() {
         const searchInput = document.getElementById('sectorSearch');
         if (searchInput) {
@@ -683,9 +623,6 @@
             });
         }
 
-        // ==================== 新增功能：份额管理和文件操作 ====================
-
-        // 更新基金份额
         window.updateShares = async function(fundCode, shares) {
             if (!fundCode) {
                 alert('基金代码无效');
@@ -701,9 +638,7 @@
                 });
                 const result = await response.json();
                 if (result.success) {
-                    // 更新成功后重新计算持仓统计
                     calculatePositionSummary();
-                    // 可选：显示成功提示
                     const input = document.getElementById('shares_' + fundCode);
                     if (input) {
                         input.style.borderColor = '#4CAF50';
@@ -719,12 +654,10 @@
             }
         };
 
-        // 下载fund_map.json
         window.downloadFundMap = function() {
             window.location.href = '/api/fund/download';
         };
 
-        // 上传fund_map.json
         window.uploadFundMap = async function(file) {
             if (!file) {
                 alert('请选择文件');
@@ -756,36 +689,28 @@
             }
         };
 
-        // 计算并显示持仓统计
         function calculatePositionSummary() {
             let totalValue = 0;
             let estimatedGain = 0;
             let actualGain = 0;
             let settledValue = 0;
             const today = new Date().toISOString().split('T')[0];
-
-            // 存储每个基金的详细涨跌信息
             const fundDetailsData = [];
 
-            // 遍历所有基金行
             const fundRows = document.querySelectorAll('.style-table tbody tr');
             fundRows.forEach(row => {
                 const cells = row.querySelectorAll('td');
                 if (cells.length < 6) return;
 
-                // 获取基金代码（第一列）
                 const codeCell = cells[0];
                 const fundCode = codeCell.textContent.trim();
 
-                // 从全局数据获取份额
                 const shares = (window.fundSharesData && window.fundSharesData[fundCode]) || 0;
                 if (shares <= 0) return;
 
                 try {
-                    // 获取基金名称（第二列，索引1），使用 innerHTML 保留 HTML 标签（如板块标签样式）
                     const fundName = cells[1].innerHTML.trim();
 
-                    // 解析净值 "1.234(2025-02-02)" (第四列，索引3)
                     const netValueText = cells[3].textContent.trim();
                     const netValueMatch = netValueText.match(/([0-9.]+)\(([0-9-]+)\)/);
                     if (!netValueMatch) return;
@@ -793,45 +718,34 @@
                     const netValue = parseFloat(netValueMatch[1]);
                     let netValueDate = netValueMatch[2];
 
-                    // 处理净值日期格式：API可能返回"MM-DD"或"YYYY-MM-DD"
-                    // 如果是"MM-DD"格式，添加当前年份
-                    if (netValueDate.length === 5) {  // 格式为"MM-DD"
+                    if (netValueDate.length === 5) {
                         const currentYear = new Date().getFullYear();
                         netValueDate = `${currentYear}-${netValueDate}`;
                     }
 
-                    // 解析估值增长率 (第五列，索引4)
                     const estimatedGrowthText = cells[4].textContent.trim();
                     const estimatedGrowth = estimatedGrowthText !== 'N/A' ?
                         parseFloat(estimatedGrowthText.replace('%', '')) : 0;
 
-                    // 解析日涨幅 (第六列，索引5)
                     const dayGrowthText = cells[5].textContent.trim();
                     const dayGrowth = dayGrowthText !== 'N/A' ?
                         parseFloat(dayGrowthText.replace('%', '')) : 0;
 
-                    // 计算持仓市值
                     const positionValue = shares * netValue;
                     totalValue += positionValue;
 
-                    // 计算预估涨跌（始终计算）
                     const fundEstimatedGain = positionValue * estimatedGrowth / 100;
                     estimatedGain += fundEstimatedGain;
 
-                    // 计算实际涨跌
-                    // 逻辑：只有当净值日期是今天时（今日净值已更新），才计算实际涨跌
                     let fundActualGain = 0;
                     if (netValueDate === today) {
-                        // 今日净值已更新，计算实际收益
                         fundActualGain = positionValue * dayGrowth / 100;
                         actualGain += fundActualGain;
                         settledValue += positionValue;
                     }
 
-                    // 获取板块数据
                     const sectors = window.fundSectorsData && window.fundSectorsData[fundCode] ? window.fundSectorsData[fundCode] : [];
 
-                    // 收集每个基金的详细涨跌信息
                     fundDetailsData.push({
                         code: fundCode,
                         name: fundName,
@@ -848,10 +762,8 @@
                 }
             });
 
-            // 保存基金明细数据到全局变量，供炫耀卡片使用
             window.fundDetailsData = fundDetailsData;
 
-            // 显示或隐藏持仓统计区域 (旧版布局)
             const summaryDiv = document.getElementById('positionSummary');
             if (summaryDiv && totalValue > 0) {
                 summaryDiv.style.display = 'block';
@@ -859,8 +771,6 @@
                 summaryDiv.style.display = 'none';
             }
 
-            // 更新持仓基金页面的汇总数据 (始终执行)
-            // 更新总持仓金额
             const totalValueEl = document.getElementById('totalValue');
             if (totalValueEl) {
                 totalValueEl.className = 'sensitive-value';
@@ -870,21 +780,21 @@
                 }
             }
 
-            // 更新今日预估
             const estimatedGainEl = document.getElementById('estimatedGain');
             const estimatedGainPctEl = document.getElementById('estimatedGainPct');
             if (estimatedGainEl && estimatedGainPctEl) {
                 const estGainPct = totalValue > 0 ? (estimatedGain / totalValue * 100) : 0;
-                const estSign = estimatedGain >= 0 ? '+' : '';
                 const sensitiveSpan = estimatedGainEl.querySelector('.sensitive-value');
                 if (sensitiveSpan) {
                     sensitiveSpan.className = estimatedGain >= 0 ? 'sensitive-value positive' : 'sensitive-value negative';
                 }
                 const realValueSpan = estimatedGainEl.querySelector('.real-value');
                 if (realValueSpan) {
-                    realValueSpan.textContent = `${estSign}¥${Math.abs(estimatedGain).toLocaleString('zh-CN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+                    // 不显示 +/- 符号，用颜色区分
+                    realValueSpan.textContent = `¥${Math.abs(estimatedGain).toLocaleString('zh-CN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
                 }
-                estimatedGainPctEl.textContent = ` (${estSign}${estGainPct.toFixed(2)}%)`;
+                // 百分比也不显示 +/- 符号
+                estimatedGainPctEl.textContent = ` (${Math.abs(estGainPct).toFixed(2)}%)`;
                 estimatedGainPctEl.style.color = estimatedGain >= 0 ? '#f44336' : '#4caf50';
             }
 
@@ -894,16 +804,15 @@
             if (actualGainEl && actualGainPctEl) {
                 if (settledValue > 0) {
                     const actGainPct = (actualGain / settledValue * 100);
-                    const actSign = actualGain >= 0 ? '+' : '';
                     const sensitiveSpan = actualGainEl.querySelector('.sensitive-value');
                     if (sensitiveSpan) {
                         sensitiveSpan.className = actualGain >= 0 ? 'sensitive-value positive' : 'sensitive-value negative';
                     }
                     const realValueSpan = actualGainEl.querySelector('.real-value');
                     if (realValueSpan) {
-                        realValueSpan.textContent = `${actSign}¥${Math.abs(actualGain).toLocaleString('zh-CN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+                        realValueSpan.textContent = `¥${Math.abs(actualGain).toLocaleString('zh-CN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
                     }
-                    actualGainPctEl.textContent = ` (${actSign}${actGainPct.toFixed(2)}%)`;
+                    actualGainPctEl.textContent = ` (${Math.abs(actGainPct).toFixed(2)}%)`;
                     actualGainPctEl.style.color = actualGain >= 0 ? '#f44336' : '#4caf50';
                 } else {
                     const sensitiveSpan = actualGainEl.querySelector('.sensitive-value');
@@ -918,10 +827,8 @@
                 }
             }
 
-            // 更新持仓数量
             const holdCountEl = document.getElementById('holdCount');
             if (holdCountEl) {
-                // 从全局数据计算持仓数量
                 let heldCount = 0;
                 if (window.fundSharesData) {
                     for (const code in window.fundSharesData) {
@@ -933,7 +840,6 @@
                 holdCountEl.textContent = heldCount + ' 只';
             }
 
-            // 填充分基金明细表格
             const fundDetailsDiv = document.getElementById('fundDetailsSummary');
             if (fundDetailsDiv && fundDetailsData.length > 0) {
                 fundDetailsDiv.style.display = 'block';
@@ -942,19 +848,25 @@
                     tableBody.innerHTML = fundDetailsData.map(fund => {
                         const estColor = fund.estimatedGain >= 0 ? '#f44336' : '#4caf50';
                         const actColor = fund.actualGain >= 0 ? '#f44336' : '#4caf50';
-                        const estSign = fund.estimatedGain >= 0 ? '+' : '';
-                        const actSign = fund.actualGain >= 0 ? '+' : '';
-                        // 基金名称中已包含板块标签，不再重复添加
+                        const estGainText = fund.estimatedGain >= 0
+                            ? `¥${fund.estimatedGain.toLocaleString('zh-CN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`
+                            : `-¥${Math.abs(fund.estimatedGain).toLocaleString('zh-CN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+                        const actGainText = fund.actualGain >= 0
+                            ? `¥${fund.actualGain.toLocaleString('zh-CN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`
+                            : `-¥${Math.abs(fund.actualGain).toLocaleString('zh-CN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+                        const sharesBtnText = fund.shares > 0 ? '修改' : '设置';
+                        const sharesBtnColor = fund.shares > 0 ? '#10b981' : '#3b82f6';
                         return `
                             <tr style="border-bottom: 1px solid var(--border);">
                                 <td style="padding: 10px; text-align: center; vertical-align: middle; color: var(--accent); font-weight: 500;">${fund.code}</td>
                                 <td style="padding: 10px; text-align: center; vertical-align: middle; color: var(--text-main); white-space: nowrap; min-width: 120px;">${fund.name}</td>
                                 <td class="sensitive-value" style="padding: 10px; text-align: center; vertical-align: middle; font-family: var(--font-mono);"><span class="real-value">${fund.shares.toLocaleString('zh-CN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span><span class="hidden-value">****</span></td>
+                                <td style="padding: 10px; text-align: center; vertical-align: middle;"><button onclick="openSharesModal('${fund.code}')" style="padding: 4px 10px; background: ${sharesBtnColor}; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px; transition: all 0.2s;">${sharesBtnText}</button></td>
                                 <td class="sensitive-value" style="padding: 10px; text-align: center; vertical-align: middle; font-family: var(--font-mono); font-weight: 600;"><span class="real-value">¥${fund.positionValue.toLocaleString('zh-CN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span><span class="hidden-value">****</span></td>
-                                <td class="sensitive-value ${estColor === '#f44336' ? 'positive' : 'negative'}" style="padding: 10px; text-align: center; vertical-align: middle; font-family: var(--font-mono); color: ${estColor}; font-weight: 500;"><span class="real-value">¥${Math.abs(fund.estimatedGain).toLocaleString('zh-CN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span><span class="hidden-value">****</span></td>
-                                <td class="${estColor === '#f44336' ? 'positive' : 'negative'}" style="padding: 10px; text-align: center; vertical-align: middle; font-family: var(--font-mono); color: ${estColor}; font-weight: 500;">${estSign}${fund.estimatedGainPct.toFixed(2)}%</td>
-                                <td class="sensitive-value ${actColor === '#f44336' ? 'positive' : 'negative'}" style="padding: 10px; text-align: center; vertical-align: middle; font-family: var(--font-mono); color: ${actColor}; font-weight: 500;"><span class="real-value">¥${Math.abs(fund.actualGain).toLocaleString('zh-CN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span><span class="hidden-value">****</span></td>
-                                <td class="${actColor === '#f44336' ? 'positive' : 'negative'}" style="padding: 10px; text-align: center; vertical-align: middle; font-family: var(--font-mono); color: ${actColor}; font-weight: 500;">${actSign}${fund.actualGainPct.toFixed(2)}%</td>
+                                <td class="sensitive-value ${fund.estimatedGain >= 0 ? 'positive' : 'negative'}" style="padding: 10px; text-align: center; vertical-align: middle; font-family: var(--font-mono); color: ${estColor}; font-weight: 500;"><span class="real-value">${estGainText}</span><span class="hidden-value">****</span></td>
+                                <td class="${fund.estimatedGain >= 0 ? 'positive' : 'negative'}" style="padding: 10px; text-align: center; vertical-align: middle; font-family: var(--font-mono); color: ${estColor}; font-weight: 500;">${Math.abs(fund.estimatedGainPct).toFixed(2)}%</td>
+                                <td class="sensitive-value ${fund.actualGain >= 0 ? 'positive' : 'negative'}" style="padding: 10px; text-align: center; vertical-align: middle; font-family: var(--font-mono); color: ${actColor}; font-weight: 500;"><span class="real-value">${actGainText}</span><span class="hidden-value">****</span></td>
+                                <td class="${fund.actualGain >= 0 ? 'positive' : 'negative'}" style="padding: 10px; text-align: center; vertical-align: middle; font-family: var(--font-mono); color: ${actColor}; font-weight: 500;">${Math.abs(fund.actualGainPct).toFixed(2)}%</td>
                             </tr>
                         `;
                     }).join('');
@@ -963,10 +875,8 @@
                 fundDetailsDiv.style.display = 'none';
             }
 
-            // Update new summary bar if it exists (sidebar layout)
             const summaryBar = document.getElementById('summaryBar');
             if (summaryBar) {
-                // Count held funds from global data
                 let heldCount = 0;
                 if (window.fundSharesData) {
                     for (const code in window.fundSharesData) {
@@ -976,13 +886,11 @@
                     }
                 }
 
-                // Update total value
                 const summaryTotalValue = document.getElementById('summaryTotalValue');
                 if (summaryTotalValue) {
                     summaryTotalValue.textContent = '¥' + totalValue.toLocaleString('zh-CN', {minimumFractionDigits: 2, maximumFractionDigits: 2});
                 }
 
-                // Update total change
                 const summaryTotalChange = document.getElementById('summaryTotalChange');
                 if (summaryTotalChange) {
                     const totalPct = totalValue > 0 ? ((estimatedGain + actualGain) / totalValue * 100) : 0;
@@ -991,14 +899,12 @@
                     summaryTotalChange.className = 'summary-change ' + ((estimatedGain + actualGain) >= 0 ? 'positive' : 'negative');
                 }
 
-                // Update estimated gain
                 const summaryEstGain = document.getElementById('summaryEstGain');
                 if (summaryEstGain) {
                     const estSign = estimatedGain >= 0 ? '+' : '';
                     summaryEstGain.textContent = `${estSign}¥${Math.abs(estimatedGain).toLocaleString('zh-CN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
                 }
 
-                // Update estimated change
                 const summaryEstChange = document.getElementById('summaryEstChange');
                 if (summaryEstChange) {
                     const estGainPct = totalValue > 0 ? (estimatedGain / totalValue * 100) : 0;
@@ -1007,14 +913,12 @@
                     summaryEstChange.className = 'summary-change ' + (estimatedGain >= 0 ? 'positive' : 'negative');
                 }
 
-                // Update actual gain
                 const summaryActualGain = document.getElementById('summaryActualGain');
                 if (summaryActualGain) {
                     const actSign = actualGain >= 0 ? '+' : '';
                     summaryActualGain.textContent = `${actSign}¥${Math.abs(actualGain).toLocaleString('zh-CN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
                 }
 
-                // Update actual change
                 const summaryActualChange = document.getElementById('summaryActualChange');
                 if (summaryActualChange) {
                     if (settledValue > 0) {
@@ -1028,7 +932,6 @@
                     }
                 }
 
-                // Update hold count
                 const summaryHoldCount = document.getElementById('summaryHoldCount');
                 if (summaryHoldCount) {
                     summaryHoldCount.textContent = `${heldCount} 只`;
@@ -1036,29 +939,23 @@
             }
         }
 
-        // 页面加载时加载份额数据并计算持仓统计
         async function loadSharesData() {
             try {
-                // 从后端API获取用户的基金数据（包含份额）
                 const response = await fetch('/api/fund/data');
                 if (response.ok) {
                     const fundData = await response.json();
 
-                    // 初始化全局份额数据存储
                     window.fundSharesData = {};
-                    window.fundSectorsData = {};  // 存储板块数据
+                    window.fundSectorsData = {};
 
-                    // 填充份额数据到全局存储
                     for (const [code, data] of Object.entries(fundData)) {
                         if (data.shares !== undefined && data.shares !== null) {
                             window.fundSharesData[code] = parseFloat(data.shares) || 0;
                         }
-                        // 存储板块数据
                         if (data.sectors && data.sectors.length > 0) {
                             window.fundSectorsData[code] = data.sectors;
                         }
 
-                        // 如果有份额输入框，也填充（旧版页面兼容）
                         const sharesInput = document.getElementById('shares_' + code);
                         if (sharesInput && data.shares) {
                             sharesInput.value = data.shares;
@@ -1066,21 +963,16 @@
                     }
 
                     console.log('已加载份额数据:', window.fundSharesData);
-
-                    // 计算持仓统计
                     calculatePositionSummary();
                 }
             } catch (e) {
                 console.error('加载份额数据失败:', e);
-                // 即使加载失败，也尝试计算持仓统计
                 calculatePositionSummary();
             }
         }
 
-        // 初始化
         loadSharesData();
 
-        // 展开/收起基金行详情
         window.toggleFundExpand = function(fundCode) {
             const fundRow = document.querySelector(`.fund-row[data-code="${fundCode}"]`);
             if (fundRow) {
@@ -1088,7 +980,6 @@
             }
         };
 
-        // 全局暴露其他必要的函数
         window.openFundSelectionModal = openFundSelectionModal;
         window.closeFundSelectionModal = closeFundSelectionModal;
         window.confirmFundSelection = confirmFundSelection;
@@ -1103,21 +994,15 @@
         window.confirmSector = confirmSector;
         window.removeSector = removeSector;
 
-        // ==================== Shares Modal Functions ====================
-
-        // 当前正在编辑份额的基金代码
         let currentSharesFundCode = null;
 
-        // 获取基金份额（从内存或DOM）
         window.getFundShares = function(fundCode) {
-            // 先从全局存储获取
             if (window.fundSharesData && window.fundSharesData[fundCode]) {
                 return window.fundSharesData[fundCode];
             }
             return 0;
         };
 
-        // 更新份额按钮状态
         function updateSharesButton(fundCode, shares) {
             const button = document.getElementById('sharesBtn_' + fundCode);
             if (button) {
@@ -1131,19 +1016,16 @@
             }
         }
 
-        // 打开份额设置弹窗
         window.openSharesModal = function(fundCode) {
             currentSharesFundCode = fundCode;
             const modal = document.getElementById('sharesModal');
             const fundCodeDisplay = document.getElementById('sharesModalFundCode');
             const sharesInput = document.getElementById('sharesModalInput');
 
-            // 获取当前份额
             const sharesValue = window.getFundShares(fundCode) || 0;
             sharesInput.value = sharesValue > 0 ? sharesValue : '';
             fundCodeDisplay.textContent = fundCode;
 
-            // 更新弹窗标题
             const header = modal.querySelector('.sector-modal-header');
             if (header) {
                 header.textContent = sharesValue > 0 ? '修改持仓份额' : '设置持仓份额';
@@ -1153,7 +1035,6 @@
             setTimeout(() => sharesInput.focus(), 100);
         };
 
-        // 关闭份额设置弹窗
         window.closeSharesModal = function() {
             const modal = document.getElementById('sharesModal');
             if (modal) {
@@ -1162,7 +1043,6 @@
             currentSharesFundCode = null;
         };
 
-        // 确认设置份额
         window.confirmShares = async function() {
             if (!currentSharesFundCode) {
                 alert('未选择基金');
@@ -1186,19 +1066,13 @@
                 const result = await response.json();
 
                 if (result.success) {
-                    // 更新全局存储
                     if (!window.fundSharesData) {
                         window.fundSharesData = {};
                     }
                     window.fundSharesData[currentSharesFundCode] = shares;
 
-                    // 更新按钮状态
                     updateSharesButton(currentSharesFundCode, shares);
-
-                    // 重新计算持仓统计
                     calculatePositionSummary();
-
-                    // 关闭弹窗
                     window.closeSharesModal();
 
                     alert(result.message);
@@ -1210,17 +1084,14 @@
             }
         };
 
-        // 全局暴露份额相关函数
         window.openSharesModal = openSharesModal;
         window.closeSharesModal = closeSharesModal;
         window.confirmShares = confirmShares;
         window.getFundShares = getFundShares;
 
-        // ==================== Auto-Refresh System ====================
         let refreshInterval;
-        const REFRESH_INTERVAL = 60000; // 60 seconds
+        const REFRESH_INTERVAL = 60000;
 
-        // Start auto-refresh
         function startAutoRefresh() {
             if (refreshInterval) {
                 clearInterval(refreshInterval);
@@ -1231,7 +1102,6 @@
             console.log('Auto-refresh started (60s interval)');
         }
 
-        // Stop auto-refresh
         function stopAutoRefresh() {
             if (refreshInterval) {
                 clearInterval(refreshInterval);
@@ -1240,12 +1110,10 @@
             }
         }
 
-        // Refresh current page data based on route
         async function refreshCurrentPage() {
             const path = window.location.pathname;
             const refreshBtn = document.getElementById('refreshBtn');
 
-            // Update button state if exists
             if (refreshBtn) {
                 refreshBtn.disabled = true;
                 refreshBtn.innerHTML = '⏳ 刷新中...';
@@ -1282,31 +1150,72 @@
             }
         }
 
-        // Portfolio page data fetch
         async function fetchPortfolioData() {
             try {
-                // Fetch timing data
                 const timingRes = await fetch('/api/timing');
                 const timingResult = await timingRes.json();
                 if (timingResult.success && timingResult.data) {
                     updateTimingChart(timingResult.data);
                 }
 
-                // Auto-colorize will be called after table updates
+                const fundRes = await fetch('/api/fund/refresh');
+                const fundResult = await fundRes.json();
+                if (fundResult.success && fundResult.data) {
+                    updateFundTable(fundResult.data);
+                }
+
                 autoColorize();
             } catch (e) {
                 console.error('Failed to refresh portfolio data:', e);
             }
         }
 
-        // Market indices page data fetch
+        function updateFundTable(funds) {
+            const table = document.querySelector('.fund-content .style-table');
+            if (!table) return;
+
+            const rows = table.querySelectorAll('tbody tr');
+            funds.forEach(fund => {
+                rows.forEach(row => {
+                    const codeCell = row.cells[0];
+                    if (codeCell && codeCell.textContent.trim() === fund.code) {
+                        if (row.cells[2]) {
+                            row.cells[2].textContent = fund.time;
+                        }
+                        if (row.cells[4]) {
+                            const growthValue = fund.estimated_growth.replace(/\x1b\[[0-9;]*m/g, '');
+                            row.cells[4].textContent = growthValue;
+                            row.cells[4].classList.remove('positive', 'negative');
+                            if (growthValue.includes('-')) {
+                                row.cells[4].classList.add('negative');
+                            } else if (parseFloat(growthValue) > 0) {
+                                row.cells[4].classList.add('positive');
+                            }
+                        }
+                        if (row.cells[5]) {
+                            const dayValue = fund.day_growth.replace(/\x1b\[[0-9;]*m/g, '');
+                            row.cells[5].textContent = dayValue;
+                            row.cells[5].classList.remove('positive', 'negative');
+                            if (dayValue.includes('-')) {
+                                row.cells[5].classList.add('negative');
+                            } else if (parseFloat(dayValue) > 0) {
+                                row.cells[5].classList.add('positive');
+                            }
+                        }
+                    }
+                });
+            });
+
+            if (typeof calculatePositionSummary === 'function') {
+                calculatePositionSummary();
+            }
+        }
+
         async function fetchMarketIndicesData() {
             try {
-                // Fetch global indices
                 const indicesRes = await fetch('/api/indices/global');
                 const indicesResult = await indicesRes.json();
 
-                // Fetch volume data
                 const volumeRes = await fetch('/api/indices/volume');
                 const volumeResult = await volumeRes.json();
 
@@ -1323,18 +1232,14 @@
             }
         }
 
-        // Precious metals page data fetch
         async function fetchPreciousMetalsData() {
             try {
-                // Fetch real-time gold prices
                 const realtimeRes = await fetch('/api/gold/real-time');
                 const realtimeResult = await realtimeRes.json();
 
-                // Fetch gold one-day (timing) data
                 const oneDayRes = await fetch('/api/gold/one-day');
                 const oneDayResult = await oneDayRes.json();
 
-                // Fetch gold history
                 const historyRes = await fetch('/api/gold/history');
                 const historyResult = await historyRes.json();
 
@@ -1354,10 +1259,8 @@
             }
         }
 
-        // Sectors page data fetch
         async function fetchSectorsData() {
             try {
-                // Fetch sectors data
                 const sectorsRes = await fetch('/api/sectors');
                 const sectorsResult = await sectorsRes.json();
 
@@ -1371,7 +1274,6 @@
             }
         }
 
-        // News page data fetch
         async function fetchNewsData() {
             try {
                 const newsRes = await fetch('/api/news/7x24');
@@ -1387,15 +1289,12 @@
             }
         }
 
-        // Update functions (placeholders - to be implemented based on page structure)
         function updateTimingChart(data) {
-            // Update timing chart if chart instance exists
             if (window.timingChartInstance && data.labels && data.labels.length > 0) {
                 window.timingChartInstance.data.labels = data.labels;
                 window.timingChartInstance.data.datasets[0].data = data.change_pcts || data.prices;
                 window.timingChartInstance.update();
 
-                // Update title
                 const titleEl = document.getElementById('timingChartTitle');
                 if (titleEl && data.current_price !== undefined) {
                     const changePct = data.change_pct || 0;
@@ -1409,7 +1308,6 @@
         }
 
         function updateGlobalIndicesTable(data) {
-            // Find and update the global indices table
             const table = document.querySelector('.style-table');
             if (table && data) {
                 const tbody = table.querySelector('tbody');
@@ -1426,7 +1324,6 @@
         }
 
         function updateVolumeChart(data) {
-            // Update volume chart if exists
             if (window.volumeChartInstance && data.labels && data.labels.length > 0) {
                 window.volumeChartInstance.data.labels = data.labels;
                 window.volumeChartInstance.data.datasets[0].data = data.total || [];
@@ -1554,24 +1451,19 @@
             }
         }
 
-        // Page visibility detection - pause refresh when tab is hidden
         document.addEventListener('visibilitychange', function() {
             if (document.hidden) {
                 stopAutoRefresh();
             } else {
-                // Immediate refresh when tab becomes visible
                 refreshCurrentPage();
                 startAutoRefresh();
             }
         });
 
-        // Start auto-refresh on page load
         startAutoRefresh();
 
-        // Expose refresh function globally for manual refresh button
         window.refreshCurrentPage = refreshCurrentPage;
 
-        // 切换敏感数值显示/隐藏（显示为****）
         function initSensitiveValuesToggle() {
             const toggleBtn = document.getElementById('toggleSensitiveValues');
             if (!toggleBtn) return;
@@ -1579,7 +1471,6 @@
             const positionSummary = document.getElementById('positionSummary');
             const fundDetailsTable = document.getElementById('fundDetailsTable');
 
-            // 读取保存的状态
             const isHidden = localStorage.getItem('hideSensitiveValues') === 'true';
             if (isHidden) {
                 if (positionSummary) positionSummary.classList.add('hide-values');
@@ -1603,14 +1494,9 @@
             });
         }
 
-        // 初始化敏感数值显示/隐藏功能
         initSensitiveValuesToggle();
 
-        // ==================== 炫耀卡片功能 ====================
-
-        // 打开炫耀卡片
         window.openShowoffCard = function() {
-            // 检查是否有持仓数据
             const totalValueEl = document.getElementById('totalValue');
             if (!totalValueEl) {
                 alert('请先刷新页面加载数据');
@@ -1623,7 +1509,6 @@
                 return;
             }
 
-            // 获取持仓统计数据
             const totalValue = parseFloat(realValueText.replace(/[¥,]/g, '')) || 0;
 
             const estimatedGainEl = document.getElementById('estimatedGain');
@@ -1637,13 +1522,11 @@
             const actualGain = actualGainText.includes('净值') ? 0 :
                 parseFloat(actualGainText.replace(/[¥,]/g, '')) * (isActNegative ? -1 : 1) || 0;
 
-            // 格式化日期
             const today = new Date();
             const dateStr = today.getFullYear() + '-' +
                 String(today.getMonth() + 1).padStart(2, '0') + '-' +
                 String(today.getDate()).padStart(2, '0');
 
-            // 更新卡片数据
             document.getElementById('showoffDate').textContent = dateStr;
             document.getElementById('showoffTotalValue').textContent =
                 '¥' + totalValue.toLocaleString('zh-CN', {minimumFractionDigits: 2, maximumFractionDigits: 2});
@@ -1660,41 +1543,30 @@
             actGainEl.className = 'summary-value ' + (actualGain > 0 ? 'positive' :
                 (actualGain < 0 ? 'negative' : ''));
 
-            // 获取Top3基金
             const top3Funds = getTop3Funds();
             renderTop3Funds(top3Funds);
 
-            // 显示模态框
             document.getElementById('showoffModal').classList.add('active');
         };
 
-        // 关闭炫耀卡片
         window.closeShowoffCard = function(event) {
-            // 如果没有传入event，或者点击的是遮罩层/关闭按钮，则关闭
             if (!event || event.target.id === 'showoffModal' || event.target.classList.contains('showoff-close')) {
                 document.getElementById('showoffModal').classList.remove('active');
             }
         };
 
-        // 获取Top3基金（从已计算的数据中获取）
         function getTop3Funds() {
-            // 尝试从全局变量获取基金明细数据
             if (window.fundDetailsData && window.fundDetailsData.length > 0) {
-                // 按实际收益降序排序（如果有实际收益），否则按预估收益排序
                 const sorted = [...window.fundDetailsData].sort((a, b) => {
-                    // 优先使用实际收益
                     const aGain = a.actualGain !== 0 ? a.actualGain : a.estimatedGain;
                     const bGain = b.actualGain !== 0 ? b.actualGain : b.estimatedGain;
                     return bGain - aGain;
                 });
                 return sorted.slice(0, 3);
             }
-
-            // 如果没有全局数据，返回空数组
             return [];
         }
 
-        // 渲染Top3基金列表
         function renderTop3Funds(funds) {
             const container = document.getElementById('showoffFundsList');
 
@@ -1704,7 +1576,6 @@
             }
 
             container.innerHTML = funds.map((fund, index) => {
-                // 优先使用实际收益，如果没有实际收益则使用预估收益
                 const gain = fund.actualGain !== 0 ? fund.actualGain : (fund.estimatedGain || 0);
                 const colorClass = gain >= 0 ? 'positive' : 'negative';
 
@@ -1720,7 +1591,6 @@
             }).join('');
         }
 
-        // 键盘ESC关闭
         document.addEventListener('keydown', function(e) {
             if (e.key === 'Escape') {
                 closeShowoffCard();

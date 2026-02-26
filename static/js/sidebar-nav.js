@@ -82,7 +82,7 @@ class SidebarNavigation {
       'volume': '成交量趋势',
       'timing': '上证分时',
       'funds': '自选基金',
-      'sectors': '行业板块',
+      'sectors': '概念板块',
       'query': '板块基金查询'
     };
     if (this.sectionTitle) {

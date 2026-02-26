@@ -1,0 +1,170 @@
+/* Common Page Layout Styles for LanFund */
+
+/* Body layout for sidebar pages */
+body {
+    background-color: var(--terminal-bg);
+    color: var(--text-main);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Top Navigation Bar */
+.top-navbar {
+    background-color: var(--card-bg);
+    color: var(--text-main);
+    padding: 0.8rem 2rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid var(--border);
+}
+
+.top-navbar-brand {
+    display: flex;
+    align-items: center;
+    flex: 0 0 auto;
+}
+
+.navbar-logo {
+    width: 32px;
+    height: 32px;
+}
+
+.top-navbar-quote {
+    flex: 1;
+    text-align: center;
+    font-size: 1rem;
+    font-weight: 500;
+    color: var(--text-main);
+    font-style: italic;
+    padding: 0 2rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    letter-spacing: 0.05em;
+    transition: opacity 0.5s ease-in-out;
+}
+
+.top-navbar-menu {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+}
+
+.nav-user {
+    color: #3b82f6;
+    font-weight: 500;
+}
+
+.nav-logout {
+    color: #f85149;
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.nav-star {
+    color: #e3b341;
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.nav-star:hover {
+    color: #f2c94c;
+}
+
+.nav-feedback {
+    color: #8b949e;
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.nav-feedback:hover {
+    color: #58a6ff;
+}
+
+/* Main Container */
+.main-container {
+    display: flex;
+    flex: 1;
+}
+
+/* Content Area */
+.content-area {
+    flex: 1;
+    padding: 30px;
+    overflow-y: auto;
+}
+
+/* Page Header */
+.page-header {
+    margin-bottom: 30px;
+    text-align: center;
+}
+
+.page-header h1 {
+    font-size: 2rem;
+    font-weight: 700;
+    margin: 0;
+    border: none;
+    text-decoration: none;
+    color: var(--text-main);
+}
+
+.page-header p {
+    color: var(--text-dim);
+    margin-top: 10px;
+    border: none;
+    text-decoration: none;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .content-area {
+        padding: 15px;
+    }
+
+    /* Top navbar two-row layout */
+    .top-navbar {
+        flex-direction: row;
+        flex-wrap: wrap;
+        height: auto;
+        padding: 0.5rem 1rem;
+        align-items: center;
+        border-bottom: none;
+    }
+
+    .top-navbar > .top-navbar-brand {
+        order: 1;
+        flex: 0 0 auto;
+        padding-bottom: 0.5rem;
+        border-bottom: 1px solid var(--border);
+    }
+
+    .top-navbar-menu {
+        order: 1;
+        flex: 0 0 auto;
+        margin-left: auto;
+        padding-bottom: 0.5rem;
+        border-bottom: 1px solid var(--border);
+    }
+
+    .top-navbar-quote {
+        order: 2;
+        width: 100%;
+        flex-basis: 100%;
+        text-align: center;
+        padding: 0.5rem 0;
+        font-size: 0.8rem;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        border-top: 1px solid var(--border);
+        margin-top: 0.5rem;
+    }
+
+    /* Hamburger menu display */
+    .hamburger-menu {
+        display: flex !important;
+    }
+}

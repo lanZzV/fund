@@ -390,6 +390,39 @@ def api_fund_data():
         return jsonify({'error': str(e)}), 500
 
 
+@app.route('/api/fund/refresh', methods=['GET'])
+@login_required
+def api_fund_refresh():
+    """刷新基金数据（获取最新估值等）"""
+    try:
+        user_id = get_current_user_id()
+        importlib.reload(fund)
+        my_fund = fund.LanFund(user_id=user_id, db=db)
+
+        # 调用基础函数获取最新基金数据
+        # search_code(True) 返回格式: [[代码, 名称, 时间, 净值, 估值, 日涨幅, 连涨/跌, 近30天], ...]
+        result = my_fund.search_code(is_return=True)
+
+        # 转换为 JSON 格式
+        funds = []
+        for item in result:
+            funds.append({
+                'code': item[0],
+                'name': item[1],
+                'time': item[2],
+                'net_value': item[3],
+                'estimated_growth': item[4],
+                'day_growth': item[5],
+                'consecutive': item[6],
+                'monthly': item[7]
+            })
+
+        return jsonify({'success': True, 'data': funds})
+    except Exception as e:
+        logger.error(f"刷新基金数据失败: {e}")
+        return jsonify({'success': False, 'message': f'刷新失败: {str(e)}'}), 500
+
+
 @app.route('/api/client/fund/config', methods=['POST'])
 def api_client_fund_config():
     """客户端配置同步接口（使用账号密码认证，无需session）"""
@@ -691,54 +724,31 @@ def api_gold_one_day():
 @app.route('/api/sectors', methods=['GET'])
 @login_required
 def api_sectors():
-    """获取行业板块数据"""
+    """获取概念板块数据"""
     try:
         importlib.reload(fund)
 
-        # 获取板块数据 (bk 是静态方法，返回 raw data)
-        # 需要从API获取板块代码
-        import requests
-        url = "https://push2.eastmoney.com/api/qt/clist/get"
-        params = {
-            "cb": "",
-            "fid": "f62",
-            "po": "1",
-            "pz": "100",
-            "pn": "1",
-            "np": "1",
-            "fltt": "2",
-            "invt": "2",
-            "ut": "8dec03ba335b81bf4ebdf7b29ec27d15",
-            "fs": "m:90 t:2",
-            "fields": "f12,f14,f2,f3,f62,f184,f66,f69,f72,f75,f78,f81,f84,f87,f204,f205,f124,f1,f13"
-        }
-        response = requests.get(url, params=params, timeout=10, verify=False)
-        if str(response.json()["data"]):
-            data = response.json()["data"]
-            sectors = []
-            for bk in data["diff"]:
-                sectors.append({
-                    'code': bk["f12"],  # 板块代码
-                    'name': bk["f14"],  # 板块名称
-                    'change': str(bk["f3"]) + "%",  # 涨跌幅
-                    'main_inflow': str(round(bk["f62"] / 100000000, 2)) + "亿",  # 主力净流入
-                    'main_inflow_pct': str(round(bk["f184"], 2)) + "%",  # 主力净流入占比
-                    'small_inflow': str(round(bk["f84"] / 100000000, 2)) + "亿",  # 小单净流入
-                    'small_inflow_pct': str(round(bk["f87"], 2)) + "%"  # 小单流入占比
-                })
+        # 复用 CLI 的 bk() 函数获取原始数据
+        # bk() 返回格式: [[板块代码, 板块名称, 涨跌幅, 主力净流入, 主力净流入占比, 小单净流入, 小单流入占比], ...]
+        result = fund.LanFund.bk(is_return=True)
 
-            # 按涨跌幅降序排序（与原始 bk() 函数的排序逻辑一致）
-            sectors = sorted(
-                sectors,
-                key=lambda x: float(x['change'].replace("%", "")) if x['main_inflow_pct'] != "N/A" else -99,
-                reverse=True
-            )
-        else:
-            sectors = []
+        # 将数据转换为 Web API 格式
+        sectors = []
+        if result:
+            for item in result:
+                sectors.append({
+                    'code': item[0],
+                    'name': item[1],
+                    'change': item[2],
+                    'main_inflow': item[3],
+                    'main_inflow_pct': item[4],
+                    'small_inflow': item[5],
+                    'small_inflow_pct': item[6]
+                })
 
         return jsonify({'success': True, 'data': sectors})
     except Exception as e:
-        logger.error(f"获取行业板块失败: {e}")
+        logger.error(f"获取概念板块失败: {e}")
         return jsonify({'success': False, 'message': f'数据加载失败: {str(e)}'}), 500
 
 
@@ -808,14 +818,12 @@ def api_sector_funds(sector_id):
 @app.route('/', methods=['GET'])
 @login_required
 def get_index():
-    # 重定向到持仓基金页面
     return redirect('/portfolio')
 
 
 @app.route('/fund', methods=['GET'])
 @login_required
 def get_fund():
-    # 重定向到持仓基金页面
     return redirect('/portfolio')
 
 
@@ -827,7 +835,6 @@ def get_market():
     importlib.reload(fund)
     my_fund = fund.LanFund(user_id=user_id, db=db)
 
-    # 只加载快讯数据
     try:
         news_content = my_fund.kx_html()
         logger.debug("✓ 7*24快讯")
@@ -846,7 +853,6 @@ def get_precious_metals():
     importlib.reload(fund)
     my_fund = fund.LanFund(user_id=user_id, db=db)
 
-    # 加载贵金属数据
     precious_metals_data = {}
     try:
         precious_metals_data['real_time'] = my_fund.real_time_gold_html()
@@ -878,7 +884,6 @@ def get_market_indices():
     importlib.reload(fund)
     my_fund = fund.LanFund(user_id=user_id, db=db)
 
-    # 加载市场数据（全球指数、成交量趋势）
     market_charts = {}
     chart_data = {}
     try:
@@ -897,7 +902,6 @@ def get_market_indices():
         market_charts['volume'] = f"<p style='color:#f44336;'>加载失败: {str(e)}</p>"
         chart_data['volume'] = {'labels': [], 'total': [], 'sh': [], 'sz': [], 'bj': []}
 
-    # 加载上证分时数据
     try:
         market_charts['timing'] = my_fund.A_html()
         chart_data['timing'] = my_fund.get_timing_chart_data()
@@ -930,20 +934,16 @@ def get_portfolio():
     if delete:
         my_fund.delete_code(delete)
 
-    # 加载基金数据
     try:
         fund_content = my_fund.fund_html()
-        # 获取用户份额数据并传递给enhance_fund_tab_content
         fund_map = db.get_user_funds(user_id)
         shares_map = {code: data.get('shares', 0) for code, data in fund_map.items()}
         fund_content = enhance_fund_tab_content(fund_content, shares_map)
     except Exception as e:
         fund_content = f"<p style='color:#f44336;'>数据加载失败: {str(e)}</p>"
 
-    # 获取用户基金列表
     user_funds = db.get_user_funds(user_id)
 
-    # 确定默认显示的基金
     default_fund = None
     fund_chart_data = None
     fund_chart_info = {}
@@ -953,18 +953,15 @@ def get_portfolio():
         saved_default = db.get_chart_default_fund(user_id)
         if saved_default and saved_default['fund_code'] in user_funds:
             default_fund = saved_default
-        # 2. 选择有持仓的基金（预估收益最高的）
         else:
             held_funds = {code: data for code, data in user_funds.items() if data.get('shares', 0) > 0}
             if held_funds:
-                # 简化处理：选择第一个有持仓的基金
                 first_code = list(held_funds.keys())[0]
                 default_fund = {
                     'fund_code': first_code,
                     'fund_key': held_funds[first_code]['fund_key'],
                     'fund_name': held_funds[first_code]['fund_name']
                 }
-            # 3. 选择自选列表第一个
             else:
                 first_code = list(user_funds.keys())[0]
                 default_fund = {
@@ -973,11 +970,9 @@ def get_portfolio():
                     'fund_name': user_funds[first_code]['fund_name']
                 }
 
-        # 加载图表数据
         if default_fund:
             fund_chart_data = my_fund.get_fund_chart_data(default_fund['fund_code'], default_fund)
 
-        # 准备基金选择器信息
         for code, data in user_funds.items():
             fund_chart_info[code] = {
                 'name': data['fund_name'],
@@ -1048,19 +1043,17 @@ def api_fund_chart_default():
 @app.route('/sectors', methods=['GET'])
 @login_required
 def get_sectors():
-    """行业板块基金查询页面"""
+    """概念板块基金查询页面"""
     user_id = get_current_user_id()
     importlib.reload(fund)
     my_fund = fund.LanFund(user_id=user_id, db=db)
 
-    # 加载行业板块数据
     try:
         sectors_content = my_fund.bk_html()
-        logger.debug("✓ 行业板块")
+        logger.debug("✓ 概念板块")
     except Exception as e:
         sectors_content = f"<p style='color:#f44336;'>数据加载失败: {str(e)}</p>"
 
-    # 加载板块基金查询数据
     try:
         select_fund_content = my_fund.select_fund_html()
         logger.debug("✓ 板块基金查询")

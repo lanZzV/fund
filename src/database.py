@@ -241,6 +241,11 @@ class Database:
             conn = self.get_connection()
             cursor = conn.cursor()
 
+            # 保存当前的默认图表基金
+            cursor.execute('SELECT fund_code FROM user_funds WHERE user_id = ? AND chart_default = 1', (user_id,))
+            default_row = cursor.fetchone()
+            saved_default_code = default_row['fund_code'] if default_row else None
+
             # 删除用户现有的所有基金数据
             cursor.execute('DELETE FROM user_funds WHERE user_id = ?', (user_id,))
 
@@ -261,6 +266,13 @@ class Database:
                                    fund_data.get('shares', 0),
                                    sectors_json
                                ))
+
+            # 恢复默认图表基金（如果该基金仍然存在）
+            if saved_default_code and saved_default_code in fund_map:
+                cursor.execute('''
+                               UPDATE user_funds SET chart_default = 1
+                               WHERE user_id = ? AND fund_code = ?
+                               ''', (user_id, saved_default_code))
 
             conn.commit()
             conn.close()
@@ -303,63 +315,6 @@ class Database:
 
         except Exception as e:
             logger.error(f"Failed to update shares: {e}")
-            return False
-
-    def add_fund(self, user_id, fund_code, fund_key, fund_name):
-        """添加基金到用户列表
-
-        Returns:
-            bool: 是否成功
-        """
-        try:
-            conn = self.get_connection()
-            cursor = conn.cursor()
-
-            cursor.execute('''
-                INSERT OR REPLACE INTO user_funds
-                (user_id, fund_code, fund_key, fund_name, is_hold, shares, sectors)
-                VALUES (?, ?, ?, ?, 0, 0, '[]')
-            ''', (user_id, fund_code, fund_key, fund_name))
-
-            conn.commit()
-            conn.close()
-            logger.debug(f"Added fund {fund_code} for user {user_id}")
-            return True
-
-        except Exception as e:
-            logger.error(f"Failed to add fund: {e}")
-            return False
-
-    def delete_fund(self, user_id, fund_code):
-        """删除用户的基金
-
-        Returns:
-            bool: 是否成功
-        """
-        try:
-            conn = self.get_connection()
-            cursor = conn.cursor()
-
-            cursor.execute('''
-                           DELETE
-                           FROM user_funds
-                           WHERE user_id = ?
-                             AND fund_code = ?
-                           ''', (user_id, fund_code))
-
-            conn.commit()
-            affected_rows = cursor.rowcount
-            conn.close()
-
-            if affected_rows > 0:
-                logger.debug(f"Deleted fund {fund_code} for user {user_id}")
-                return True
-            else:
-                logger.warning(f"No fund found to delete: user {user_id}, fund {fund_code}")
-                return False
-
-        except Exception as e:
-            logger.error(f"Failed to delete fund: {e}")
             return False
 
     def update_chart_default(self, user_id, fund_code):

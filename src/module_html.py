@@ -4,6 +4,49 @@ import json
 import re
 
 
+# 歌词轮播常量
+LYRICS = [
+    '总要有一首我的歌, 大声唱过, 再看天地辽阔 ————《一颗苹果》',
+    '苍狗又白云, 身旁有了你, 匆匆轮回又有何惧 ————《如果我们不曾相遇》',
+    '活着其实很好, 再吃一颗苹果 ————《一颗苹果》',
+    '偶然与巧合, 舞动了蝶翼, 谁的心头风起 ————《如果我们不曾相遇》'
+]
+
+
+def get_lyrics_carousel_script():
+    """生成歌词轮播JavaScript代码"""
+    lyrics_json = json.dumps(LYRICS, ensure_ascii=False)
+    return f'''
+        document.addEventListener('DOMContentLoaded', function() {{
+            // 歌词轮播
+            const lyrics = {lyrics_json};
+            let currentLyricIndex = 0;
+            const lyricsElement = document.getElementById('lyricsDisplay');
+
+            // 随机选择初始歌词
+            currentLyricIndex = Math.floor(Math.random() * lyrics.length);
+            if (lyricsElement) {{
+                lyricsElement.textContent = lyrics[currentLyricIndex];
+
+                // 每10秒切换一次歌词
+                setInterval(function() {{
+                    // 淡出
+                    lyricsElement.style.opacity = '0';
+
+                    setTimeout(function() {{
+                        // 切换歌词
+                        currentLyricIndex = (currentLyricIndex + 1) % lyrics.length;
+                        lyricsElement.textContent = lyrics[currentLyricIndex];
+
+                        // 淡入
+                        lyricsElement.style.opacity = '1';
+                    }}, 500);
+                }}, 10000);
+            }}
+        }});
+    '''
+
+
 def enhance_fund_tab_content(content, shares_map=None):
     """
     Enhance the fund tab content with operations panel, file operations, and shares input.
@@ -72,11 +115,12 @@ def enhance_fund_tab_content(content, shares_map=None):
                             <th style="padding: 10px; text-align: center; white-space: nowrap; vertical-align: middle; color: var(--text-dim); font-weight: 500;">基金代码</th>
                             <th style="padding: 10px; text-align: center; white-space: nowrap; vertical-align: middle; color: var(--text-dim); font-weight: 500;">基金名称</th>
                             <th style="padding: 10px; text-align: center; white-space: nowrap; vertical-align: middle; color: var(--text-dim); font-weight: 500;">持仓份额</th>
-                            <th class="sortable" onclick="sortTable(this.closest('table'), 3)" style="padding: 10px; text-align: center; white-space: nowrap; vertical-align: middle; color: var(--text-dim); font-weight: 500; cursor: pointer; user-select: none;">持仓市值</th>
-                            <th class="sortable" onclick="sortTable(this.closest('table'), 4)" style="padding: 10px; text-align: center; white-space: nowrap; vertical-align: middle; color: var(--text-dim); font-weight: 500; cursor: pointer; user-select: none;">预估收益</th>
-                            <th class="sortable" onclick="sortTable(this.closest('table'), 5)" style="padding: 10px; text-align: center; white-space: nowrap; vertical-align: middle; color: var(--text-dim); font-weight: 500; cursor: pointer; user-select: none;">预估涨跌</th>
-                            <th class="sortable" onclick="sortTable(this.closest('table'), 6)" style="padding: 10px; text-align: center; white-space: nowrap; vertical-align: middle; color: var(--text-dim); font-weight: 500; cursor: pointer; user-select: none;">实际收益</th>
-                            <th class="sortable" onclick="sortTable(this.closest('table'), 7)" style="padding: 10px; text-align: center; white-space: nowrap; vertical-align: middle; color: var(--text-dim); font-weight: 500; cursor: pointer; user-select: none;">实际涨跌</th>
+                            <th style="padding: 10px; text-align: center; white-space: nowrap; vertical-align: middle; color: var(--text-dim); font-weight: 500;">操作</th>
+                            <th class="sortable" onclick="sortTable(this.closest('table'), 4)" style="padding: 10px; text-align: center; white-space: nowrap; vertical-align: middle; color: var(--text-dim); font-weight: 500; cursor: pointer; user-select: none;">持仓市值</th>
+                            <th class="sortable" onclick="sortTable(this.closest('table'), 5)" style="padding: 10px; text-align: center; white-space: nowrap; vertical-align: middle; color: var(--text-dim); font-weight: 500; cursor: pointer; user-select: none;">预估收益</th>
+                            <th class="sortable" onclick="sortTable(this.closest('table'), 6)" style="padding: 10px; text-align: center; white-space: nowrap; vertical-align: middle; color: var(--text-dim); font-weight: 500; cursor: pointer; user-select: none;">预估涨跌</th>
+                            <th class="sortable" onclick="sortTable(this.closest('table'), 7)" style="padding: 10px; text-align: center; white-space: nowrap; vertical-align: middle; color: var(--text-dim); font-weight: 500; cursor: pointer; user-select: none;">实际收益</th>
+                            <th class="sortable" onclick="sortTable(this.closest('table'), 8)" style="padding: 10px; text-align: center; white-space: nowrap; vertical-align: middle; color: var(--text-dim); font-weight: 500; cursor: pointer; user-select: none;">实际涨跌</th>
                         </tr>
                     </thead>
                     <tbody id="fundDetailsTableBody">
@@ -213,37 +257,6 @@ def enhance_fund_tab_content(content, shares_map=None):
     return file_operations + position_summary + operations_panel + add_fund_area + content
 
 
-def get_top_navbar_html(username=None):
-    """
-    生成顶部导航栏HTML（包含歌词）。
-    支持桌面端单行布局和移动端两行布局。
-    :param username: str, 用户名（可选）
-    :return: tuple, (navbar_html, username_display)
-    """
-    username_display = '<a href="https://github.com/lanZzV/fund" target="_blank" class="nav-star">点个赞</a>'
-    username_display += '<a href="https://github.com/lanZzV/fund/issues" target="_blank" class="nav-feedback">反馈</a>'
-    if username:
-        username_display += '<span class="nav-user">🍎 {username}</span>'.format(username=username)
-        username_display += '<a href="/logout" class="nav-logout">退出登录</a>'
-
-    navbar_html = '''
-    <!-- 顶部导航栏 -->
-    <nav class="top-navbar">
-        <div class="top-navbar-brand">
-            <img src="/static/1.ico" alt="Logo" class="navbar-logo">
-        </div>
-        <div class="top-navbar-quote" id="lyricsDisplay">
-            偶然与巧合, 舞动了蝶翼, 谁的心头风起 ————《如果我们不曾相遇》
-        </div>
-        <div class="top-navbar-menu">
-            {username_display}
-        </div>
-    </nav>
-    '''.format(username_display=username_display)
-
-    return navbar_html, username_display
-
-
 def get_table_html(title, data, sortable_columns=None):
     """
     生成单个表格的HTML代码。
@@ -288,543 +301,6 @@ def get_table_html(title, data, sortable_columns=None):
         </table>
     </div>
     """
-
-
-def get_full_page_html_sidebar(tabs_data, username=None):
-    """Generate full page HTML with sidebar navigation"""
-    js_script = get_javascript_code()
-    css_style = get_css_style()
-
-    # Get fund data for holdings/watchlist sections
-    fund_map = {}
-    for tab in tabs_data:
-        if tab['id'] == 'fund':
-            # Extract fund_map from fund tab - will be passed from fund_server.py
-            fund_map = tab.get('fund_map', {})
-            break
-
-    # Generate sections for other tabs (hidden by default)
-    other_sections_html = ''
-    for tab in tabs_data:
-        if tab['id'] != 'fund':
-            tab_id = tab['id']
-            tab_title = tab['title']
-            other_sections_html += f'''
-                <section class="content-section hidden" id="{tab_id}Section">
-                    <div class="section-header">
-                        <h2 class="section-heading">{tab_title}</h2>
-                    </div>
-                    <div class="section-content" id="{tab_id}Content"></div>
-                </section>
-            '''
-
-    html = f'''<!DOCTYPE html>
-<html lang="zh-CN">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LanFund Terminal</title>
-    {css_style}
-    <link rel="stylesheet" href="/static/css/style.css">
-</head>
-<body>
-    <!-- Navbar with logo and quote -->
-    <nav class="navbar">
-        <div class="navbar-brand">
-            <img src="/static/1.ico" alt="Logo" class="navbar-logo">
-        </div>
-        <div class="navbar-quote">
-            偶然与巧合, 舞动了蝶翼, 谁的心头风起 ————《如果我们不曾相遇》
-        </div>
-        <div class="navbar-menu">
-            <span class="navbar-item">实时行情</span>
-            <a href="https://github.com/lanZzV/fund" target="_blank" class="navbar-item" style="color: #8b949e; text-decoration: none;">点个赞</a>
-            <a href="https://github.com/lanZzV/fund/issues" target="_blank" class="navbar-item" style="color: #8b949e; text-decoration: none;">反馈</a>
-            {f'<span class="navbar-item" style="color: #3b82f6;">🍎 {username}</span>' if username else ''}
-            {f'<a href="/logout" class="navbar-item" style="color: #f85149; text-decoration: none;">退出登录</a>' if username else ''}
-        </div>
-    </nav>
-
-    <!-- App Container with Sidebar -->
-    <div class="app-container-sidebar">
-        {get_sidebar_navigation_html()}
-
-        <main class="main-content-area">
-            {get_header_bar_html()}
-            {get_summary_bar_html()}
-
-            <div class="content-body" id="contentBody">
-                <!-- Holdings & Watchlist Sections -->
-                {generate_holdings_section_html(fund_map)}
-                {generate_watchlist_section_html(fund_map)}
-
-                <!-- Other tab sections (hidden by default) -->
-                {other_sections_html}
-            </div>
-        </main>
-    </div>
-
-    <!-- Modals (preserved) -->
-    <!-- 板块选择对话框 -->
-    <div class="sector-modal" id="sectorModal">
-        <div class="sector-modal-content">
-            <div class="sector-modal-header">选择板块</div>
-            <input type="text" class="sector-modal-search" id="sectorSearch" placeholder="搜索板块名称...">
-            <div id="sectorCategories">
-                <!-- 板块分类将通过JS动态生成 -->
-            </div>
-            <div class="sector-modal-footer">
-                <button class="btn btn-secondary" onclick="closeSectorModal()">取消</button>
-                <button class="btn btn-primary" onclick="confirmSector()">确定</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- 基金选择对话框 -->
-    <div class="sector-modal" id="fundSelectionModal">
-        <div class="sector-modal-content">
-            <div class="sector-modal-header" id="fundSelectionTitle">选择基金</div>
-            <input type="text" class="sector-modal-search" id="fundSelectionSearch" placeholder="搜索基金代码或名称...">
-            <div id="fundSelectionList" style="max-height: 400px; overflow-y: auto;">
-                <!-- 基金列表将通过JS动态生成 -->
-            </div>
-            <div class="sector-modal-footer">
-                <button class="btn btn-secondary" onclick="closeFundSelectionModal()">取消</button>
-                <button class="btn btn-primary" id="fundSelectionConfirmBtn" onclick="confirmFundSelection()">确定</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- 确认对话框 -->
-    <div class="confirm-dialog" id="confirmDialog">
-        <div class="confirm-dialog-content">
-            <h3 id="confirmTitle" class="confirm-title"></h3>
-            <p id="confirmMessage" class="confirm-message"></p>
-            <div class="confirm-actions">
-                <button class="btn btn-secondary" onclick="closeConfirmDialog()">取消</button>
-                <button class="btn btn-primary" id="confirmBtn">确定</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- 份额设置弹窗 -->
-    <div class="sector-modal" id="sharesModal">
-        <div class="sector-modal-content" style="max-width: 400px;">
-            <div class="sector-modal-header">设置持仓份额</div>
-            <div style="padding: 20px;">
-                <div style="margin-bottom: 15px;">
-                    <label style="display: block; margin-bottom: 8px; color: var(--text-main); font-weight: 500;">基金代码</label>
-                    <div id="sharesModalFundCode" style="padding: 10px; background: rgba(59, 130, 246, 0.1); border-radius: 6px; color: #3b82f6; font-weight: 600; font-family: monospace;"></div>
-                </div>
-                <div style="margin-bottom: 15px;">
-                    <label for="sharesModalInput" style="display: block; margin-bottom: 8px; color: var(--text-main); font-weight: 500;">持仓份额</label>
-                    <input type="number" id="sharesModalInput" step="0.01" min="0" placeholder="请输入份额"
-                           style="width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: 6px; font-size: 14px; background: var(--card-bg); color: var(--text-main);">
-                </div>
-            </div>
-            <div class="sector-modal-footer">
-                <button class="btn btn-secondary" onclick="closeSharesModal()">取消</button>
-                <button class="btn btn-primary" onclick="confirmShares()">确定</button>
-            </div>
-        </div>
-    </div>
-
-    {js_script}
-    <script src="/static/js/main.js"></script>
-    <script src="/static/js/sidebar-nav.js"></script>
-</body>
-</html>'''
-
-    return html
-
-
-def get_full_page_html(tabs_data, username=None, use_sidebar=False):
-    # Use new sidebar layout if requested
-    if use_sidebar:
-        return get_full_page_html_sidebar(tabs_data, username)
-
-    js_script = get_javascript_code()
-    css_style = get_css_style()
-
-    # Generate Tab Headers
-    tab_headers = []
-    tab_contents = []
-
-    # Check if tabs_data is a list of dicts (new format) or list of strings (old format fallback)
-    if isinstance(tabs_data, list) and len(tabs_data) > 0 and isinstance(tabs_data[0], str):
-        # Fallback for old format
-        return f"""
-        <!DOCTYPE html>
-        <html lang="zh-CN">
-        <head>
-            <meta charset="UTF-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <title>LanFund Dashboard</title>
-            {css_style}
-        </head>
-        <body>
-            <div class="app-container">
-                <div class="main-content">
-                    <div class="dashboard-grid">
-                        {''.join(tabs_data)}
-                    </div>
-                </div>
-            </div>
-            {js_script}
-        </body>
-        </html>
-        """
-
-    for index, tab in enumerate(tabs_data):
-        is_active = 'active' if index == 0 else ''
-        tab_id = tab['id']
-        tab_title = tab['title']
-        content = tab['content']
-
-        tab_headers.append(f"""
-            <button class="tab-button {is_active}" onclick="openTab(event, '{tab_id}')">
-                {tab_title}
-            </button>
-        """)
-
-        # 为"自选基金"标签页添加操作区域
-        if tab_id == "fund":
-            # 使用 enhance_fund_tab_content 函数来添加操作区域（避免重复代码）
-            enhanced_content = enhance_fund_tab_content(content)
-        else:
-            enhanced_content = content
-
-        tab_contents.append(f"""
-            <div id="{tab_id}" class="tab-content {is_active}">
-                {enhanced_content}
-            </div>
-        """)
-
-    # Check if we have actual data or if this is initial SSE setup
-    has_data = tabs_data and len(tabs_data) > 0 and tabs_data[0].get('content', '').strip()
-
-    if not has_data:
-        # Return SSE-enabled loading page
-        return get_sse_loading_page(css_style, js_script)
-
-    return f"""
-    <!DOCTYPE html>
-    <html lang="zh-CN">
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-        <meta http-equiv="Pragma" content="no-cache">
-        <meta http-equiv="Expires" content="0">
-        <title>LanFund Dashboard</title>
-        {css_style}
-    </head>
-    <body>
-        <nav class="navbar">
-            <div class="navbar-brand">BuBu Fund LanFund助手</div>
-            <div class="navbar-menu">
-                <span class="navbar-item">实时行情</span>
-                <a href="https://github.com/lanZzV/fund" target="_blank" class="navbar-item" style="color: #8b949e; text-decoration: none;">点个赞</a>
-                <a href="https://github.com/lanZzV/fund/issues" target="_blank" class="navbar-item" style="color: #8b949e; text-decoration: none;">反馈</a>
-                {f'<span class="navbar-item" style="color: #3b82f6;">🍎 {username}</span>' if username else ''}
-                {f'<a href="/logout" class="navbar-item" style="color: #f85149; text-decoration: none;">退出登录</a>' if username else ''}
-            </div>
-        </nav>
-        
-        <div class="app-container">
-            <div class="main-content">
-                <div class="tabs-header">
-                    {''.join(tab_headers)}
-                </div>
-                <div class="dashboard-grid">
-                    {''.join(tab_contents)}
-                </div>
-            </div>
-        </div>
-
-        <!-- 板块选择对话框 -->
-        <div class="sector-modal" id="sectorModal">
-            <div class="sector-modal-content">
-                <div class="sector-modal-header">选择板块</div>
-                <input type="text" class="sector-modal-search" id="sectorSearch" placeholder="搜索板块名称...">
-                <div id="sectorCategories">
-                    <!-- 板块分类将通过JS动态生成 -->
-                </div>
-                <div class="sector-modal-footer">
-                    <button class="btn btn-secondary" onclick="closeSectorModal()">取消</button>
-                    <button class="btn btn-primary" onclick="confirmSector()">确定</button>
-                </div>
-            </div>
-        </div>
-
-        <!-- 基金选择对话框 -->
-        <div class="sector-modal" id="fundSelectionModal">
-            <div class="sector-modal-content">
-                <div class="sector-modal-header" id="fundSelectionTitle">选择基金</div>
-                <input type="text" class="sector-modal-search" id="fundSelectionSearch" placeholder="搜索基金代码或名称...">
-                <div id="fundSelectionList" style="max-height: 400px; overflow-y: auto;">
-                    <!-- 基金列表将通过JS动态生成 -->
-                </div>
-                <div class="sector-modal-footer">
-                    <button class="btn btn-secondary" onclick="closeFundSelectionModal()">取消</button>
-                    <button class="btn btn-primary" id="fundSelectionConfirmBtn" onclick="confirmFundSelection()">确定</button>
-                </div>
-            </div>
-        </div>
-
-        <!-- 确认对话框 -->
-        <div class="confirm-dialog" id="confirmDialog">
-            <div class="confirm-dialog-content">
-                <h3 id="confirmTitle" class="confirm-title"></h3>
-                <p id="confirmMessage" class="confirm-message"></p>
-                <div class="confirm-actions">
-                    <button class="btn btn-secondary" onclick="closeConfirmDialog()">取消</button>
-                    <button class="btn btn-primary" id="confirmBtn">确定</button>
-                </div>
-            </div>
-        </div>
-
-        {js_script}
-    </body>
-    </html>
-    """
-
-
-def get_sse_loading_page(css_style, js_script):
-    """Return a loading page that will be updated via SSE"""
-    return f"""
-    <!DOCTYPE html>
-    <html lang="zh-CN">
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>LanFund Dashboard - Loading</title>
-        {css_style}
-        <style>
-            .loading-container {{
-                display: flex;
-                flex-direction: column;
-                align-items: center;
-                justify-content: center;
-                height: 100%;
-                padding: 2rem;
-            }}
-            .navbar-brand {{
-                display: flex;
-                align-items: center;
-            }}
-            .navbar-logo {{
-                width: 32px;
-                height: 32px;
-                margin-right: 12px;
-            }}
-            .loading-spinner {{
-                border: 4px solid #f3f3f3;
-                border-top: 4px solid var(--bloomberg-blue);
-                border-radius: 50%;
-                width: 50px;
-                height: 50px;
-                animation: spin 1s linear infinite;
-            }}
-            @keyframes spin {{
-                0% {{ transform: rotate(0deg); }}
-                100% {{ transform: rotate(360deg); }}
-            }}
-            .loading-status {{
-                margin-top: 1rem;
-                font-size: 0.9rem;
-                color: #666;
-            }}
-            .task-list {{
-                margin-top: 1rem;
-                max-width: 400px;
-            }}
-            .task-item {{
-                padding: 0.5rem;
-                margin: 0.3rem 0;
-                border-radius: 4px;
-                background: #f5f5f5;
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
-            }}
-            .task-item.completed {{
-                background: #d4edda;
-                color: #155724;
-            }}
-            .task-item.error {{
-                background: #f8d7da;
-                color: #721c24;
-            }}
-        </style>
-    </head>
-    <body>
-        <nav class="navbar">
-            <div class="navbar-brand">
-                <img src="/static/1.ico" alt="Logo" class="navbar-logo">
-                <span>BuBu Fund LanFund助手</span>
-            </div>
-            <div class="navbar-menu">
-                <span class="navbar-item">加载中...</span>
-                <a href="https://github.com/lanZzV/fund" target="_blank" class="navbar-item" style="color: #8b949e; text-decoration: none;">点个赞</a>
-                <a href="https://github.com/lanZzV/fund/issues" target="_blank" class="navbar-item" style="color: #8b949e; text-decoration: none;">反馈</a>
-            </div>
-        </nav>
-        
-        <div class="app-container">
-            <div class="main-content">
-                <div class="loading-container">
-                    <div class="loading-spinner"></div>
-                    <div class="loading-status" id="status">正在连接数据源...</div>
-                    <div class="task-list" id="task-list"></div>
-                </div>
-            </div>
-        </div>
-
-        <script>
-        const eventSource = new EventSource('/fund' + window.location.search);
-        const taskList = document.getElementById('task-list');
-        const statusEl = document.getElementById('status');
-        const taskElements = {{}};
-
-        eventSource.addEventListener('message', function(e) {{
-            try {{
-                const data = JSON.parse(e.data);
-                
-                if (data.type === 'init') {{
-                    statusEl.textContent = '正在加载数据模块...';
-                    data.tasks.forEach(taskName => {{
-                        const taskEl = document.createElement('div');
-                        taskEl.className = 'task-item';
-                        taskEl.innerHTML = `<span>${{getTaskTitle(taskName)}}</span><span>⏳</span>`;
-                        taskList.appendChild(taskEl);
-                        taskElements[taskName] = taskEl;
-                    }});
-                }}
-                else if (data.type === 'task_complete') {{
-                    if (taskElements[data.name]) {{
-                        taskElements[data.name].className = 'task-item completed';
-                        taskElements[data.name].querySelector('span:last-child').textContent = '✓';
-                    }}
-                }}
-                else if (data.type === 'error') {{
-                    if (taskElements[data.name]) {{
-                        taskElements[data.name].className = 'task-item error';
-                        taskElements[data.name].querySelector('span:last-child').textContent = '✗';
-                    }}
-                }}
-                else if (data.type === 'complete') {{
-                    statusEl.textContent = '加载完成！正在渲染页面...';
-                    eventSource.close();
-                    // Replace entire page with the complete HTML
-                    document.open();
-                    document.write(data.html);
-                    document.close();
-                }}
-            }} catch (err) {{
-                console.error('SSE parse error:', err);
-            }}
-        }});
-
-        eventSource.addEventListener('error', function(e) {{
-            statusEl.textContent = '连接错误，正在重试...';
-            console.error('SSE error:', e);
-        }});
-
-        function getTaskTitle(taskName) {{
-            const titles = {{
-                'kx': '7*24快讯',
-                'marker': '全球指数',
-                'real_time_gold': '实时贵金属',
-                'gold': '历史金价',
-                'seven_A': '成交量趋势',
-                'A': '上证分时',
-                'fund': '自选基金',
-                'bk': '行业板块'
-            }};
-            return titles[taskName] || taskName;
-        }}
-        </script>
-    </body>
-    </html>
-    """
-
-
-def get_sidebar_navigation_html():
-    """Generate 70px sidebar with 9 section icons"""
-    sections = [
-        {'id': 'news', 'icon': '📰', 'label': '快讯', 'tab_id': 'kx'},
-        {'id': 'indices', 'icon': '📊', 'label': '指数', 'tab_id': 'marker'},
-        {'id': 'gold-realtime', 'icon': '🥇', 'label': '贵金属', 'tab_id': 'real_time_gold'},
-        {'id': 'gold-history', 'icon': '📈', 'label': '金价', 'tab_id': 'gold'},
-        {'id': 'volume', 'icon': '📉', 'label': '成交量', 'tab_id': 'seven_A'},
-        {'id': 'timing', 'icon': '🔴', 'label': '分时', 'tab_id': 'A'},
-        {'id': 'funds', 'icon': '💼', 'label': '基金', 'tab_id': 'fund'},
-        {'id': 'sectors', 'icon': '🏢', 'label': '板块', 'tab_id': 'bk'},
-        {'id': 'query', 'icon': '🔍', 'label': '查询', 'tab_id': 'select_fund'},
-    ]
-
-    html = '<aside class="sidebar-nav" id="sidebarNav">\n'
-    html += '  <div class="sidebar-icons">\n'
-
-    for i, section in enumerate(sections):
-        active = ' active' if i == 6 else ''  # funds section active by default
-        html += f'''    <button class="sidebar-icon{active}" data-section="{section['id']}" data-tab-id="{section['tab_id']}">
-      <i class="icon">{section['icon']}</i>
-      <span class="icon-label">{section['label']}</span>
-    </button>\n'''
-
-    html += '''    <button class="sidebar-toggle" id="sidebarToggle">
-      <span>▶</span>
-      <span class="toggle-text">展开</span>
-    </button>
-'''
-    html += '  </div>\n'
-    html += '</aside>\n'
-
-    return html
-
-
-def get_header_bar_html(section_title='自选基金'):
-    """Generate header bar with section title and market status"""
-    return f'''<header class="content-header">
-  <div class="header-left">
-    <h1 class="section-title" id="sectionTitle">{section_title}</h1>
-    <span class="market-status">
-      <span class="status-dot"></span>
-      <span id="marketStatusText">市场开盘中</span>
-    </span>
-  </div>
-  <div class="header-right">
-    <span class="last-update" id="lastUpdate">更新于 --:--:--</span>
-  </div>
-</header>'''
-
-
-def get_summary_bar_html():
-    """Generate 4-column summary bar (populated by JavaScript)"""
-    return '''<section class="summary-bar" id="summaryBar">
-  <div class="summary-card">
-    <div class="summary-label">总持仓</div>
-    <div class="summary-value" id="summaryTotalValue">¥0.00</div>
-    <div class="summary-change neutral" id="summaryTotalChange">--</div>
-  </div>
-  <div class="summary-card">
-    <div class="summary-label">今日预估</div>
-    <div class="summary-value" id="summaryEstGain">¥0.00</div>
-    <div class="summary-change neutral" id="summaryEstChange">+0.00%</div>
-  </div>
-  <div class="summary-card">
-    <div class="summary-label">已结算</div>
-    <div class="summary-value" id="summaryActualGain">¥0.00</div>
-    <div class="summary-change neutral" id="summaryActualChange">+0.00%</div>
-  </div>
-  <div class="summary-card">
-    <div class="summary-label">持仓数量</div>
-    <div class="summary-value" id="summaryHoldCount">0 只</div>
-    <div class="summary-change neutral">已标记</div>
-  </div>
-</section>'''
 
 
 def generate_fund_row_html(fund_code, fund_data, is_held=True):
@@ -882,58 +358,6 @@ def generate_fund_row_html(fund_code, fund_data, is_held=True):
     </button>
   </div>
 </div>'''
-
-
-def generate_holdings_section_html(fund_map):
-    """Generate Core Holdings section with held funds"""
-    held_funds = {code: data for code, data in fund_map.items() if data.get('is_hold', False)}
-
-    html = '''<section class="content-section" id="holdingsSection">
-  <div class="section-header">
-    <h2 class="section-heading">
-      <span class="heading-icon">💎</span>
-      核心持仓
-    </h2>
-    <div class="section-meta">
-      <span class="fund-count" id="holdingsCount">''' + str(len(held_funds)) + ''' 只基金</span>
-    </div>
-  </div>
-  <div class="section-content" id="holdingsContent">'''
-
-    for code, data in held_funds.items():
-        html += generate_fund_row_html(code, data, is_held=True)
-
-    if not held_funds:
-        html += '<div class="empty-state">暂无持仓基金</div>'
-
-    html += '  </div>\n</section>'
-    return html
-
-
-def generate_watchlist_section_html(fund_map):
-    """Generate Market Watchlist section with non-held funds"""
-    watchlist_funds = {code: data for code, data in fund_map.items() if not data.get('is_hold', False)}
-
-    html = '''<section class="content-section" id="watchlistSection">
-  <div class="section-header">
-    <h2 class="section-heading">
-      <span class="heading-icon">📋</span>
-      市场观察
-    </h2>
-    <div class="section-meta">
-      <span class="fund-count" id="watchlistCount">''' + str(len(watchlist_funds)) + ''' 只基金</span>
-    </div>
-  </div>
-  <div class="section-content" id="watchlistContent">'''
-
-    for code, data in watchlist_funds.items():
-        html += generate_fund_row_html(code, data, is_held=False)
-
-    if not watchlist_funds:
-        html += '<div class="empty-state">暂无观察基金</div>'
-
-    html += '  </div>\n</section>'
-    return html
 
 
 def get_css_style():
@@ -1425,11 +849,6 @@ def get_css_style():
 
             .navbar-item {
                 font-size: 0.75rem;
-            }
-
-            #toggle-chat-btn {
-                font-size: 0.75rem !important;
-                padding: 0 8px !important;
             }
 
             /* App container */
@@ -1931,1556 +1350,6 @@ def get_css_style():
     """
 
 
-def get_javascript_code():
-    return r"""
-    <!-- Standard JS for table coloring -->
-    <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        autoColorize();
-    });
-
-    function autoColorize() {
-        const cells = document.querySelectorAll('.style-table td');
-        cells.forEach(cell => {
-            const text = cell.textContent.trim();
-            const cleanText = text.replace(/[%,亿万手]/g, '');
-            const val = parseFloat(cleanText);
-
-            if (!isNaN(val)) {
-                if (text.includes('%') || text.includes('涨跌')) {
-                    if (text.includes('-')) {
-                        cell.classList.add('negative');
-                    } else if (val > 0) {
-                        cell.classList.add('positive');
-                    }
-                } else if (text.startsWith('-')) {
-                    cell.classList.add('negative');
-                } else if (text.startsWith('+')) {
-                    cell.classList.add('positive');
-                }
-            }
-        });
-    }
-
-    function sortTable(table, columnIndex) {
-        const tbody = table.querySelector('tbody');
-        const rows = Array.from(tbody.querySelectorAll('tr'));
-        const currentSortCol = table.dataset.sortCol;
-        const currentSortDir = table.dataset.sortDir || 'asc';
-        let direction = 'asc';
-
-        if (currentSortCol == columnIndex) {
-            direction = currentSortDir === 'asc' ? 'desc' : 'asc';
-        }
-        table.dataset.sortCol = columnIndex;
-        table.dataset.sortDir = direction;
-
-        rows.sort((a, b) => {
-            const aText = a.cells[columnIndex].textContent.trim();
-            const bText = b.cells[columnIndex].textContent.trim();
-            const valA = parseValue(aText);
-            const valB = parseValue(bText);
-            let comparison = 0;
-            if (valA > valB) {
-                comparison = 1;
-            } else if (valA < valB) {
-                comparison = -1;
-            }
-            return direction === 'asc' ? comparison : -comparison;
-        });
-
-        tbody.innerHTML = '';
-        rows.forEach(row => tbody.appendChild(row));
-
-        table.querySelectorAll('th').forEach(th => {
-            th.classList.remove('sorted-asc', 'sorted-desc');
-        });
-        const headerToUpdate = table.querySelectorAll('th')[columnIndex];
-        if (headerToUpdate) {
-            headerToUpdate.classList.add(direction === 'asc' ? 'sorted-asc' : 'sorted-desc');
-        }
-    }
-
-    function parseValue(val) {
-        if (val === 'N/A' || val === '--' || val === '---' || val === '') {
-            return -Infinity;
-        }
-        const cleanedVal = val.replace(/%|亿|万|元\/克|手/g, '').replace(/,/g, '');
-        const num = parseFloat(cleanedVal);
-        return isNaN(num) ? val.toLowerCase() : num;
-    }
-
-    function openTab(evt, tabId) {
-        // Hide all tab contents
-        const allContents = document.querySelectorAll('.tab-content');
-        allContents.forEach(content => {
-            content.classList.remove('active');
-        });
-
-        // Remove active class from all tab buttons
-        const allButtons = document.querySelectorAll('.tab-button');
-        allButtons.forEach(button => {
-            button.classList.remove('active');
-        });
-
-        // Show the clicked tab's content and add active class to the button
-        document.getElementById(tabId).classList.add('active');
-        evt.currentTarget.classList.add('active');
-    }
-
-    // Fund Operations Functions
-    // 板块分类数据
-    const SECTOR_CATEGORIES = {
-        "科技": ["人工智能", "半导体", "云计算", "5G", "光模块", "CPO", "F5G", "通信设备", "PCB", "消费电子",
-                "计算机", "软件开发", "信创", "网络安全", "IT服务", "国产软件", "计算机设备", "光通信",
-                "算力", "脑机接口", "通信", "电子", "光学光电子", "元件", "存储芯片", "第三代半导体",
-                "光刻胶", "电子化学品", "LED", "毫米波", "智能穿戴", "东数西算", "数据要素", "国资云",
-                "Web3.0", "AIGC", "AI应用", "AI手机", "AI眼镜", "DeepSeek", "TMT", "科技"],
-        "医药健康": ["医药生物", "医疗器械", "生物疫苗", "CRO", "创新药", "精准医疗", "医疗服务", "中药",
-                    "化学制药", "生物制品", "基因测序", "超级真菌"],
-        "消费": ["食品饮料", "白酒", "家用电器", "纺织服饰", "商贸零售", "新零售", "家居用品", "文娱用品",
-                "婴童", "养老产业", "体育", "教育", "在线教育", "社会服务", "轻工制造", "新消费",
-                "可选消费", "消费", "家电零部件", "智能家居"],
-        "金融": ["银行", "证券", "保险", "非银金融", "国有大型银行", "股份制银行", "城商行", "金融"],
-        "能源": ["新能源", "煤炭", "石油石化", "电力", "绿色电力", "氢能源", "储能", "锂电池", "电池",
-                "光伏设备", "风电设备", "充电桩", "固态电池", "能源", "煤炭开采", "公用事业", "锂矿"],
-        "工业制造": ["机械设备", "汽车", "新能源车", "工程机械", "高端装备", "电力设备", "专用设备",
-                    "通用设备", "自动化设备", "机器人", "人形机器人", "汽车零部件", "汽车服务",
-                    "汽车热管理", "尾气治理", "特斯拉", "无人驾驶", "智能驾驶", "电网设备", "电机",
-                    "高端制造", "工业4.0", "工业互联", "低空经济", "通用航空"],
-        "材料": ["有色金属", "黄金股", "贵金属", "基础化工", "钢铁", "建筑材料", "稀土永磁", "小金属",
-                "工业金属", "材料", "大宗商品", "资源"],
-        "军工": ["国防军工", "航天装备", "航空装备", "航海装备", "军工电子", "军民融合", "商业航天",
-                "卫星互联网", "航母", "航空机场"],
-        "基建地产": ["建筑装饰", "房地产", "房地产开发", "房地产服务", "交通运输", "物流"],
-        "环保": ["环保", "环保设备", "环境治理", "垃圾分类", "碳中和", "可控核聚变", "液冷"],
-        "传媒": ["传媒", "游戏", "影视", "元宇宙", "超清视频", "数字孪生"],
-        "主题": ["国企改革", "一带一路", "中特估", "中字头", "并购重组", "华为", "新兴产业",
-                "国家安防", "安全主题", "农牧主题", "农林牧渔", "养殖业", "猪肉", "高端装备"]
-    };
-
-    // 基金选择模态框相关变量
-    let currentOperation = null;
-    let selectedFundsForOperation = [];
-    let allFunds = [];
-
-    // 打开基金选择模态框
-    async function openFundSelectionModal(operation) {
-        currentOperation = operation;
-        selectedFundsForOperation = [];
-
-        // 设置标题
-        const titles = {
-            'hold': '选择要标记持有的基金',
-            'unhold': '选择要取消持有的基金',
-            'sector': '选择要标注板块的基金',
-            'unsector': '选择要删除板块的基金',
-            'delete': '选择要删除的基金'
-        };
-        document.getElementById('fundSelectionTitle').textContent = titles[operation] || '选择基金';
-
-        // 获取所有基金列表
-        try {
-            const response = await fetch('/api/fund/data');
-            const fundMap = await response.json();
-            allFunds = Object.entries(fundMap).map(([code, data]) => ({
-                code,
-                name: data.fund_name,
-                is_hold: data.is_hold,
-                sectors: data.sectors || []
-            }));
-
-            // 渲染基金列表
-            renderFundSelectionList(allFunds);
-
-            // 显示模态框
-            document.getElementById('fundSelectionModal').classList.add('active');
-        } catch (e) {
-            alert('获取基金列表失败: ' + e.message);
-        }
-    }
-
-    // 渲染基金选择列表
-    function renderFundSelectionList(funds) {
-        const listContainer = document.getElementById('fundSelectionList');
-
-        // HTML escape function to prevent XSS and syntax errors
-        const escapeHtml = (text) => {
-            if (!text) return '';
-            const div = document.createElement('div');
-            div.textContent = text;
-            return div.innerHTML;
-        };
-
-        // Escape fund code for use in onclick attribute
-        const escapeJs = (text) => {
-            if (!text) return '';
-            return text.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
-        };
-
-        listContainer.innerHTML = funds.map(fund => {
-            const safeCode = escapeHtml(String(fund.code));
-            const safeName = escapeHtml(String(fund.name));
-            const safeCodeForJs = escapeJs(String(fund.code));
-            const safeSectors = fund.sectors && fund.sectors.length > 0
-                ? escapeHtml(fund.sectors.join(', '))
-                : '';
-
-            return `
-            <div class="sector-item" style="text-align: left; padding: 12px; margin-bottom: 8px; cursor: pointer; display: flex; align-items: center; gap: 10px;"
-                 onclick="toggleFundSelection('${safeCodeForJs}', this)">
-                <input type="checkbox" class="fund-selection-checkbox" data-code="${safeCode}"
-                       style="width: 18px; height: 18px; cursor: pointer;" onclick="event.stopPropagation();">
-                <div style="flex: 1;">
-                    <div style="font-weight: 600;">${safeCode} - ${safeName}</div>
-                    ${fund.is_hold ? '<span style="color: #3b82f6; font-size: 12px;">⭐ 持有</span>' : ''}
-                    ${safeSectors ? `<span style="color: #8b949e; font-size: 12px;"> 🏷️ ${safeSectors}</span>` : ''}
-                </div>
-            </div>
-            `;
-        }).join('');
-    }
-
-    // 切换基金选择状态
-    function toggleFundSelection(code, element) {
-        const checkbox = element.querySelector('.fund-selection-checkbox');
-        checkbox.checked = !checkbox.checked;
-
-        if (checkbox.checked) {
-            if (!selectedFundsForOperation.includes(code)) {
-                selectedFundsForOperation.push(code);
-            }
-            element.style.backgroundColor = 'rgba(102, 126, 234, 0.2)';
-        } else {
-            selectedFundsForOperation = selectedFundsForOperation.filter(c => c !== code);
-            element.style.backgroundColor = '';
-        }
-    }
-
-    // 关闭基金选择模态框
-    function closeFundSelectionModal() {
-        document.getElementById('fundSelectionModal').classList.remove('active');
-        currentOperation = null;
-        selectedFundsForOperation = [];
-    }
-
-    // 确认基金选择
-    async function confirmFundSelection() {
-        if (selectedFundsForOperation.length === 0) {
-            alert('请至少选择一个基金');
-            return;
-        }
-
-        // 根据操作类型执行相应的操作
-        switch (currentOperation) {
-            case 'hold':
-                await markHold(selectedFundsForOperation);
-                break;
-            case 'unhold':
-                await unmarkHold(selectedFundsForOperation);
-                break;
-            case 'sector':
-                closeFundSelectionModal();
-                openSectorModal(selectedFundsForOperation);
-                return; // 不关闭，等待板块选择
-            case 'unsector':
-                await removeSector(selectedFundsForOperation);
-                break;
-            case 'delete':
-                await deleteFunds(selectedFundsForOperation);
-                break;
-        }
-
-        closeFundSelectionModal();
-    }
-
-    // 基金选择搜索
-    document.addEventListener('DOMContentLoaded', function() {
-        const searchInput = document.getElementById('fundSelectionSearch');
-        if (searchInput) {
-            searchInput.addEventListener('input', function() {
-                const keyword = this.value.toLowerCase();
-                const filtered = allFunds.filter(fund =>
-                    fund.code.includes(keyword) || fund.name.toLowerCase().includes(keyword)
-                );
-                renderFundSelectionList(filtered);
-            });
-        }
-    });
-
-    // 确认对话框相关函数
-    let confirmCallback = null;
-
-    function showConfirmDialog(title, message, onConfirm) {
-        document.getElementById('confirmTitle').textContent = title;
-        document.getElementById('confirmMessage').textContent = message;
-        document.getElementById('confirmDialog').classList.add('active');
-        confirmCallback = onConfirm;
-    }
-
-    function closeConfirmDialog() {
-        document.getElementById('confirmDialog').classList.remove('active');
-        confirmCallback = null;
-    }
-
-    document.getElementById('confirmBtn').addEventListener('click', function() {
-        if (confirmCallback) {
-            confirmCallback();
-        }
-        closeConfirmDialog();
-    });
-
-    // 添加基金
-    async function addFunds() {
-        const input = document.getElementById('fundCodesInput');
-        const codes = input.value.trim();
-        if (!codes) {
-            alert('请输入基金代码');
-            return;
-        }
-
-        try {
-            const response = await fetch('/api/fund/add', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ codes })
-            });
-            const result = await response.json();
-            if (result.success) {
-                alert(result.message);
-                location.reload();
-            } else {
-                alert(result.message);
-            }
-        } catch (e) {
-            alert('操作失败: ' + e.message);
-        }
-    }
-
-    // 删除基金
-    async function deleteFunds(codes) {
-        showConfirmDialog(
-            '删除基金',
-            `确定要删除 ${codes.length} 只基金吗？`,
-            async () => {
-                try {
-                    const response = await fetch('/api/fund/delete', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ codes: codes.join(',') })
-                    });
-                    const result = await response.json();
-                    if (result.success) {
-                        alert(result.message);
-                        location.reload();
-                    } else {
-                        alert(result.message);
-                    }
-                } catch (e) {
-                    alert('操作失败: ' + e.message);
-                }
-            }
-        );
-    }
-
-    // 标记持有
-    async function markHold(codes) {
-        showConfirmDialog(
-            '标记持有',
-            `确定要标记 ${codes.length} 只基金为持有吗？`,
-            async () => {
-                try {
-                    const response = await fetch('/api/fund/hold', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ codes: codes.join(','), hold: true })
-                    });
-                    const result = await response.json();
-                    if (result.success) {
-                        alert(result.message);
-                        location.reload();
-                    } else {
-                        alert(result.message);
-                    }
-                } catch (e) {
-                    alert('操作失败: ' + e.message);
-                }
-            }
-        );
-    }
-
-    // 取消持有
-    async function unmarkHold(codes) {
-        showConfirmDialog(
-            '取消持有',
-            `确定要取消 ${codes.length} 只基金的持有标记吗？`,
-            async () => {
-                try {
-                    const response = await fetch('/api/fund/hold', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ codes: codes.join(','), hold: false })
-                    });
-                    const result = await response.json();
-                    if (result.success) {
-                        alert(result.message);
-                        location.reload();
-                    } else {
-                        alert(result.message);
-                    }
-                } catch (e) {
-                    alert('操作失败: ' + e.message);
-                }
-            }
-        );
-    }
-
-    // 打开板块选择模态框（用于标注板块）
-    let selectedCodesForSector = [];
-
-    function openSectorModal(codes) {
-        selectedCodesForSector = codes;
-        document.getElementById('sectorModal').classList.add('active');
-        renderSectorCategories();
-    }
-
-    // 删除板块标记
-    async function removeSector(codes) {
-        showConfirmDialog(
-            '删除板块标记',
-            `确定要删除 ${codes.length} 只基金的板块标记吗？`,
-            async () => {
-                try {
-                    const response = await fetch('/api/fund/sector/remove', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ codes: codes.join(',') })
-                    });
-                    const result = await response.json();
-                    if (result.success) {
-                        alert(result.message);
-                        location.reload();
-                    } else {
-                        alert(result.message);
-                    }
-                } catch (e) {
-                    alert('操作失败: ' + e.message);
-                }
-            }
-        );
-    }
-
-    // 取消持有
-    async function unmarkHold() {
-        const codes = getSelectedCodes();
-        if (codes.length === 0) {
-            alert('请先选择要取消持有的基金');
-            return;
-        }
-
-        showConfirmDialog(
-            '取消持有',
-            `确定要取消 ${codes.length} 只基金的持有标记吗？`,
-            async () => {
-                try {
-                    const response = await fetch('/api/fund/hold', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ codes: codes.join(','), hold: false })
-                    });
-                    const result = await response.json();
-                    if (result.success) {
-                        alert(result.message);
-                        location.reload();
-                    } else {
-                        alert(result.message);
-                    }
-                } catch (e) {
-                    alert('操作失败: ' + e.message);
-                }
-            }
-        );
-    }
-
-    // 板块选择相关
-    let selectedSectors = [];
-
-    function renderSectorCategories() {
-        // 生成板块分类HTML
-        const container = document.getElementById('sectorCategories');
-        container.innerHTML = '';
-
-        for (const [category, sectors] of Object.entries(SECTOR_CATEGORIES)) {
-            const categoryDiv = document.createElement('div');
-            categoryDiv.className = 'sector-category';
-
-            const header = document.createElement('div');
-            header.className = 'sector-category-header';
-            header.innerHTML = `<span>${category}</span><span>▼</span>`;
-            header.onclick = () => {
-                const items = categoryDiv.querySelector('.sector-items');
-                items.style.display = items.style.display === 'none' ? 'grid' : 'none';
-            };
-
-            const itemsDiv = document.createElement('div');
-            itemsDiv.className = 'sector-items';
-
-            sectors.forEach(sector => {
-                const item = document.createElement('div');
-                item.className = 'sector-item';
-                item.textContent = sector;
-                item.onclick = () => {
-                    item.classList.toggle('selected');
-                    if (item.classList.contains('selected')) {
-                        if (!selectedSectors.includes(sector)) {
-                            selectedSectors.push(sector);
-                        }
-                    } else {
-                        selectedSectors = selectedSectors.filter(s => s !== sector);
-                    }
-                };
-                itemsDiv.appendChild(item);
-            });
-
-            categoryDiv.appendChild(header);
-            categoryDiv.appendChild(itemsDiv);
-            container.appendChild(categoryDiv);
-        }
-
-        selectedSectors = [];
-        document.getElementById('sectorModal').classList.add('active');
-    }
-
-    function closeSectorModal() {
-        document.getElementById('sectorModal').classList.remove('active');
-        selectedSectors = [];
-    }
-
-    async function confirmSector() {
-        if (selectedSectors.length === 0) {
-            alert('请至少选择一个板块');
-            return;
-        }
-
-        try {
-            const response = await fetch('/api/fund/sector', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ codes: selectedCodesForSector.join(','), sectors: selectedSectors })
-            });
-            const result = await response.json();
-            closeSectorModal();
-            if (result.success) {
-                alert(result.message);
-                location.reload();
-            } else {
-                alert(result.message);
-            }
-        } catch (e) {
-            closeSectorModal();
-            alert('操作失败: ' + e.message);
-        }
-    }
-
-    // ==================== 新增功能：份额管理和文件操作 ====================
-
-    // 当前正在编辑份额的基金代码
-    let currentSharesFundCode = null;
-
-    // 获取基金份额（从内存或DOM）- 必须在 openSharesModal 之前定义
-    window.getFundShares = function(fundCode) {
-        // 先从全局存储获取
-        if (window.fundSharesData && window.fundSharesData[fundCode]) {
-            return window.fundSharesData[fundCode];
-        }
-        return 0;
-    };
-
-    // 更新份额按钮状态 - 必须在 openSharesModal 之前定义
-    function updateSharesButton(fundCode, shares) {
-        const button = document.getElementById('sharesBtn_' + fundCode);
-        if (button) {
-            if (shares > 0) {
-                button.textContent = '修改';
-                button.style.background = '#10b981';
-            } else {
-                button.textContent = '设置';
-                button.style.background = '#3b82f6';
-            }
-        }
-    }
-
-    // 打开份额设置弹窗
-    window.openSharesModal = function(fundCode) {
-        currentSharesFundCode = fundCode;
-        const modal = document.getElementById('sharesModal');
-        const fundCodeDisplay = document.getElementById('sharesModalFundCode');
-        const sharesInput = document.getElementById('sharesModalInput');
-
-        // 获取当前份额
-        const sharesValue = window.getFundShares(fundCode) || 0;
-        sharesInput.value = sharesValue > 0 ? sharesValue : '';
-        fundCodeDisplay.textContent = fundCode;
-
-        // 更新弹窗标题
-        const header = modal.querySelector('.sector-modal-header');
-        header.textContent = sharesValue > 0 ? '修改持仓份额' : '设置持仓份额';
-
-        modal.classList.add('active');
-        setTimeout(() => sharesInput.focus(), 100);
-    };
-
-    // 关闭份额设置弹窗
-    window.closeSharesModal = function() {
-        const modal = document.getElementById('sharesModal');
-        modal.classList.remove('active');
-        currentSharesFundCode = null;
-    };
-
-    // 确认份额设置
-    window.confirmShares = async function() {
-        if (!currentSharesFundCode) {
-            alert('基金代码无效');
-            return;
-        }
-
-        const sharesInput = document.getElementById('sharesModalInput');
-        const shares = parseFloat(sharesInput.value) || 0;
-
-        if (shares < 0) {
-            alert('份额不能为负数');
-            return;
-        }
-
-        try {
-            const response = await fetch('/api/fund/shares', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ code: currentSharesFundCode, shares: shares })
-            });
-            const result = await response.json();
-            if (result.success) {
-                // 更新全局份额数据
-                if (!window.fundSharesData) {
-                    window.fundSharesData = {};
-                }
-                window.fundSharesData[currentSharesFundCode] = shares;
-
-                // 更新按钮文本
-                updateSharesButton(currentSharesFundCode, shares);
-                // 重新计算持仓统计
-                calculatePositionSummary();
-                // 关闭弹窗
-                closeSharesModal();
-            } else {
-                alert(result.message);
-            }
-        } catch (e) {
-            alert('更新份额失败: ' + e.message);
-        }
-    };
-
-    // 下载fund_map.json
-    window.updateShares = async function(fundCode, shares) {
-        if (!fundCode) {
-            alert('基金代码无效');
-            return;
-        }
-
-        try {
-            const sharesValue = parseFloat(shares) || 0;
-            const response = await fetch('/api/fund/shares', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ code: fundCode, shares: sharesValue })
-            });
-            const result = await response.json();
-            if (result.success) {
-                // 更新全局份额数据
-                if (!window.fundSharesData) {
-                    window.fundSharesData = {};
-                }
-                window.fundSharesData[fundCode] = sharesValue;
-
-                // 更新按钮状态
-                updateSharesButton(fundCode, sharesValue);
-                // 更新成功后重新计算持仓统计
-                calculatePositionSummary();
-            } else {
-                alert(result.message);
-            }
-        } catch (e) {
-            alert('更新份额失败: ' + e.message);
-        }
-    };
-
-    // 下载fund_map.json
-    window.downloadFundMap = function() {
-        window.location.href = '/api/fund/download';
-    };
-
-    // 上传fund_map.json
-    window.uploadFundMap = async function(file) {
-        if (!file) {
-            alert('请选择文件');
-            return;
-        }
-
-        if (!file.name.endsWith('.json')) {
-            alert('只支持JSON文件');
-            return;
-        }
-
-        const formData = new FormData();
-        formData.append('file', file);
-
-        try {
-            const response = await fetch('/api/fund/upload', {
-                method: 'POST',
-                body: formData
-            });
-            const result = await response.json();
-            if (result.success) {
-                alert(result.message);
-                location.reload();
-            } else {
-                alert(result.message);
-            }
-        } catch (e) {
-            alert('上传失败: ' + e.message);
-        }
-    };
-
-    // 计算并显示持仓统计
-    async function calculatePositionSummary() {
-        let totalValue = 0;
-        let estimatedGain = 0;
-        let actualGain = 0;
-        let settledValue = 0;
-        const today = new Date().toISOString().split('T')[0];
-
-        // Get fund data map for holdings cards
-        let fundDataMap = {};
-        try {
-            const response = await fetch('/api/fund/data');
-            if (response.ok) {
-                fundDataMap = await response.json();
-            }
-        } catch (e) {
-            console.warn('Failed to fetch fund data map:', e);
-        }
-
-        // Collect held funds data for cards
-        const heldFundsData = [];
-        // Collect fund details for summary table
-        const fundDetailsData = [];
-
-        // 遍历所有基金行
-        const fundRows = document.querySelectorAll('.style-table tbody tr');
-        fundRows.forEach(row => {
-            const cells = row.querySelectorAll('td');
-            if (cells.length < 9) return;
-
-            // 获取基金代码
-            const codeCell = cells[1]; // 第二列是基金代码（第一列是复选框）
-            const fundCode = codeCell.textContent.trim();
-
-            // Check if this fund is held
-            const isHeld = fundDataMap[fundCode]?.is_hold || false;
-
-            // 获取份额数据（从全局数据对象）
-            const shares = window.fundSharesData && window.fundSharesData[fundCode] ? parseFloat(window.fundSharesData[fundCode]) : 0;
-            if (shares <= 0) return;  // 只处理有份额的基金
-
-            try {
-                // 解析净值 "1.234(2025-02-02)"
-                const netValueText = cells[4].textContent.trim();
-                const netValueMatch = netValueText.match(/([0-9.]+)\(([0-9-]+)\)/);
-                if (!netValueMatch) return;
-
-                const netValue = parseFloat(netValueMatch[1]);
-                let netValueDate = netValueMatch[2];
-
-                // 处理净值日期格式：API可能返回"MM-DD"或"YYYY-MM-DD"
-                // 如果是"MM-DD"格式，添加当前年份
-                if (netValueDate.length === 5) {  // 格式为"MM-DD"
-                    const currentYear = new Date().getFullYear();
-                    netValueDate = `${currentYear}-${netValueDate}`;
-                }
-
-                // 解析估值增长率
-                const estimatedGrowthText = cells[5].textContent.trim();
-                const estimatedGrowth = estimatedGrowthText !== 'N/A' ?
-                    parseFloat(estimatedGrowthText.replace('%', '')) : 0;
-
-                // 解析日涨幅
-                const dayGrowthText = cells[6].textContent.trim();
-                const dayGrowth = dayGrowthText !== 'N/A' ?
-                    parseFloat(dayGrowthText.replace('%', '')) : 0;
-
-                // 解析连涨/跌
-                const consecutiveText = cells[7].textContent.trim();
-
-                // 解析近30天
-                const monthlyText = cells[8].textContent.trim();
-
-                // 计算持仓市值
-                const positionValue = shares * netValue;
-
-                // If this fund is held, collect its data for cards
-                if (isHeld) {
-                    heldFundsData.push({
-                        code: fundCode,
-                        name: fundDataMap[fundCode]?.fund_name || 'Unknown',
-                        sectors: fundDataMap[fundCode]?.sectors || [],
-                        netValue: netValue,
-                        netValueDate: netValueDate,
-                        estimatedGrowth: estimatedGrowth,
-                        dayGrowth: dayGrowth,
-                        consecutive: consecutiveText,
-                        monthly: monthlyText,
-                        shares: shares,
-                        positionValue: positionValue
-                    });
-                }
-
-                if (shares > 0) {
-                    totalValue += positionValue;
-
-                    // 计算预估涨跌
-                    const fundEstimatedGain = positionValue * estimatedGrowth / 100;
-                    estimatedGain += fundEstimatedGain;
-
-                    // 计算实际涨跌（仅当日结算）
-                    let fundActualGain = 0;
-                    if (netValueDate === today) {
-                        fundActualGain = positionValue * dayGrowth / 100;
-                        actualGain += fundActualGain;
-                        settledValue += positionValue;
-                    }
-
-                    // Collect fund details for summary table
-                    const fundName = cells[2].textContent.trim();
-                    fundDetailsData.push({
-                        code: fundCode,
-                        name: fundName,
-                        shares: shares,
-                        positionValue: positionValue,
-                        estimatedGain: fundEstimatedGain,
-                        estimatedGainPct: estimatedGrowth,
-                        actualGain: fundActualGain,
-                        actualGainPct: netValueDate === today ? dayGrowth : 0
-                    });
-                }
-            } catch (e) {
-                console.warn('解析基金数据失败:', fundCode, e);
-            }
-        });
-
-        // Update Asset Hero Section
-        const assetHero = document.getElementById('assetHero');
-        if (assetHero) {
-            if (totalValue > 0) {
-                assetHero.style.display = 'block';
-
-            // Update total value
-            document.getElementById('heroTotalValue').textContent =
-                '¥' + totalValue.toLocaleString('zh-CN', {minimumFractionDigits: 2, maximumFractionDigits: 2});
-
-            // Update estimated gain
-            const estGainPct = totalValue > 0 ? (estimatedGain / totalValue * 100) : 0;
-            const estSign = estimatedGain >= 0 ? '+' : '';
-            const estClass = estimatedGain >= 0 ? 'positive' : 'negative';
-            document.getElementById('heroEstimatedGain').textContent =
-                estSign + '¥' + Math.abs(estimatedGain).toLocaleString('zh-CN', {minimumFractionDigits: 2, maximumFractionDigits: 2});
-            document.getElementById('heroEstimatedGain').className = 'asset-metric-value ' + estClass;
-            document.getElementById('heroEstimatedGainPct').textContent = estSign + estGainPct.toFixed(2) + '%';
-
-            // Update actual gain
-            if (settledValue > 0) {
-                const actGainPct = (actualGain / settledValue * 100);
-                const actSign = actualGain >= 0 ? '+' : '';
-                const actClass = actualGain >= 0 ? 'positive' : 'negative';
-                document.getElementById('heroActualGain').textContent =
-                    actSign + '¥' + Math.abs(actualGain).toLocaleString('zh-CN', {minimumFractionDigits: 2, maximumFractionDigits: 2});
-                document.getElementById('heroActualGain').className = 'asset-metric-value ' + actClass;
-                document.getElementById('heroActualGainPct').textContent = actSign + actGainPct.toFixed(2) + '% (Settled)';
-            } else {
-                document.getElementById('heroActualGain').textContent = '¥0.00';
-                document.getElementById('heroActualGain').className = 'asset-metric-value neutral';
-                document.getElementById('heroActualGainPct').textContent = '0.00% (Settled)';
-            }
-            } else {
-                assetHero.style.display = 'none';
-            }
-        }
-
-        // Generate and populate holdings cards
-        if (heldFundsData.length > 0) {
-            const cardsHTML = heldFundsData.map(fund => {
-                const sectorTags = fund.sectors && fund.sectors.length > 0
-                    ? `<span style="color: #8b949e; font-size: 12px;"> 🏷️ ${fund.sectors.join(', ')}</span>`
-                    : '';
-                const estClass = fund.estimatedGrowth >= 0 ? 'up' : 'down';
-                const dayClass = fund.dayGrowth >= 0 ? 'up' : 'down';
-
-                return `
-                <div class="fund-glass-card" data-code="${fund.code}">
-                    <div class="card-header">
-                        <div>
-                            <div class="card-title">${fund.name}</div>
-                            <div class="card-code">${fund.code} ${sectorTags}</div>
-                        </div>
-                        <div class="card-badge">⭐</div>
-                    </div>
-                    <div class="card-main-data">
-                        <span class="est-pct ${estClass}">${fund.estimatedGrowth >= 0 ? '+' : ''}${fund.estimatedGrowth.toFixed(2)}%</span>
-                        <span style="font-size: 12px; color: var(--text-dim)">实时估值</span>
-                    </div>
-                    <div class="card-details">
-                        <div class="detail-item">持仓份额 <b>${fund.shares.toLocaleString('zh-CN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</b></div>
-                        <div class="detail-item">估值盈亏 <b class="${estClass}">${fund.estimatedGrowth >= 0 ? '+' : ''}¥${(fund.positionValue * fund.estimatedGrowth / 100).toLocaleString('zh-CN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</b></div>
-                        <div class="detail-item">当前净值 <b>${fund.netValue.toFixed(4)}</b></div>
-                        <div class="detail-item">日涨幅 <b class="${dayClass}">${fund.dayGrowth >= 0 ? '+' : ''}${fund.dayGrowth.toFixed(2)}%</b></div>
-                    </div>
-                </div>
-                `;
-            }).join('');
-
-            const holdingsSection = `
-            <div style="margin-bottom: 24px;">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-                    <div style="font-size: 18px; font-weight: 600; color: var(--text-main);">💎 核心持仓</div>
-                    <div style="font-size: 14px; color: var(--text-dim); font-family: var(--font-mono);">${heldFundsData.length} 只</div>
-                </div>
-                <div class="holdings-grid">
-                    ${cardsHTML}
-                </div>
-            </div>
-            `;
-
-            document.getElementById('holdingsCardsContainer').innerHTML = holdingsSection;
-        } else {
-            document.getElementById('holdingsCardsContainer').innerHTML = '';
-        }
-
-        // 显示或隐藏持仓统计区域
-        const summaryDiv = document.getElementById('positionSummary');
-        const fundDetailsDiv = document.getElementById('fundDetailsSummary');
-        if (!summaryDiv) {
-            // positionSummary element not found (sidebar layout), skip old layout summary
-            console.log('positionSummary element not found - using sidebar layout');
-        } else if (totalValue > 0) {
-            summaryDiv.style.display = 'block';
-
-            // 更新总持仓金额
-            const totalValueEl = document.getElementById('totalValue');
-            if (totalValueEl) {
-                totalValueEl.textContent =
-                    '¥' + totalValue.toLocaleString('zh-CN', {minimumFractionDigits: 2, maximumFractionDigits: 2});
-            }
-
-            // 更新预估涨跌
-            const estGainPct = totalValue > 0 ? (estimatedGain / totalValue * 100) : 0;
-            const estColor = estimatedGain >= 0 ? '#ef4444' : '#10b981';
-            const estimatedGainEl = document.getElementById('estimatedGain');
-            if (estimatedGainEl) {
-                estimatedGainEl.innerHTML =
-                    `<span class="sensitive-value ${estimatedGain >= 0 ? 'positive' : 'negative'}" style="color: ${estColor}"><span class="real-value">¥${Math.abs(estimatedGain).toLocaleString('zh-CN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span><span class="hidden-value">****</span></span><span id="estimatedGainPct" style="color: ${estColor}"> (${estGainPct.toFixed(2)}%)</span>`;
-            }
-
-            // 更新实际涨跌
-            const actualGainEl = document.getElementById('actualGain');
-            if (actualGainEl) {
-                if (settledValue > 0) {
-                    const actGainPct = (actualGain / settledValue * 100);
-                    const actColor = actualGain >= 0 ? '#ef4444' : '#10b981';
-                    actualGainEl.innerHTML =
-                        `<span class="sensitive-value ${actualGain >= 0 ? 'positive' : 'negative'}" style="color: ${actColor}"><span class="real-value">¥${Math.abs(actualGain).toLocaleString('zh-CN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span><span class="hidden-value">****</span></span><span id="actualGainPct" style="color: ${actColor}"> (${actGainPct.toFixed(2)}%)</span>`;
-                } else {
-                    actualGainEl.innerHTML =
-                        '<span style="color: var(--text-dim);">净值未更新</span>';
-                }
-            }
-
-            // 填充分基金明细表格
-            if (fundDetailsDiv && fundDetailsData.length > 0) {
-                fundDetailsDiv.style.display = 'block';
-                const tableBody = document.getElementById('fundDetailsTableBody');
-                if (tableBody) {
-                    tableBody.innerHTML = fundDetailsData.map(fund => {
-                        const estColor = fund.estimatedGain >= 0 ? '#f44336' : '#4caf50';
-                        const actColor = fund.actualGain >= 0 ? '#f44336' : '#4caf50';
-                        return `
-                            <tr style="border-bottom: 1px solid var(--border);">
-                                <td style="padding: 10px; text-align: center; white-space: nowrap; vertical-align: middle; color: var(--accent); font-weight: 500;">${fund.code}</td>
-                                <td style="padding: 10px; text-align: center; white-space: nowrap; vertical-align: middle; color: var(--text-main); min-width: 120px;">${fund.name}</td>
-                                <td style="padding: 10px; text-align: center; white-space: nowrap; vertical-align: middle; font-family: var(--font-mono);">${fund.shares.toLocaleString('zh-CN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
-                                <td style="padding: 10px; text-align: center; white-space: nowrap; vertical-align: middle; font-family: var(--font-mono); font-weight: 600;">¥${fund.positionValue.toLocaleString('zh-CN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
-                                <td style="padding: 10px; text-align: center; white-space: nowrap; vertical-align: middle; font-family: var(--font-mono); color: ${estColor}; font-weight: 500;">¥${Math.abs(fund.estimatedGain).toLocaleString('zh-CN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
-                                <td style="padding: 10px; text-align: center; white-space: nowrap; vertical-align: middle; font-family: var(--font-mono); color: ${estColor}; font-weight: 500;">${fund.estimatedGainPct.toFixed(2)}%</td>
-                                <td style="padding: 10px; text-align: center; white-space: nowrap; vertical-align: middle; font-family: var(--font-mono); color: ${actColor}; font-weight: 500;">¥${Math.abs(fund.actualGain).toLocaleString('zh-CN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
-                                <td style="padding: 10px; text-align: center; white-space: nowrap; vertical-align: middle; font-family: var(--font-mono); color: ${actColor}; font-weight: 500;">${fund.actualGainPct.toFixed(2)}%</td>
-                            </tr>
-                        `;
-                    }).join('');
-                }
-            } else if (fundDetailsDiv) {
-                fundDetailsDiv.style.display = 'none';
-            }
-        } else {
-            summaryDiv.style.display = 'none';
-            if (fundDetailsDiv) {
-                fundDetailsDiv.style.display = 'none';
-            }
-        }
-    }
-
-    // 页面加载时加载份额数据并计算持仓统计
-    async function loadSharesData() {
-        try {
-            // 从后端API获取用户的基金数据（包含份额）
-            const response = await fetch('/api/fund/data');
-            if (response.ok) {
-                const fundData = await response.json();
-
-                // 存储份额数据到全局变量
-                window.fundSharesData = {};
-
-                // 先存储数据，稍后更新按钮
-                for (const [code, data] of Object.entries(fundData)) {
-                    const shares = parseFloat(data.shares) || 0;
-                    window.fundSharesData[code] = shares;
-                }
-
-                // 等待DOM加载完成后更新按钮状态
-                updateAllSharesButtons();
-
-                // 计算持仓统计
-                calculatePositionSummary();
-            }
-        } catch (e) {
-            console.error('加载份额数据失败:', e);
-            // 即使加载失败，也尝试计算持仓统计
-            calculatePositionSummary();
-        }
-    }
-
-    // 更新所有份额按钮状态（在DOM加载后调用）
-    function updateAllSharesButtons() {
-        if (!window.fundSharesData) return;
-
-        for (const [code, shares] of Object.entries(window.fundSharesData)) {
-            updateSharesButton(code, shares);
-        }
-    }
-
-    // 板块搜索功能
-    document.addEventListener('DOMContentLoaded', function() {
-        const searchInput = document.getElementById('sectorSearch');
-        if (searchInput) {
-            searchInput.addEventListener('input', function() {
-                const keyword = this.value.toLowerCase();
-                const categories = document.querySelectorAll('.sector-category');
-
-                categories.forEach(category => {
-                    const items = category.querySelectorAll('.sector-item');
-                    let hasVisible = false;
-
-                    items.forEach(item => {
-                        const text = item.textContent.toLowerCase();
-                        if (text.includes(keyword)) {
-                            item.style.display = 'block';
-                            hasVisible = true;
-                        } else {
-                            item.style.display = 'none';
-                        }
-                    });
-
-                    category.style.display = hasVisible || keyword === '' ? 'block' : 'none';
-                });
-            });
-        }
-
-        // 初始化 - 加载份额数据
-        loadSharesData();
-
-        // 份额弹窗 - 点击外部关闭
-        const sharesModal = document.getElementById('sharesModal');
-        if (sharesModal) {
-            sharesModal.addEventListener('click', function(e) {
-                if (e.target === sharesModal) {
-                    closeSharesModal();
-                }
-            });
-
-            // 份额弹窗 - 回车键确认
-            const sharesInput = document.getElementById('sharesModalInput');
-            if (sharesInput) {
-                sharesInput.addEventListener('keypress', function(e) {
-                    if (e.key === 'Enter') {
-                        confirmShares();
-                    }
-                });
-            }
-        }
-    });
-    </script>
-    """
-
-
-# ==================== 新页面布局函数 ====================
-
-def get_market_page_html(market_data, username=None):
-    """生成市场行情页面 - 使用卡片/图表布局"""
-    css_style = get_css_style()
-
-    # 生成市场数据卡片
-    market_cards = ''
-    for key, data in market_data.items():
-        card_id = "card-{}".format(key)
-        icon = get_market_icon(key)
-        market_cards += '''
-        <div class="market-card" id="{card_id}">
-            <div class="market-card-header">
-                <h3 class="market-card-title">
-                    <span class="card-icon">{icon}</span>
-                    {title}
-                </h3>
-                <button class="card-toggle" onclick="toggleCard('{card_id}')">
-                    <span>▼</span>
-                </button>
-            </div>
-            <div class="market-card-content">
-                {content}
-            </div>
-        </div>
-        '''.format(card_id=card_id, icon=icon, title=data['title'], content=data['content'])
-
-    username_display = '<a href="https://github.com/lanZzV/fund" target="_blank" class="nav-star">点个赞</a>'
-    username_display += '<a href="https://github.com/lanZzV/fund/issues" target="_blank" class="nav-feedback">反馈</a>'
-    if username:
-        username_display += '<span class="nav-user">🍎 {username}</span>'.format(username=username)
-        username_display += '<a href="/logout" class="nav-logout">退出登录</a>'
-
-    html = '''<!DOCTYPE html>
-<html lang="zh-CN">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>市场行情 - LanFund</title>
-    <link rel="icon" href="/static/1.ico">
-    {css_style}
-    <link rel="stylesheet" href="/static/css/style.css">
-    <style>
-        body {{
-            background-color: var(--terminal-bg);
-            color: var(--text-main);
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-        }}
-
-        /* 顶部导航栏 */
-        .top-navbar {{
-            background-color: var(--card-bg);
-            color: var(--text-main);
-            padding: 0.8rem 2rem;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border-bottom: 1px solid var(--border);
-        }}
-
-        .top-navbar-brand {{
-            display: flex;
-            align-items: center;
-            flex: 0 0 auto;
-        }}
-
-        .top-navbar-quote {{
-            flex: 1;
-            text-align: center;
-            font-size: 1rem;
-            font-weight: 500;
-            color: var(--text-main);
-            font-style: italic;
-            padding: 0 2rem;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            letter-spacing: 0.05em;
-            transition: opacity 0.5s ease-in-out;
-        }}
-
-        .top-navbar-menu {{
-            display: flex;
-            gap: 1rem;
-            align-items: center;
-        }}
-
-        .nav-user {{
-            color: #3b82f6;
-            font-weight: 500;
-        }}
-
-        .nav-logout {{
-            color: #f85149;
-            text-decoration: none;
-            font-weight: 500;
-        }}
-
-        .nav-star {{
-            color: #e3b341;
-            text-decoration: none;
-            font-weight: 500;
-        }}
-
-        .nav-star:hover {{
-            color: #f2c94c;
-        }}
-
-        .nav-feedback {{
-            color: #8b949e;
-            text-decoration: none;
-            font-weight: 500;
-        }}
-
-        .nav-feedback:hover {{
-            color: #58a6ff;
-        }}
-
-        /* 主容器 */
-        .main-container {{
-            display: flex;
-            flex: 1;
-        }}
-
-        /* 内容区域 */
-        .content-area {{
-            flex: 1;
-            padding: 30px;
-            overflow-y: auto;
-        }}
-
-        .page-header {{
-            margin-bottom: 30px;
-            text-align: center;
-        }}
-
-        .page-header h1 {{
-            font-size: 2rem;
-            font-weight: 700;
-            margin: 0;
-            border: none;
-            text-decoration: none;
-            background: linear-gradient(135deg, var(--accent), var(--down));
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }}
-
-        .page-header p {{
-            color: var(--text-dim);
-            margin-top: 10px;
-            border: none;
-            text-decoration: none;
-        }}
-
-        /* 市场行情网格布局 */
-        .market-grid {{
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 20px;
-            max-width: 1600px;
-            margin: 0 auto;
-        }}
-
-        @media (max-width: 1200px) {{
-            .market-grid {{
-                grid-template-columns: 1fr;
-            }}
-        }}
-
-        /* 市场卡片 */
-        .market-card {{
-            background: var(--card-bg);
-            border: 1px solid var(--border);
-            border-radius: 12px;
-            overflow: hidden;
-            transition: all 0.3s ease;
-        }}
-
-        .market-card:hover {{
-            border-color: var(--accent);
-            box-shadow: 0 4px 20px rgba(59, 130, 246, 0.15);
-        }}
-
-        .market-card-header {{
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 16px 20px;
-            background: linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
-            border-bottom: 1px solid var(--border);
-            cursor: pointer;
-            user-select: none;
-        }}
-
-        .market-card-title {{
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            margin: 0;
-            font-size: 1.1rem;
-            font-weight: 600;
-            color: var(--text-main);
-        }}
-
-        .card-icon {{
-            font-size: 1.3rem;
-        }}
-
-        .card-toggle {{
-            background: none;
-            border: none;
-            color: var(--text-dim);
-            cursor: pointer;
-            padding: 4px 8px;
-            transition: transform 0.3s ease;
-        }}
-
-        .card-toggle.collapsed {{
-            transform: rotate(-90deg);
-        }}
-
-        .market-card-content {{
-            padding: 20px;
-            max-height: 600px;
-            overflow-y: auto;
-            transition: all 0.3s ease;
-            opacity: 1;
-        }}
-
-        /* 折叠状态：内容隐藏 */
-        .market-card.collapsed .market-card-content {{
-            display: none;
-        }}
-
-        /* 折叠状态：卡片收缩 */
-        .market-card.collapsed {{
-            max-height: 60px;
-        }}
-
-        /* 滚动条样式 */
-        .market-card-content::-webkit-scrollbar {{
-            width: 8px;
-        }}
-
-        .market-card-content::-webkit-scrollbar-track {{
-            background: var(--terminal-bg);
-        }}
-
-        .market-card-content::-webkit-scrollbar-thumb {{
-            background: var(--border);
-            border-radius: 4px;
-        }}
-
-        .market-card-content::-webkit-scrollbar-thumb:hover {{
-            background: var(--accent);
-        }}
-
-        @media (max-width: 768px) {{
-            .main-container {{
-                flex-direction: column;
-            }}
-
-            .sidebar {{
-                width: 100%;
-                border-right: none;
-                border-bottom: 1px solid var(--border);
-                padding: 10px 0;
-            }}
-
-            .sidebar-item {{
-                padding: 10px 15px;
-                font-size: 0.9rem;
-            }}
-
-            .content-area {{
-                padding: 15px;
-            }}
-
-            /* 顶部导航栏两行布局 */
-            .top-navbar {{
-                flex-direction: row;
-                flex-wrap: wrap;
-                height: auto;
-                padding: 0.5rem 1rem;
-                align-items: center;
-                border-bottom: none;
-            }}
-
-            .top-navbar > .top-navbar-brand {{
-                order: 1;
-                flex: 0 0 auto;
-                padding-bottom: 0.5rem;
-                border-bottom: 1px solid var(--border);
-            }}
-
-            .top-navbar-menu {{
-                order: 1;
-                flex: 0 0 auto;
-                margin-left: auto;
-                padding-bottom: 0.5rem;
-                border-bottom: 1px solid var(--border);
-            }}
-
-            .top-navbar-quote {{
-                order: 2;
-                width: 100%;
-                flex-basis: 100%;
-                text-align: center;
-                padding: 0.5rem 0;
-                font-size: 0.8rem;
-                white-space: nowrap;
-                overflow: hidden;
-                text-overflow: ellipsis;
-                border-top: 1px solid var(--border);
-                margin-top: 0.5rem;
-            }}
-        }}
-    </style>
-</head>
-<body>
-    <!-- 顶部导航栏 -->
-    <nav class="top-navbar">
-        <div class="top-navbar-brand">
-            <img src="/static/1.ico" alt="Logo" class="navbar-logo">
-        </div>
-        <div class="top-navbar-quote" id="lyricsDisplay">
-            偶然与巧合, 舞动了蝶翼, 谁的心头风起 ————《如果我们不曾相遇》
-        </div>
-        <div class="top-navbar-menu">
-            {username_display}
-        </div>
-    </nav>
-
-    <!-- 主容器 -->
-    <div class="main-container">
-        <!-- 汉堡菜单按钮 (移动端) -->
-        <button class="hamburger-menu" id="hamburgerMenu">
-            <span></span>
-            <span></span>
-            <span></span>
-        </button>
-
-        <!-- 左侧导航栏 -->
-        <div class="sidebar collapsed" id="sidebar">
-            <div class="sidebar-toggle" id="sidebarToggle">▶</div>
-            <a href="/market" class="sidebar-item active">
-                <span class="sidebar-icon">📰</span>
-                <span>7*24快讯</span>
-            </a>
-            <a href="/market-indices" class="sidebar-item">
-                <span class="sidebar-icon">📊</span>
-                <span>市场指数</span>
-            </a>
-            <a href="/precious-metals" class="sidebar-item">
-                <span class="sidebar-icon">🪙</span>
-                <span>贵金属行情</span>
-            </a>
-            <a href="/portfolio" class="sidebar-item">
-                <span class="sidebar-icon">💼</span>
-                <span>持仓基金</span>
-            </a>
-            <a href="/sectors" class="sidebar-item">
-                <span class="sidebar-icon">🏢</span>
-                <span>行业板块</span>
-            </a>
-        </div>
-
-        <!-- 内容区域 -->
-        <div class="content-area">
-            <!-- 页面标题 -->
-            <div class="page-header">
-                <h1>📊 市场行情</h1>
-                <p>实时追踪全球市场动态</p>
-            </div>
-
-            <!-- 市场数据网格 -->
-            <div class="market-grid">
-                {market_cards}
-            </div>
-        </div>
-    </div>
-
-    <script>
-        function toggleCard(cardId) {{
-            const card = document.getElementById(cardId);
-            const toggle = card.querySelector('.card-toggle');
-            card.classList.toggle('collapsed');
-            toggle.classList.toggle('collapsed');
-        }}
-
-        // 自动颜色化
-        function autoColorize() {{
-            const cells = document.querySelectorAll('.style-table td');
-            cells.forEach(cell => {{
-                const text = cell.textContent.trim();
-                const cleanText = text.replace(/[%,亿万手]/g, '');
-                const val = parseFloat(cleanText);
-
-                if (!isNaN(val)) {{
-                    if (text.includes('%') || text.includes('涨跌')) {{
-                        if (text.includes('-')) {{
-                            cell.classList.add('negative');
-                        }} else if (val > 0) {{
-                            cell.classList.add('positive');
-                        }}
-                    }} else if (text.startsWith('-')) {{
-                        cell.classList.add('negative');
-                    }} else if (text.startsWith('+')) {{
-                        cell.classList.add('positive');
-                    }}
-                }}
-            }});
-        }}
-
-        document.addEventListener('DOMContentLoaded', function() {{
-            autoColorize();
-        }});
-    </script>
-    <script src="/static/js/main.js"></script>
-    <script>
-        // 歌词轮播
-        (function() {{
-            const lyrics = [
-                "偶然与巧合, 舞动了蝶翼, 谁的心头风起 ————《如果我们不曾相遇》",
-                "如海上的浪花, 如深海的鱼, 浪与鱼相依 ————《鱼仔》",
-                "阳光下的泡沫, 是彩色的, 一触就破 ————《泡沫》",
-                "如果我变成回忆, 退出了这场生命 ————《如果我变成回忆》"
-            ];
-            let currentIndex = 0;
-            const lyricsElement = document.getElementById('lyricsDisplay');
-
-            function rotateLyrics() {{
-                if (!lyricsElement) return;
-                lyricsElement.style.opacity = '0';
-                setTimeout(() => {{
-                    currentIndex = (currentIndex + 1) % lyrics.length;
-                    lyricsElement.textContent = lyrics[currentIndex];
-                    lyricsElement.style.opacity = '1';
-                }}, 500);
-            }}
-
-            setInterval(rotateLyrics, 10000);
-        }})();
-    </script>
-</body>
-</html>'''.format(css_style=css_style, username_display=username_display, market_cards=market_cards)
-    return html
-
-
 def get_news_page_html(news_content, username=None):
     """生成7*24快讯页面 - 简洁布局"""
     css_style = get_css_style()
@@ -3500,100 +1369,12 @@ def get_news_page_html(news_content, username=None):
     <link rel="icon" href="/static/1.ico">
     {css_style}
     <link rel="stylesheet" href="/static/css/style.css">
+    <link rel="stylesheet" href="/static/css/pages.css">
     <style>
-        body {{
-            background-color: var(--terminal-bg);
-            color: var(--text-main);
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-        }}
-
-        /* 顶部导航栏 */
-        .top-navbar {{
-            background-color: var(--card-bg);
-            color: var(--text-main);
-            padding: 0.8rem 2rem;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border-bottom: 1px solid var(--border);
-        }}
-
-        .top-navbar-brand {{
-            display: flex;
-            align-items: center;
-            flex: 0 0 auto;
-        }}
-
-        .navbar-logo {{
-            width: 32px;
-            height: 32px;
-        }}
-
-        .top-navbar-quote {{
-            flex: 1;
-            text-align: center;
-            font-size: 1rem;
-            font-weight: 500;
-            color: var(--text-main);
-            font-style: italic;
-            padding: 0 2rem;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            letter-spacing: 0.05em;
-            transition: opacity 0.5s ease-in-out;
-        }}
-
-        .top-navbar-menu {{
-            display: flex;
-            gap: 1rem;
-            align-items: center;
-        }}
-
-        .nav-logout {{
-            color: #f85149;
-            text-decoration: none;
-            font-weight: 500;
-        }}
-
-        .nav-star {{
-            color: #e3b341;
-            text-decoration: none;
-            font-weight: 500;
-        }}
-
-        .nav-star:hover {{
-            color: #f2c94c;
-        }}
-
-        .nav-feedback {{
-            color: #8b949e;
-            text-decoration: none;
-            font-weight: 500;
-        }}
-
-        .nav-feedback:hover {{
-            color: #58a6ff;
-        }}
-
-        .nav-user {{
-            color: #3b82f6;
-            font-weight: 500;
-        }}
-
-        /* 主容器 */
-        .main-container {{
-            display: flex;
-            flex: 1;
-        }}
-
-        /* 内容区域 */
+        /* Common page styles (body, navbar, content-area, etc.) are now in pages.css */
+        /* News-specific: content-area uses 20px padding (override pages.css 30px) */
         .content-area {{
-            flex: 1;
             padding: 20px;
-            overflow-y: auto;
         }}
 
         /* 隐藏滚动条但保留功能 */
@@ -3742,7 +1523,7 @@ def get_news_page_html(news_content, username=None):
             </a>
             <a href="/sectors" class="sidebar-item">
                 <span class="sidebar-icon">🏢</span>
-                <span>行业板块</span>
+                <span>概念板块</span>
             </a>
         </div>
 
@@ -3767,56 +1548,11 @@ def get_news_page_html(news_content, username=None):
     <script src="/static/js/main.js"></script>
     <script src="/static/js/sidebar-nav.js"></script>
     <script>
-        // 自动颜色化
-        function autoColorize() {{
-            const elements = document.querySelectorAll('[data-change]');
-            elements.forEach(function(el) {{
-                const change = parseFloat(el.getAttribute('data-change'));
-                if (change > 0) {{
-                    el.style.color = '#f44336';
-                }} else if (change < 0) {{
-                    el.style.color = '#4caf50';
-                }}
-            }});
-        }}
-
-        document.addEventListener('DOMContentLoaded', function() {{
-            // 歌词轮播
-            const lyrics = [
-                '总要有一首我的歌, 大声唱过, 再看天地辽阔 ————《一颗苹果》',
-                '苍狗又白云, 身旁有了你, 匆匆轮回又有何惧 ————《如果我们不曾相遇》',
-                '活着其实很好, 再吃一颗苹果 ————《一颗苹果》',
-                '偶然与巧合, 舞动了蝶翼, 谁的心头风起 ————《如果我们不曾相遇》'
-            ];
-            let currentLyricIndex = 0;
-            const lyricsElement = document.getElementById('lyricsDisplay');
-
-            // 随机选择初始歌词
-            currentLyricIndex = Math.floor(Math.random() * lyrics.length);
-            if (lyricsElement) {{
-                lyricsElement.textContent = lyrics[currentLyricIndex];
-
-                // 每10秒切换一次歌词
-                setInterval(function() {{
-                    // 淡出
-                    lyricsElement.style.opacity = '0';
-
-                    setTimeout(function() {{
-                        // 切换歌词
-                        currentLyricIndex = (currentLyricIndex + 1) % lyrics.length;
-                        lyricsElement.textContent = lyrics[currentLyricIndex];
-
-                        // 淡入
-                        lyricsElement.style.opacity = '1';
-                    }}, 500);
-                }}, 10000);
-            }}
-
-            autoColorize();
-        }});
+        {lyrics_script}
+        document.addEventListener('DOMContentLoaded', function() {{ autoColorize(); }});
     </script>
 </body>
-</html>'''.format(css_style=css_style, username_display=username_display, news_content=news_content)
+</html>'''.format(css_style=css_style, username_display=username_display, news_content=news_content, lyrics_script=get_lyrics_carousel_script())
     return html
 
 
@@ -3839,101 +1575,13 @@ def get_precious_metals_page_html(metals_data, username=None):
     <link rel="icon" href="/static/1.ico">
     {css_style}
     <link rel="stylesheet" href="/static/css/style.css">
+    <link rel="stylesheet" href="/static/css/pages.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <style>
-        body {{
-            background-color: var(--terminal-bg);
-            color: var(--text-main);
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-        }}
-
-        /* 顶部导航栏 */
-        .top-navbar {{
-            background-color: var(--card-bg);
-            color: var(--text-main);
-            padding: 0.8rem 2rem;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border-bottom: 1px solid var(--border);
-        }}
-
-        .top-navbar-brand {{
-            display: flex;
-            align-items: center;
-            flex: 0 0 auto;
-        }}
-
-        .navbar-logo {{
-            width: 32px;
-            height: 32px;
-        }}
-
-        .top-navbar-quote {{
-            flex: 1;
-            text-align: center;
-            font-size: 1rem;
-            font-weight: 500;
-            color: var(--text-main);
-            font-style: italic;
-            padding: 0 2rem;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            letter-spacing: 0.05em;
-            transition: opacity 0.5s ease-in-out;
-        }}
-
-        .top-navbar-menu {{
-            display: flex;
-            gap: 1rem;
-            align-items: center;
-        }}
-
-        .nav-logout {{
-            color: #f85149;
-            text-decoration: none;
-            font-weight: 500;
-        }}
-
-        .nav-star {{
-            color: #e3b341;
-            text-decoration: none;
-            font-weight: 500;
-        }}
-
-        .nav-star:hover {{
-            color: #f2c94c;
-        }}
-
-        .nav-feedback {{
-            color: #8b949e;
-            text-decoration: none;
-            font-weight: 500;
-        }}
-
-        .nav-feedback:hover {{
-            color: #58a6ff;
-        }}
-
-        .nav-user {{
-            color: #3b82f6;
-            font-weight: 500;
-        }}
-
-        /* 主容器 */
-        .main-container {{
-            display: flex;
-            flex: 1;
-        }}
-
-        /* 内容区域 */
+        /* Common page styles are now in pages.css */
+        /* Metals-specific: content-area uses 20px padding (override pages.css 30px) */
         .content-area {{
-            flex: 1;
             padding: 20px;
-            overflow-y: auto;
         }}
 
         /* 隐藏滚动条但保留功能 */
@@ -4155,7 +1803,7 @@ def get_precious_metals_page_html(metals_data, username=None):
             </a>
             <a href="/sectors" class="sidebar-item">
                 <span class="sidebar-icon">🏢</span>
-                <span>行业板块</span>
+                <span>概念板块</span>
             </a>
         </div>
 
@@ -4229,18 +1877,6 @@ def get_precious_metals_page_html(metals_data, username=None):
     <script src="/static/js/main.js"></script>
     <script src="/static/js/sidebar-nav.js"></script>
     <script>
-        // 自动颜色化
-        function autoColorize() {{
-            const elements = document.querySelectorAll('[data-change]');
-            elements.forEach(function(el) {{
-                const change = parseFloat(el.getAttribute('data-change'));
-                if (change > 0) {{
-                    el.style.color = '#f44336';
-                }} else if (change < 0) {{
-                    el.style.color = '#4caf50';
-                }}
-            }});
-        }}
 
         // 解析历史金价数据并创建图表
         function createGoldChart() {{
@@ -4441,38 +2077,8 @@ def get_precious_metals_page_html(metals_data, username=None):
             }});
         }}
 
+        {lyrics_script}
         document.addEventListener('DOMContentLoaded', function() {{
-            // 歌词轮播
-            const lyrics = [
-                '总要有一首我的歌, 大声唱过, 再看天地辽阔 ————《一颗苹果》',
-                '苍狗又白云, 身旁有了你, 匆匆轮回又有何惧 ————《如果我们不曾相遇》',
-                '活着其实很好, 再吃一颗苹果 ————《一颗苹果》',
-                '偶然与巧合, 舞动了蝶翼, 谁的心头风起 ————《如果我们不曾相遇》'
-            ];
-            let currentLyricIndex = 0;
-            const lyricsElement = document.getElementById('lyricsDisplay');
-
-            // 随机选择初始歌词
-            currentLyricIndex = Math.floor(Math.random() * lyrics.length);
-            if (lyricsElement) {{
-                lyricsElement.textContent = lyrics[currentLyricIndex];
-
-                // 每10秒切换一次歌词
-                setInterval(function() {{
-                    // 淡出
-                    lyricsElement.style.opacity = '0';
-
-                    setTimeout(function() {{
-                        // 切换歌词
-                        currentLyricIndex = (currentLyricIndex + 1) % lyrics.length;
-                        lyricsElement.textContent = lyrics[currentLyricIndex];
-
-                        // 淡入
-                        lyricsElement.style.opacity = '1';
-                    }}, 500);
-                }}, 10000);
-            }}
-
             autoColorize();
             createGoldChart();
             createGoldOneDayChart();
@@ -4484,7 +2090,8 @@ def get_precious_metals_page_html(metals_data, username=None):
         username_display=username_display,
         real_time_content=metals_data.get('real_time', ''),
         one_day_content=metals_data.get('one_day', ''),
-        history_content=metals_data.get('history', '')
+        history_content=metals_data.get('history', ''),
+        lyrics_script=get_lyrics_carousel_script()
     )
     return html
 
@@ -4786,7 +2393,7 @@ def get_market_indices_page_html(market_charts=None, chart_data=None, timing_dat
             </a>
             <a href="/sectors" class="sidebar-item">
                 <span class="sidebar-icon">🏢</span>
-                <span>行业板块</span>
+                <span>概念板块</span>
             </a>
         </div>
 
@@ -4802,38 +2409,8 @@ def get_market_indices_page_html(market_charts=None, chart_data=None, timing_dat
         // 上证分时数据
         const timingData = {timing_data_json};
 
+        {lyrics_script}
         document.addEventListener('DOMContentLoaded', function() {{
-            // 歌词轮播
-            const lyrics = [
-                '总要有一首我的歌, 大声唱过, 再看天地辽阔 ————《一颗苹果》',
-                '苍狗又白云, 身旁有了你, 匆匆轮回又有何惧 ————《如果我们不曾相遇》',
-                '活着其实很好, 再吃一颗苹果 ————《一颗苹果》',
-                '偶然与巧合, 舞动了蝶翼, 谁的心头风起 ————《如果我们不曾相遇》'
-            ];
-            let currentLyricIndex = 0;
-            const lyricsElement = document.getElementById('lyricsDisplay');
-
-            // 随机选择初始歌词
-            currentLyricIndex = Math.floor(Math.random() * lyrics.length);
-            if (lyricsElement) {{
-                lyricsElement.textContent = lyrics[currentLyricIndex];
-
-                // 每10秒切换一次歌词
-                setInterval(function() {{
-                    // 淡出
-                    lyricsElement.style.opacity = '0';
-
-                    setTimeout(function() {{
-                        // 切换歌词
-                        currentLyricIndex = (currentLyricIndex + 1) % lyrics.length;
-                        lyricsElement.textContent = lyrics[currentLyricIndex];
-
-                        // 淡入
-                        lyricsElement.style.opacity = '1';
-                    }}, 500);
-                }}, 10000);
-            }}
-
             // 自动颜色化
             const cells = document.querySelectorAll('.style-table td');
             cells.forEach(cell => {{
@@ -5017,7 +2594,8 @@ def get_market_indices_page_html(market_charts=None, chart_data=None, timing_dat
         css_style=css_style,
         username_display=username_display,
         market_content=market_content,
-        timing_data_json=timing_data_json
+        timing_data_json=timing_data_json,
+        lyrics_script=get_lyrics_carousel_script()
     )
     return html
 
@@ -5459,7 +3037,7 @@ def get_portfolio_page_html(fund_content, fund_map, fund_chart_data=None, fund_c
             </a>
             <a href="/sectors" class="sidebar-item">
                 <span class="sidebar-icon">🏢</span>
-                <span>行业板块</span>
+                <span>概念板块</span>
             </a>
         </div>
 
@@ -5613,60 +3191,9 @@ def get_portfolio_page_html(fund_content, fund_map, fund_chart_data=None, fund_c
 
     <script src="/static/js/main.js"></script>
     <script>
+
+        {lyrics_script}
         document.addEventListener('DOMContentLoaded', function() {{
-            // 自动颜色化
-            const cells = document.querySelectorAll('.style-table td');
-            cells.forEach(cell => {{
-                const text = cell.textContent.trim();
-                const cleanText = text.replace(/[%,亿万手]/g, '');
-                const val = parseFloat(cleanText);
-
-                if (!isNaN(val)) {{
-                    if (text.includes('%') || text.includes('涨跌')) {{
-                        if (text.includes('-')) {{
-                            cell.classList.add('negative');
-                        }} else if (val > 0) {{
-                            cell.classList.add('positive');
-                        }}
-                    }} else if (text.startsWith('-')) {{
-                        cell.classList.add('negative');
-                    }} else if (text.startsWith('+')) {{
-                        cell.classList.add('positive');
-                    }}
-                }}
-            }});
-
-            // 歌词轮播
-            const lyrics = [
-                '总要有一首我的歌, 大声唱过, 再看天地辽阔 ————《一颗苹果》',
-                '苍狗又白云, 身旁有了你, 匆匆轮回又有何惧 ————《如果我们不曾相遇》',
-                '活着其实很好, 再吃一颗苹果 ————《一颗苹果》',
-                '偶然与巧合, 舞动了蝶翼, 谁的心头风起 ————《如果我们不曾相遇》'
-            ];
-            let currentLyricIndex = 0;
-            const lyricsElement = document.getElementById('lyricsDisplay');
-
-            // 随机选择初始歌词
-            currentLyricIndex = Math.floor(Math.random() * lyrics.length);
-            if (lyricsElement) {{
-                lyricsElement.textContent = lyrics[currentLyricIndex];
-
-                // 每10秒切换一次歌词
-                setInterval(function() {{
-                    // 淡出
-                    lyricsElement.style.opacity = '0';
-
-                    setTimeout(function() {{
-                        // 切换歌词
-                        currentLyricIndex = (currentLyricIndex + 1) % lyrics.length;
-                        lyricsElement.textContent = lyrics[currentLyricIndex];
-
-                        // 淡入
-                        lyricsElement.style.opacity = '1';
-                    }}, 500);
-                }}, 10000);
-            }}
-
             // 初始化基金估值趋势图
             initFundChartSelector();
             initFundChart();
@@ -5981,27 +3508,13 @@ def get_portfolio_page_html(fund_content, fund_map, fund_chart_data=None, fund_c
     </script>
 </body>
 </html>'''.format(css_style=css_style, username_display=username_display, fund_content=fund_content,
-                  fund_chart_data_json=fund_chart_data_json, fund_chart_info_json=fund_chart_info_json)
+                  fund_chart_data_json=fund_chart_data_json, fund_chart_info_json=fund_chart_info_json,
+                  lyrics_script=get_lyrics_carousel_script())
     return html
 
 
-def get_market_icon(key):
-    """获取市场数据的图标"""
-    icons = {
-        'kx': '📰',
-        'marker': '🌍',
-        'real_time_gold': '🥇',
-        'gold': '📈',
-        'seven_A': '📊',
-        'A': '📉',
-        'bk': '🏢',
-        'select_fund': '🔍'
-    }
-    return icons.get(key, '📊')
-
-
 def get_sectors_page_html(sectors_content, select_fund_content, fund_map, username=None):
-    """生成行业板块基金查询页面"""
+    """生成概念板块基金查询页面"""
     css_style = get_css_style()
 
     username_display = '<a href="https://github.com/lanZzV/fund" target="_blank" class="nav-star">点个赞</a>'
@@ -6015,100 +3528,13 @@ def get_sectors_page_html(sectors_content, select_fund_content, fund_map, userna
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>行业板块 - LanFund</title>
+    <title>概念板块 - LanFund</title>
     <link rel="icon" href="/static/1.ico">
     {css_style}
     <link rel="stylesheet" href="/static/css/style.css">
+    <link rel="stylesheet" href="/static/css/pages.css">
     <style>
-        body {{
-            background-color: var(--terminal-bg);
-            color: var(--text-main);
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-        }}
-
-        /* 顶部导航栏 */
-        .top-navbar {{
-            background-color: var(--card-bg);
-            color: var(--text-main);
-            padding: 0.8rem 2rem;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border-bottom: 1px solid var(--border);
-        }}
-
-        .top-navbar-brand {{
-            display: flex;
-            align-items: center;
-            flex: 0 0 auto;
-        }}
-
-        .top-navbar-quote {{
-            flex: 1;
-            text-align: center;
-            font-size: 1rem;
-            font-weight: 500;
-            color: var(--text-main);
-            font-style: italic;
-            padding: 0 2rem;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            letter-spacing: 0.05em;
-            transition: opacity 0.5s ease-in-out;
-        }}
-
-        .top-navbar-menu {{
-            display: flex;
-            gap: 1rem;
-            align-items: center;
-        }}
-
-        .nav-user {{
-            color: #3b82f6;
-            font-weight: 500;
-        }}
-
-        .nav-logout {{
-            color: #f85149;
-            text-decoration: none;
-            font-weight: 500;
-        }}
-
-        .nav-star {{
-            color: #e3b341;
-            text-decoration: none;
-            font-weight: 500;
-        }}
-
-        .nav-star:hover {{
-            color: #f2c94c;
-        }}
-
-        .nav-feedback {{
-            color: #8b949e;
-            text-decoration: none;
-            font-weight: 500;
-        }}
-
-        .nav-feedback:hover {{
-            color: #58a6ff;
-        }}
-
-        /* 主容器 */
-        .main-container {{
-            display: flex;
-            flex: 1;
-        }}
-
-        /* 内容区域 */
-        .content-area {{
-            flex: 1;
-            padding: 30px;
-            overflow-y: auto;
-        }}
+        /* Common page styles are now in pages.css */
 
         /* 隐藏滚动条但保留功能 */
         ::-webkit-scrollbar {{
@@ -6208,48 +3634,11 @@ def get_sectors_page_html(sectors_content, select_fund_content, fund_map, userna
                 font-size: 0.9rem;
             }}
 
-            .content-area {{
-                padding: 15px;
+            /* 汉堡菜单显示 */
+            .hamburger-menu {{
+                display: flex !important;
             }}
-
-            /* 顶部导航栏两行布局 */
-            .top-navbar {{
-                flex-direction: row;
-                flex-wrap: wrap;
-                height: auto;
-                padding: 0.5rem 1rem;
-                align-items: center;
-                border-bottom: none;
-            }}
-
-            .top-navbar > .top-navbar-brand {{
-                order: 1;
-                flex: 0 0 auto;
-                padding-bottom: 0.5rem;
-                border-bottom: 1px solid var(--border);
-            }}
-
-            .top-navbar-menu {{
-                order: 1;
-                flex: 0 0 auto;
-                margin-left: auto;
-                padding-bottom: 0.5rem;
-                border-bottom: 1px solid var(--border);
-            }}
-
-            .top-navbar-quote {{
-                order: 2;
-                width: 100%;
-                flex-basis: 100%;
-                text-align: center;
-                padding: 0.5rem 0;
-                font-size: 0.8rem;
-                white-space: nowrap;
-                overflow: hidden;
-                text-overflow: ellipsis;
-                border-top: 1px solid var(--border);
-                margin-top: 0.5rem;
-            }}
+            /* Responsive navbar styles are now in pages.css */
         }}
     </style>
 </head>
@@ -6297,7 +3686,7 @@ def get_sectors_page_html(sectors_content, select_fund_content, fund_map, userna
             </a>
             <a href="/sectors" class="sidebar-item active">
                 <span class="sidebar-icon">🏢</span>
-                <span>行业板块</span>
+                <span>概念板块</span>
             </a>
         </div>
 
@@ -6306,21 +3695,21 @@ def get_sectors_page_html(sectors_content, select_fund_content, fund_map, userna
             <!-- Tab 切换按钮 -->
             <div class="tab-buttons" style="display: flex; gap: 10px; margin-bottom: 20px;">
                 <button class="tab-button active" onclick="switchTab('sectors')" id="tab-btn-sectors">
-                    🏢 行业板块
+                    🏢 概念板块
                 </button>
                 <button class="tab-button" onclick="switchTab('query')" id="tab-btn-query">
                     🔍 板块基金查询
                 </button>
             </div>
 
-            <!-- 行业板块 Tab -->
+            <!-- 概念板块 Tab -->
             <div id="tab-sectors" class="tab-content active">
                 <div class="page-header">
                     <h1 style="display: flex; align-items: center;">
-                        🏢 行业板块
+                        🏢 概念板块
                         <button id="refreshBtn" onclick="refreshCurrentPage()" class="refresh-button" style="margin-left: 15px; padding: 8px 16px; background: var(--accent); color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 0.9rem; font-weight: 500; transition: all 0.2s ease; display: inline-flex; align-items: center; gap: 5px;">🔄 刷新</button>
                     </h1>
-                    <p>查看各行业板块的市场表现</p>
+                    <p>查看各概念板块的市场表现</p>
                 </div>
                 <div class="content-card">
                     {sectors_content}
@@ -6364,69 +3753,13 @@ def get_sectors_page_html(sectors_content, select_fund_content, fund_map, userna
             document.getElementById('tab-btn-' + tabName).classList.add('active');
         }}
 
-        // 自动颜色化函数
-        function autoColorize() {{
-            const cells = document.querySelectorAll('.style-table td');
-            cells.forEach(cell => {{
-                const text = cell.textContent.trim();
-                const cleanText = text.replace(/[%,亿万手]/g, '');
-                const val = parseFloat(cleanText);
 
-                if (!isNaN(val)) {{
-                    if (text.includes('%') || text.includes('涨跌')) {{
-                        if (text.includes('-')) {{
-                            cell.classList.add('negative');
-                        }} else if (val > 0) {{
-                            cell.classList.add('positive');
-                        }}
-                    }} else if (text.startsWith('-')) {{
-                        cell.classList.add('negative');
-                    }} else if (text.startsWith('+')) {{
-                        cell.classList.add('positive');
-                    }}
-                }}
-            }});
-        }}
-
-        // 默认激活第一个 tab
+        {lyrics_script}
         document.addEventListener('DOMContentLoaded', function() {{
             const firstTabBtn = document.querySelector('.tab-button');
             if (firstTabBtn) {{
                 firstTabBtn.classList.add('active');
             }}
-
-            // 歌词轮播
-            const lyrics = [
-                '总要有一首我的歌, 大声唱过, 再看天地辽阔 ————《一颗苹果》',
-                '苍狗又白云, 身旁有了你, 匆匆轮回又有何惧 ————《如果我们不曾相遇》',
-                '活着其实很好, 再吃一颗苹果 ————《一颗苹果》',
-                '偶然与巧合, 舞动了蝶翼, 谁的心头风起 ————《如果我们不曾相遇》'
-            ];
-            let currentLyricIndex = 0;
-            const lyricsElement = document.getElementById('lyricsDisplay');
-
-            // 随机选择初始歌词
-            currentLyricIndex = Math.floor(Math.random() * lyrics.length);
-            if (lyricsElement) {{
-                lyricsElement.textContent = lyrics[currentLyricIndex];
-
-                // 每10秒切换一次歌词
-                setInterval(function() {{
-                    // 淡出
-                    lyricsElement.style.opacity = '0';
-
-                    setTimeout(function() {{
-                        // 切换歌词
-                        currentLyricIndex = (currentLyricIndex + 1) % lyrics.length;
-                        lyricsElement.textContent = lyrics[currentLyricIndex];
-
-                        // 淡入
-                        lyricsElement.style.opacity = '1';
-                    }}, 500);
-                }}, 10000);
-            }}
-
-            // 自动颜色化
             autoColorize();
         }});
     </script>
@@ -6435,6 +3768,7 @@ def get_sectors_page_html(sectors_content, select_fund_content, fund_map, userna
         css_style=css_style,
         username_display=username_display,
         sectors_content=sectors_content,
-        select_fund_content=select_fund_content
+        select_fund_content=select_fund_content,
+        lyrics_script=get_lyrics_carousel_script()
     )
     return html

@@ -1597,7 +1597,7 @@ class LanFund:
                 "fltt": "2",
                 "invt": "2",
                 "ut": "8dec03ba335b81bf4ebdf7b29ec27d15",
-                "fs": "m:90 t:2",
+                "fs": "m:90 t:3",
                 "fields": "f12,f14,f2,f3,f62,f184,f66,f69,f72,f75,f78,f81,f84,f87,f204,f205,f124,f1,f13"
             }
             response = requests.get(url, params=params, timeout=10, verify=False)
@@ -1625,6 +1625,7 @@ class LanFund:
                         else:
                             add_market_cap2 = "\033[1;31m" + add_market_cap2
                     bk_result.append([
+                        bk["f12"],
                         bk["f14"],
                         ratio,
                         add_market_cap,
@@ -1637,26 +1638,30 @@ class LanFund:
 
         bk_result = sorted(
             bk_result,
-            key=lambda x: float(x[1].split("m")[-1].replace("%", "")) if x[3] != "N/A" else -99,
+            key=lambda x: float(x[2].split("m")[-1].replace("%", "")) if x[4] != "N/A" else -99,
             reverse=True
         )
         if is_return:
             return bk_result
         if bk_result:
-            logger.critical(f"{time.strftime('%Y-%m-%d %H:%M')} 行业板块:")
+            # CLI 输出时不展示板块代码（第一列）
+            cli_result = [[row[1], row[2], row[3], row[4], row[5], row[6]] for row in bk_result]
+            logger.critical(f"{time.strftime('%Y-%m-%d %H:%M')} 概念板块:")
             for line_msg in format_table_msg([
                 [
                     "板块名称", "今日涨跌幅", "今日主力净流入", "今日主力净流入占比", "今日小单净流入", "今日小单流入占比"
                 ],
-                *bk_result
+                *cli_result
             ]).split("\n"):
                 logger.info(line_msg)
 
     def bk_html(self):
         result = self.bk(True)
+        # HTML 输出时不展示板块代码（第一列）
+        html_result = [[row[1], row[2], row[3], row[4], row[5], row[6]] for row in result]
         return get_table_html(
             ["板块名称", "今日涨跌幅", "今日主力净流入", "今日主力净流入占比", "今日小单净流入", "今日小单流入占比"],
-            result,
+            html_result,
             sortable_columns=[1, 2, 3, 4, 5]
         )
 

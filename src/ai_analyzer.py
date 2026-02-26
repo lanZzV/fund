@@ -155,133 +155,6 @@ class AIAnalyzer:
         """初始化AI分析器"""
         self.llm = None
 
-    def init_langchain_llm(self, fast_mode=False, deep_mode=False):
-        """
-        初始化LangChain LLM
-
-        Args:
-            fast_mode: 是否为快速模式（调整token和超时参数）
-            deep_mode: 是否为深度研究模式（大幅提升token限制以支持长报告生成）
-        """
-        try:
-            from langchain_openai import ChatOpenAI
-
-            # 从环境变量读取配置
-            api_base = os.getenv("LLM_API_BASE", "https://api.openai.com/v1")
-            api_key = os.getenv("LLM_API_KEY", "")
-            model = os.getenv("LLM_MODEL", "gpt-3.5-turbo")
-
-            if not api_key:
-                logger.warning("未配置LLM_API_KEY环境变量，跳过AI分析")
-                return None
-
-            # 根据模式调整参数
-            if fast_mode:
-                # 快速模式：用于聊天，不限制max_tokens让AI完整回答
-                temperature = 0.2
-                timeout = 60
-            elif deep_mode:
-                # 深度研究模式：支持生成长报告
-                temperature = 0.2
-                timeout = 120
-            else:
-                temperature = 0.2
-                timeout = 60
-
-            # 创建ChatOpenAI实例（不设置max_tokens，让AI自由发挥）
-            llm = ChatOpenAI(
-                model=model,
-                openai_api_key=api_key,
-                openai_api_base=api_base,
-                temperature=temperature,
-                # max_tokens 不设置，让模型自行决定输出长度
-                request_timeout=timeout
-            )
-
-            return llm
-
-        except Exception as e:
-            logger.error(f"初始化LangChain LLM失败: {e}")
-            return None
-
-    @staticmethod
-    def clean_ansi_codes(text):
-        """清理所有ANSI颜色代码"""
-        if not isinstance(text, str):
-            return text
-        # 清理完整的ANSI转义序列 \033[XXXm
-        text = re.sub(r'\033\[\d+(?:;\d+)?m', '', text)
-        # 清理不完整的ANSI代码 [XXXm (可能在某些情况下\033被截断)
-        text = re.sub(r'\[\d+(?:;\d+)?m', '', text)
-        return text
-
-    @staticmethod
-    def strip_markdown(text):
-        """移除markdown格式标记，用于控制台显示"""
-        # 移除标题符号 (###、##、#)
-        text = re.sub(r'^#{1,6}\s+', '', text, flags=re.MULTILINE)
-
-        # 移除加粗 (**text** 或 __text__)
-        text = re.sub(r'\*\*(.+?)\*\*', r'\1', text)
-        text = re.sub(r'__(.+?)__', r'\1', text)
-
-        # 移除斜体 (*text* 或 _text_)
-        text = re.sub(r'\*(.+?)\*', r'\1', text)
-        text = re.sub(r'_(.+?)_', r'\1', text)
-
-        # 移除删除线 (~~text~~)
-        text = re.sub(r'~~(.+?)~~', r'\1', text)
-
-        # 移除代码块标记 (```)
-        text = re.sub(r'```[\s\S]*?```', '', text)
-        text = re.sub(r'`(.+?)`', r'\1', text)
-
-        # 移除链接 [text](url)
-        text = re.sub(r'\[(.+?)\]\(.+?\)', r'\1', text)
-
-        # 移除列表标记 (-, *, +, 1.)
-        text = re.sub(r'^\s*[-*+]\s+', '', text, flags=re.MULTILINE)
-        text = re.sub(r'^\s*\d+\.\s+', '', text, flags=re.MULTILINE)
-
-        # 移除表格分隔线 (|---|---|)
-        text = re.sub(r'\|[-:\s|]+\|', '', text)
-
-        # 简化表格格式 (| cell |) -> cell
-        text = re.sub(r'\s*\|\s*', ' ', text)
-
-        # 移除引用标记 (>)
-        text = re.sub(r'^>\s+', '', text, flags=re.MULTILINE)
-
-        # 移除多余空行
-        text = re.sub(r'\n\n+', '\n\n', text)
-
-        return text.strip()
-
-    @staticmethod
-    def format_text(text, max_width=60):
-        """将markdown文本过滤并智能分行，用于控制台显示"""
-        # 先过滤markdown格式
-        text = AIAnalyzer.strip_markdown(text)
-
-        lines = []
-        # 先去掉多余的空行，合并成一段
-        text = " ".join(line.strip() for line in text.split("\n") if line.strip())
-
-        # 按句子分割（句号、问号、感叹号、分号）
-        current_line = ""
-        for char in text:
-            current_line += char
-            # 遇到句子结束符号且长度超过30字符，或长度超过max_width
-            if (char in "。！？；" and len(current_line) > 30) or len(current_line) >= max_width:
-                lines.append(current_line.strip())
-                current_line = ""
-
-        # 添加剩余内容
-        if current_line.strip():
-            lines.append(current_line.strip())
-
-        return lines
-
     def analyze(self, data_collector, report_dir="reports"):
         """
         执行AI分析
@@ -442,7 +315,7 @@ class AIAnalyzer:
 
             # 创建提示链 - 板块机会分析
             sector_prompt = ChatPromptTemplate.from_messages([
-                ("system", "你是一位行业研究专家，精通各个行业板块的投资逻辑和周期规律。"),
+                ("system", "你是一位行业研究专家，精通各个概念板块的投资逻辑和周期规律。"),
                 ("user", """请基于以下板块数据和市场环境，深入分析行业投资机会：
 
 【涨幅领先板块】
@@ -625,7 +498,7 @@ class AIAnalyzer:
 
 ---
 
-## 2️⃣ 行业板块机会分析
+## 2️⃣ 概念板块机会分析
 
 {sector_analysis}
 
@@ -667,7 +540,7 @@ class AIAnalyzer:
                 logger.info(line)
 
             logger.info("=" * 80)
-            logger.info("2️⃣ 行业板块机会分析")
+            logger.info("2️⃣ 概念板块机会分析")
             logger.info("-" * 80)
             for line in self.format_text(sector_analysis):
                 logger.info(line)
@@ -934,7 +807,7 @@ class AIAnalyzer:
 
             @tool
             def get_sector_performance() -> str:
-                """获取行业板块表现（涨跌幅、资金流向等）"""
+                """获取概念板块表现（涨跌幅、资金流向等）"""
                 try:
                     bk_data = data_collector.bk(is_return=True)
                     result = "涨幅前10板块：\n"
@@ -1303,7 +1176,7 @@ class AIAnalyzer:
 - 🔍 **search_news**：根据关键词搜索快讯的详细内容和相关报道
 - 📄 **fetch_webpage**：获取完整新闻文章的详细内容
 - 📈 **get_market_indices**：获取市场指数数据（上证、深证、纳指、道指等）
-- 📊 **get_sector_performance**：获取行业板块表现（涨跌幅、资金流向等）
+- 📊 **get_sector_performance**：获取概念板块表现（涨跌幅、资金流向等）
 - 💰 **get_gold_prices**：获取黄金价格数据（近期金价和实时金价）
 - 🥇 **get_realtime_precious_metals**：获取实时贵金属详细数据（黄金9999、现货黄金、现货白银，含开盘价、最高价、最低价等完整信息）
 - 📉 **get_trading_volume**：获取近7日市场成交量数据
@@ -1348,7 +1221,7 @@ class AIAnalyzer:
 **报告内容建议**（你可以自由发挥，不必严格遵循）：
 - 宏观市场环境（全球市场联动、A股技术面、成交量分析、市场情绪）
 - 重大事件深度解读（每个重要快讯都要详细分析500-1000字：事件背景+市场影响+投资启示）
-- 行业板块机会挖掘（强势板块的驱动因素、持续性判断、龙头标的分析，每个板块300-500字）
+- 概念板块机会挖掘（强势板块的驱动因素、持续性判断、龙头标的分析，每个板块300-500字）
 - 弱势板块风险提示（下跌原因、底部判断、反弹时机）
 - **持仓基金新闻解读**（根据 analyze_holdings_news 返回的新闻，分析每只持仓基金的最新动态、行业趋势和风险提示）
 - 基金组合诊断（每只持仓基金的详细分析：业绩、持仓、风险、操作建议，每只500-800字）
@@ -1422,7 +1295,7 @@ Thought: {agent_scratchpad}""")
 
 【报告要求】必须包含以下章节，并使用丰富的Markdown格式（表格、列表、加粗、引用块、Emoji等）：
 1. 市场整体趋势分析（包含指数表格、热点列表）
-2. 行业板块机会分析（包含领涨/跌板块表格）
+2. 概念板块机会分析（包含领涨/跌板块表格）
 3. 基金组合投资建议（包含持仓表格、调仓建议列表）
 4. 风险提示与应对（包含风险表格，含信息来源说明）
 

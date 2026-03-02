@@ -1521,6 +1521,7 @@ def get_news_page_html(news_content, username=None):
                 <h1 style="display: flex; align-items: center;">
                     📰 7*24快讯
                     <button id="refreshBtn" onclick="refreshCurrentPage()" class="refresh-button" style="margin-left: 15px; padding: 8px 16px; background: var(--accent); color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 0.9rem; font-weight: 500; transition: all 0.2s ease; display: inline-flex; align-items: center; gap: 5px;">🔄 刷新</button>
+                    <button id="autoRefreshBtn" onclick="toggleAutoRefresh()" class="refresh-button" style="margin-left: 8px; padding: 8px 16px; background: var(--accent); color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 0.9rem; font-weight: 500; transition: all 0.2s ease; display: inline-flex; align-items: center; gap: 5px;">⏸ 停止刷新</button>
                 </h1>
                 <p>实时追踪全球市场动态</p>
             </div>
@@ -1801,6 +1802,7 @@ def get_precious_metals_page_html(metals_data, username=None):
                 <h1 style="display: flex; align-items: center;">
                     🪙 贵金属行情
                     <button id="refreshBtn" onclick="refreshCurrentPage()" class="refresh-button" style="margin-left: 15px; padding: 8px 16px; background: var(--accent); color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 0.9rem; font-weight: 500; transition: all 0.2s ease; display: inline-flex; align-items: center; gap: 5px;">🔄 刷新</button>
+                    <button id="autoRefreshBtn" onclick="toggleAutoRefresh()" class="refresh-button" style="margin-left: 8px; padding: 8px 16px; background: var(--accent); color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 0.9rem; font-weight: 500; transition: all 0.2s ease; display: inline-flex; align-items: center; gap: 5px;">⏸ 停止刷新</button>
                 </h1>
                 <p>实时追踪贵金属价格走势</p>
             </div>
@@ -2112,6 +2114,7 @@ def get_market_indices_page_html(market_charts=None, chart_data=None, timing_dat
                 <h1 style="font-size: 1.5rem; font-weight: 600; margin: 0; color: var(--text-main); display: flex; align-items: center;">
                     📊 市场指数
                     <button id="refreshBtn" onclick="refreshCurrentPage()" class="refresh-button" style="margin-left: 15px; padding: 8px 16px; background: var(--accent); color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 0.9rem; font-weight: 500; transition: all 0.2s ease; display: inline-flex; align-items: center; gap: 5px;">🔄 刷新</button>
+                    <button id="autoRefreshBtn" onclick="toggleAutoRefresh()" class="refresh-button" style="margin-left: 8px; padding: 8px 16px; background: var(--accent); color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 0.9rem; font-weight: 500; transition: all 0.2s ease; display: inline-flex; align-items: center; gap: 5px;">⏸ 停止刷新</button>
                 </h1>
             </div>
 
@@ -3031,6 +3034,7 @@ def get_portfolio_page_html(fund_content, fund_map, fund_chart_data=None, fund_c
                 <h1>
                     💼 持仓基金
                     <button id="refreshBtn" onclick="refreshCurrentPage()" class="refresh-button">🔄 刷新</button>
+                    <button id="autoRefreshBtn" onclick="toggleAutoRefresh()" class="refresh-button" style="margin-left: 8px;">⏸ 停止刷新</button>
                 </h1>
             </div>
 
@@ -3691,6 +3695,7 @@ def get_sectors_page_html(sectors_content, select_fund_content, fund_map, userna
                     <h1 style="display: flex; align-items: center;">
                         🏢 概念板块
                         <button id="refreshBtn" onclick="refreshCurrentPage()" class="refresh-button" style="margin-left: 15px; padding: 8px 16px; background: var(--accent); color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 0.9rem; font-weight: 500; transition: all 0.2s ease; display: inline-flex; align-items: center; gap: 5px;">🔄 刷新</button>
+                        <button id="autoRefreshBtn" onclick="toggleAutoRefresh()" class="refresh-button" style="margin-left: 8px; padding: 8px 16px; background: var(--accent); color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 0.9rem; font-weight: 500; transition: all 0.2s ease; display: inline-flex; align-items: center; gap: 5px;">⏸ 停止刷新</button>
                     </h1>
                     <p>查看各概念板块的市场表现</p>
                 </div>
@@ -3705,6 +3710,7 @@ def get_sectors_page_html(sectors_content, select_fund_content, fund_map, userna
                     <h1 style="display: flex; align-items: center;">
                         🔍 板块基金查询
                         <button id="refreshBtn" onclick="refreshCurrentPage()" class="refresh-button" style="margin-left: 15px; padding: 8px 16px; background: var(--accent); color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 0.9rem; font-weight: 500; transition: all 0.2s ease; display: inline-flex; align-items: center; gap: 5px;">🔄 刷新</button>
+                        <button id="autoRefreshBtn" onclick="toggleAutoRefresh()" class="refresh-button" style="margin-left: 8px; padding: 8px 16px; background: var(--accent); color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 0.9rem; font-weight: 500; transition: all 0.2s ease; display: inline-flex; align-items: center; gap: 5px;">⏸ 停止刷新</button>
                     </h1>
                     <p>查询特定板块的基金产品</p>
                 </div>

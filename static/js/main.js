@@ -1119,6 +1119,7 @@
         };
 
         let refreshInterval;
+        let autoRefreshEnabled = true;
         const REFRESH_INTERVAL = 60000;
 
         function startAutoRefresh() {
@@ -1128,6 +1129,8 @@
             refreshInterval = setInterval(() => {
                 refreshCurrentPage();
             }, REFRESH_INTERVAL);
+            autoRefreshEnabled = true;
+            updateAutoRefreshButton();
             console.log('Auto-refresh started (60s interval)');
         }
 
@@ -1135,7 +1138,30 @@
             if (refreshInterval) {
                 clearInterval(refreshInterval);
                 refreshInterval = null;
-                console.log('Auto-refresh stopped');
+            }
+            autoRefreshEnabled = false;
+            updateAutoRefreshButton();
+            console.log('Auto-refresh stopped');
+        }
+
+        function toggleAutoRefresh() {
+            if (autoRefreshEnabled) {
+                stopAutoRefresh();
+            } else {
+                startAutoRefresh();
+            }
+        }
+
+        function updateAutoRefreshButton() {
+            const btn = document.getElementById('autoRefreshBtn');
+            if (btn) {
+                if (autoRefreshEnabled) {
+                    btn.textContent = '⏸ 停止刷新';
+                    btn.style.background = 'var(--accent)';
+                } else {
+                    btn.textContent = '▶ 自动刷新';
+                    btn.style.background = '#4CAF50';
+                }
             }
         }
 
@@ -1476,16 +1502,22 @@
 
         document.addEventListener('visibilitychange', function() {
             if (document.hidden) {
-                stopAutoRefresh();
+                if (refreshInterval) {
+                    clearInterval(refreshInterval);
+                    refreshInterval = null;
+                }
             } else {
-                refreshCurrentPage();
-                startAutoRefresh();
+                if (autoRefreshEnabled) {
+                    refreshCurrentPage();
+                    startAutoRefresh();
+                }
             }
         });
 
         startAutoRefresh();
 
         window.refreshCurrentPage = refreshCurrentPage;
+        window.toggleAutoRefresh = toggleAutoRefresh;
 
         function initSensitiveValuesToggle() {
             const toggleBtn = document.getElementById('toggleSensitiveValues');

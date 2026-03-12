@@ -41,6 +41,10 @@ class Database:
                            TEXT
                            NOT
                            NULL,
+                           announcement_seen
+                           BOOLEAN
+                           DEFAULT
+                           0,
                            created_at
                            TIMESTAMP
                            DEFAULT
@@ -109,6 +113,17 @@ class Database:
             except Exception as e:
                 if "duplicate column" not in str(e).lower():
                     logger.warning(f"Failed to add chart_default column: {e}")
+
+        # 检查并添加announcement_seen字段到users表
+        cursor.execute("PRAGMA table_info(users)")
+        user_columns = [col[1] for col in cursor.fetchall()]
+        if 'announcement_seen' not in user_columns:
+            try:
+                cursor.execute('ALTER TABLE users ADD COLUMN announcement_seen BOOLEAN DEFAULT 0')
+                logger.debug("Added announcement_seen column to users table")
+            except Exception as e:
+                if "duplicate column" not in str(e).lower():
+                    logger.warning(f"Failed to add announcement_seen column: {e}")
 
         conn.commit()
         conn.close()
@@ -388,3 +403,50 @@ class Database:
         except Exception as e:
             logger.error(f"Failed to get chart default fund for user {user_id}: {e}")
             return None
+
+    def get_announcement_seen(self, user_id):
+        """获取用户是否已看过公告
+
+        Args:
+            user_id: 用户ID
+
+        Returns:
+            bool: 是否已看过公告
+        """
+        try:
+            conn = self.get_connection()
+            cursor = conn.cursor()
+            cursor.execute('SELECT announcement_seen FROM users WHERE id = ?', (user_id,))
+            row = cursor.fetchone()
+            conn.close()
+
+            if row:
+                return bool(row['announcement_seen'])
+            return False
+
+        except Exception as e:
+            logger.error(f"Failed to get announcement_seen for user {user_id}: {e}")
+            return False
+
+    def set_announcement_seen(self, user_id):
+        """标记用户已看过公告
+
+        Args:
+            user_id: 用户ID
+
+        Returns:
+            bool: 是否成功
+        """
+        try:
+            conn = self.get_connection()
+            cursor = conn.cursor()
+            cursor.execute('UPDATE users SET announcement_seen = 1 WHERE id = ?', (user_id,))
+            conn.commit()
+            conn.close()
+
+            logger.debug(f"Marked announcement as seen for user {user_id}")
+            return True
+
+        except Exception as e:
+            logger.error(f"Failed to set announcement_seen for user {user_id}: {e}")
+            return False

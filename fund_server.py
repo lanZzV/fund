@@ -8,7 +8,7 @@ import json
 import urllib3
 from dotenv import load_dotenv
 from flask import Flask, request, render_template, redirect, url_for, jsonify, \
-    send_file
+    send_file, send_from_directory
 from loguru import logger
 
 import fund
@@ -130,6 +130,12 @@ def logout():
     response = redirect(url_for('login'))
     response.set_cookie('remember_token', '', max_age=0)
     return response
+
+
+@app.route('/imgs/<path:filename>')
+def serve_imgs(filename):
+    """提供 imgs 目录下的图片文件"""
+    return send_from_directory('imgs', filename)
 
 
 @app.route('/fund/sector', methods=['GET'])
@@ -1024,6 +1030,32 @@ def api_fund_chart_default():
 
     db.update_chart_default(user_id, fund_code)
     return jsonify({'success': True})
+
+
+@app.route('/api/announcement/check', methods=['GET'])
+@login_required
+def api_announcement_check():
+    """检查用户是否已看过公告"""
+    try:
+        user_id = get_current_user_id()
+        seen = db.get_announcement_seen(user_id)
+        return jsonify({'seen': seen})
+    except Exception as e:
+        logger.error(f"检查公告状态失败: {e}")
+        return jsonify({'seen': True})
+
+
+@app.route('/api/announcement/dismiss', methods=['POST'])
+@login_required
+def api_announcement_dismiss():
+    """标记用户已看过公告"""
+    try:
+        user_id = get_current_user_id()
+        db.set_announcement_seen(user_id)
+        return jsonify({'success': True})
+    except Exception as e:
+        logger.error(f"标记公告失败: {e}")
+        return jsonify({'success': False}), 500
 
 
 @app.route('/sectors', methods=['GET'])

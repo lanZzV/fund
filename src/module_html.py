@@ -47,6 +47,207 @@ def get_lyrics_carousel_script():
     '''
 
 
+def get_announcement_modal():
+    """生成公告弹窗HTML/CSS/JS"""
+    return '''
+        <!-- 公告弹窗 -->
+        <div id="announcementModal" class="announcement-modal" style="display: none;">
+            <div class="announcement-content">
+                <div class="announcement-header">
+                    <h2>🦐 养虾玩法说明</h2>
+                    <button class="announcement-close" onclick="closeAnnouncement()">✕</button>
+                </div>
+                <div class="announcement-body">
+                    <p class="announcement-text">大家都养"虾"吗，是否需要养"虾"玩法？</p>
+                    <p class="announcement-text">欢迎点击下方链接留言反馈您的想法：</p>
+                    <a href="https://github.com/lanZzV/fund/issues/17" target="_blank" class="announcement-link">
+                        📝 点击留言反馈
+                    </a>
+                    <div class="announcement-images">
+                        <img src="/imgs/玩法1.png" alt="玩法截图1" class="announcement-img" loading="lazy">
+                        <img src="/imgs/玩法2.png" alt="玩法截图2" class="announcement-img" loading="lazy">
+                        <img src="/imgs/玩法3.png" alt="玩法截图3" class="announcement-img" loading="lazy">
+                    </div>
+                </div>
+                <div class="announcement-footer">
+                    <button class="announcement-btn" onclick="closeAnnouncement()">知道了</button>
+                </div>
+            </div>
+        </div>
+        <style>
+            .announcement-modal {
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0, 0, 0, 0.7);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                z-index: 10000;
+                animation: fadeIn 0.3s ease;
+            }
+            @keyframes fadeIn {
+                from { opacity: 0; }
+                to { opacity: 1; }
+            }
+            .announcement-content {
+                background: var(--card-bg, #1e293b);
+                border-radius: 16px;
+                max-width: 600px;
+                width: 90%;
+                max-height: 85vh;
+                overflow-y: auto;
+                box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+                animation: slideUp 0.3s ease;
+            }
+            @keyframes slideUp {
+                from { transform: translateY(30px); opacity: 0; }
+                to { transform: translateY(0); opacity: 1; }
+            }
+            .announcement-header {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                padding: 20px 24px;
+                border-bottom: 1px solid var(--border, rgba(255, 255, 255, 0.1));
+            }
+            .announcement-header h2 {
+                margin: 0;
+                font-size: 20px;
+                color: var(--text-main, #f1f5f9);
+            }
+            .announcement-close {
+                background: none;
+                border: none;
+                font-size: 24px;
+                color: var(--text-dim, #94a3b8);
+                cursor: pointer;
+                padding: 0;
+                width: 32px;
+                height: 32px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                border-radius: 50%;
+                transition: all 0.2s;
+            }
+            .announcement-close:hover {
+                background: rgba(255, 255, 255, 0.1);
+                color: var(--text-main, #f1f5f9);
+            }
+            .announcement-body {
+                padding: 24px;
+            }
+            .announcement-text {
+                color: var(--text-main, #f1f5f9);
+                font-size: 15px;
+                line-height: 1.6;
+                margin: 0 0 12px 0;
+            }
+            .announcement-link {
+                display: inline-block;
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                color: white;
+                text-decoration: none;
+                padding: 10px 20px;
+                border-radius: 8px;
+                font-size: 14px;
+                font-weight: 500;
+                margin: 12px 0;
+                transition: all 0.2s;
+            }
+            .announcement-link:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+            }
+            .announcement-images {
+                display: flex;
+                flex-direction: column;
+                gap: 12px;
+                margin-top: 16px;
+            }
+            .announcement-img {
+                width: 100%;
+                border-radius: 8px;
+                border: 1px solid var(--border, rgba(255, 255, 255, 0.1));
+                display: block;
+            }
+            .announcement-footer {
+                padding: 16px 24px;
+                border-top: 1px solid var(--border, rgba(255, 255, 255, 0.1));
+                text-align: center;
+            }
+            .announcement-btn {
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                color: white;
+                border: none;
+                padding: 12px 32px;
+                border-radius: 8px;
+                font-size: 15px;
+                font-weight: 500;
+                cursor: pointer;
+                transition: all 0.2s;
+            }
+            .announcement-btn:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+            }
+            .nav-announcement {
+                color: var(--text-main, #f1f5f9);
+                text-decoration: none;
+                padding: 8px 16px;
+                border-radius: 6px;
+                transition: all 0.2s;
+                cursor: pointer;
+            }
+            .nav-announcement:hover {
+                background: rgba(59, 130, 246, 0.1);
+            }
+        </style>
+        <script>
+            function closeAnnouncement() {
+                const modal = document.getElementById('announcementModal');
+                if (modal) {
+                    modal.style.animation = 'fadeOut 0.2s ease';
+                    setTimeout(() => {
+                        modal.style.display = 'none';
+                    }, 200);
+                }
+                fetch('/api/announcement/dismiss', { method: 'POST' })
+                    .catch(err => console.error('Failed to dismiss announcement:', err));
+            }
+            function showAnnouncement() {
+                const modal = document.getElementById('announcementModal');
+                if (modal) {
+                    modal.style.display = 'flex';
+                }
+            }
+            function checkAnnouncement() {
+                fetch('/api/announcement/check')
+                    .then(res => res.json())
+                    .then(data => {
+                        if (!data.seen) {
+                            const modal = document.getElementById('announcementModal');
+                            if (modal) {
+                                modal.style.display = 'flex';
+                            }
+                        }
+                    })
+                    .catch(err => console.error('Failed to check announcement:', err));
+            }
+            document.addEventListener('DOMContentLoaded', checkAnnouncement);
+        </script>
+        <style>
+            @keyframes fadeOut {
+                from { opacity: 1; }
+                to { opacity: 0; }
+            }
+        </style>
+    '''
+
+
 def enhance_fund_tab_content(content, shares_map=None):
     """
     Enhance the fund tab content with operations panel, file operations, and shares input.
@@ -1344,6 +1545,7 @@ def get_news_page_html(news_content, username=None):
     username_display = '<a href="https://github.com/lanZzV/fund" target="_blank" class="nav-star">点个赞</a>'
     username_display += '<a href="https://github.com/lanZzV/fund/issues" target="_blank" class="nav-feedback">反馈</a>'
     if username:
+        username_display += '<a href="#" onclick="showAnnouncement(); return false;" class="nav-announcement">📢 公告</a>'
         username_display += '<span class="nav-user">🍎 {username}</span>'.format(username=username)
         username_display += '<a href="/logout" class="nav-logout">退出登录</a>'
 
@@ -1539,8 +1741,9 @@ def get_news_page_html(news_content, username=None):
         {lyrics_script}
         document.addEventListener('DOMContentLoaded', function() {{ autoColorize(); }});
     </script>
+    {announcement_modal}
 </body>
-</html>'''.format(css_style=css_style, username_display=username_display, news_content=news_content, lyrics_script=get_lyrics_carousel_script())
+</html>'''.format(css_style=css_style, username_display=username_display, news_content=news_content, lyrics_script=get_lyrics_carousel_script(), announcement_modal=get_announcement_modal())
     return html
 
 
@@ -1551,6 +1754,7 @@ def get_precious_metals_page_html(metals_data, username=None):
     username_display = '<a href="https://github.com/lanZzV/fund" target="_blank" class="nav-star">点个赞</a>'
     username_display += '<a href="https://github.com/lanZzV/fund/issues" target="_blank" class="nav-feedback">反馈</a>'
     if username:
+        username_display += '<a href="#" onclick="showAnnouncement(); return false;" class="nav-announcement">📢 公告</a>'
         username_display += '<span class="nav-user">🍎 {username}</span>'.format(username=username)
         username_display += '<a href="/logout" class="nav-logout">退出登录</a>'
 
@@ -2073,6 +2277,7 @@ def get_precious_metals_page_html(metals_data, username=None):
             createGoldOneDayChart();
         }});
     </script>
+    {announcement_modal}
 </body>
 </html>'''.format(
         css_style=css_style,
@@ -2080,7 +2285,8 @@ def get_precious_metals_page_html(metals_data, username=None):
         real_time_content=metals_data.get('real_time', ''),
         one_day_content=metals_data.get('one_day', ''),
         history_content=metals_data.get('history', ''),
-        lyrics_script=get_lyrics_carousel_script()
+        lyrics_script=get_lyrics_carousel_script(),
+        announcement_modal=get_announcement_modal()
     )
     return html
 
@@ -2092,6 +2298,7 @@ def get_market_indices_page_html(market_charts=None, chart_data=None, timing_dat
     username_display = '<a href="https://github.com/lanZzV/fund" target="_blank" class="nav-star">点个赞</a>'
     username_display += '<a href="https://github.com/lanZzV/fund/issues" target="_blank" class="nav-feedback">反馈</a>'
     if username:
+        username_display += '<a href="#" onclick="showAnnouncement(); return false;" class="nav-announcement">📢 公告</a>'
         username_display += '<span class="nav-user">🍎 {username}</span>'.format(username=username)
         username_display += '<a href="/logout" class="nav-logout">退出登录</a>'
 
@@ -2576,13 +2783,15 @@ def get_market_indices_page_html(market_charts=None, chart_data=None, timing_dat
             }});
         }}
     </script>
+    {announcement_modal}
 </body>
 </html>'''.format(
         css_style=css_style,
         username_display=username_display,
         market_content=market_content,
         timing_data_json=timing_data_json,
-        lyrics_script=get_lyrics_carousel_script()
+        lyrics_script=get_lyrics_carousel_script(),
+        announcement_modal=get_announcement_modal()
     )
     return html
 
@@ -2594,6 +2803,7 @@ def get_portfolio_page_html(fund_content, fund_map, fund_chart_data=None, fund_c
     username_display = '<a href="https://github.com/lanZzV/fund" target="_blank" class="nav-star">点个赞</a>'
     username_display += '<a href="https://github.com/lanZzV/fund/issues" target="_blank" class="nav-feedback">反馈</a>'
     if username:
+        username_display += '<a href="#" onclick="showAnnouncement(); return false;" class="nav-announcement">📢 公告</a>'
         username_display += '<span class="nav-user">🍎 {username}</span>'.format(username=username)
         username_display += '<a href="/logout" class="nav-logout">退出登录</a>'
 
@@ -3493,10 +3703,11 @@ def get_portfolio_page_html(fund_content, fund_map, fund_chart_data=None, fund_c
             }}
         }}
     </script>
+    {announcement_modal}
 </body>
 </html>'''.format(css_style=css_style, username_display=username_display, fund_content=fund_content,
                   fund_chart_data_json=fund_chart_data_json, fund_chart_info_json=fund_chart_info_json,
-                  lyrics_script=get_lyrics_carousel_script())
+                  lyrics_script=get_lyrics_carousel_script(), announcement_modal=get_announcement_modal())
     return html
 
 
@@ -3507,6 +3718,7 @@ def get_sectors_page_html(sectors_content, select_fund_content, fund_map, userna
     username_display = '<a href="https://github.com/lanZzV/fund" target="_blank" class="nav-star">点个赞</a>'
     username_display += '<a href="https://github.com/lanZzV/fund/issues" target="_blank" class="nav-feedback">反馈</a>'
     if username:
+        username_display += '<a href="#" onclick="showAnnouncement(); return false;" class="nav-announcement">📢 公告</a>'
         username_display += '<span class="nav-user">🍎 {username}</span>'.format(username=username)
         username_display += '<a href="/logout" class="nav-logout">退出登录</a>'
 
@@ -3752,12 +3964,14 @@ def get_sectors_page_html(sectors_content, select_fund_content, fund_map, userna
             autoColorize();
         }});
     </script>
+    {announcement_modal}
 </body>
 </html>'''.format(
         css_style=css_style,
         username_display=username_display,
         sectors_content=sectors_content,
         select_fund_content=select_fund_content,
-        lyrics_script=get_lyrics_carousel_script()
+        lyrics_script=get_lyrics_carousel_script(),
+        announcement_modal=get_announcement_modal()
     )
     return html

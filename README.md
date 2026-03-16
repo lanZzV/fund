@@ -4,7 +4,7 @@
 
 一个功能强大的金融市场实时监控工具，支持命令行和Web两种模式，兼容移动端，可追踪基金估值、市场指数、黄金价格、概念板块和市场快讯。
 
-体验地址: [http://lanfund.xyz34.fan:8311/](http://lanfund.xyz34.fan:8311/)
+体验地址: [https://lanfund.10512.top](https://lanfund.10512.top/)
 > 小服务器经不起折腾, 轻点
 
 > 账号体系为了区分每个人自己的持仓, 用于导出配置文件功能使用
@@ -55,7 +55,7 @@ python fund.py --init / fund.exe --init
 ```
 
 按提示输入：
-- 服务器地址（默认: `http://localhost:8311`） (体验地址为: http://lanfund.xyz34.fan:8311 先注册账号)
+- 服务器地址（默认: `http://localhost:8311`） (体验地址为: https://lanfund.10512.top 先注册账号)
 - 用户名
 - 密码
 

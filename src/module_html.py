@@ -54,20 +54,11 @@ def get_announcement_modal():
         <div id="announcementModal" class="announcement-modal" style="display: none;">
             <div class="announcement-content">
                 <div class="announcement-header">
-                    <h2>🦐 养虾玩法说明</h2>
+                    <h2>📢 公告</h2>
                     <button class="announcement-close" onclick="closeAnnouncement()">✕</button>
                 </div>
                 <div class="announcement-body">
-                    <p class="announcement-text">大家都养"虾"吗，是否需要养"虾"玩法？</p>
-                    <p class="announcement-text">欢迎点击下方链接留言反馈您的想法：</p>
-                    <a href="https://github.com/lanZzV/fund/issues/17" target="_blank" class="announcement-link">
-                        📝 点击留言反馈
-                    </a>
-                    <div class="announcement-images">
-                        <img src="/imgs/玩法1.png" alt="玩法截图1" class="announcement-img" loading="lazy">
-                        <img src="/imgs/玩法2.png" alt="玩法截图2" class="announcement-img" loading="lazy">
-                        <img src="/imgs/玩法3.png" alt="玩法截图3" class="announcement-img" loading="lazy">
-                    </div>
+                    <p class="announcement-text" style="text-align: center; color: var(--text-dim, #94a3b8);">暂无最新公告</p>
                 </div>
                 <div class="announcement-footer">
                     <button class="announcement-btn" onclick="closeAnnouncement()">知道了</button>
@@ -145,34 +136,6 @@ def get_announcement_modal():
                 font-size: 15px;
                 line-height: 1.6;
                 margin: 0 0 12px 0;
-            }
-            .announcement-link {
-                display: inline-block;
-                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                color: white;
-                text-decoration: none;
-                padding: 10px 20px;
-                border-radius: 8px;
-                font-size: 14px;
-                font-weight: 500;
-                margin: 12px 0;
-                transition: all 0.2s;
-            }
-            .announcement-link:hover {
-                transform: translateY(-2px);
-                box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
-            }
-            .announcement-images {
-                display: flex;
-                flex-direction: column;
-                gap: 12px;
-                margin-top: 16px;
-            }
-            .announcement-img {
-                width: 100%;
-                border-radius: 8px;
-                border: 1px solid var(--border, rgba(255, 255, 255, 0.1));
-                display: block;
             }
             .announcement-footer {
                 padding: 16px 24px;

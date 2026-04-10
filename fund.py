@@ -599,18 +599,21 @@ class LanFund:
                 if response.json()["success"]:
                     if not response.json()["list"]:
                         now_time = "N/A"
+                        forecastNetValue = "N/A"
                         forecastGrowth = "N/A"
                     else:
                         fund_info = response.json()["list"][-1]
                         now_time = datetime.datetime.fromtimestamp(fund_info["time"] / 1000).strftime(
                             "%H:%M"
                         )
+                        forecastNetValue = str(round(float(fund_info["forecastNetValue"]), 4))
                         forecastGrowth = str(round(float(fund_info["forecastGrowth"]) * 100, 2)) + "%"
                         if not is_return:
                             if "-" in forecastGrowth:
                                 forecastGrowth = "\033[1;32m" + forecastGrowth
                             else:
                                 forecastGrowth = "\033[1;31m" + forecastGrowth
+
                     if not is_return:
                         if "-" in dayOfGrowth:
                             dayOfGrowth = "\033[1;32m" + dayOfGrowth
@@ -628,7 +631,7 @@ class LanFund:
                     consecutive_info = f"{consecutive_count}天 {consecutive_growth}"
                     monthly_info = f"{montly_growth_day}/{montly_growth_day_count} {montly_growth_rate}"
                     self.result.append([
-                        fund, fund_name, now_time, netValue, forecastGrowth, dayOfGrowth, consecutive_info, monthly_info
+                        fund, fund_name, now_time, netValue, forecastNetValue, forecastGrowth, dayOfGrowth, consecutive_info, monthly_info
                     ])
                 else:
                     logger.error(f"查询基金代码【{fund}】失败: {response.text.strip()}")
@@ -731,7 +734,7 @@ class LanFund:
         if is_return:
             self.result = sorted(
                 self.result,
-                key=lambda x: float(x[4].replace("%", "")) if x[4] != "N/A" else -99,
+                key=lambda x: float(x[5].replace("%", "")) if x[5] != "N/A" else -99,
                 reverse=True
             )
             return self.result
@@ -739,7 +742,7 @@ class LanFund:
         if self.result:
             self.result = sorted(
                 self.result,
-                key=lambda x: float(x[4].split("m")[1].replace("%", "")) if x[4] != "N/A" else -99,
+                key=lambda x: float(x[5].split("m")[1].replace("%", "")) if x[5] != "N/A" else -99,
                 reverse=True
             )
 
@@ -801,15 +804,16 @@ class LanFund:
                     ]).split("\n"):
                         logger.info(line_msg)
 
-            cli_result = [[row[0], row[1], row[2], row[4], row[5], row[6], row[7]] for row in self.result]
+            cli_result = self.result
             logger.critical(f"{time.strftime('%Y-%m-%d %H:%M')} 基金估值信息:")
             for line_msg in format_table_msg([
                 [
-                    "基金代码", "基金名称", "时间", "估值", "日涨幅", "连涨/跌", "近30天"
+                    "基金代码", "基金名称", "时间", "当前净值", "估计净值", "估值涨幅", "日涨幅", "连涨/跌", "近30天"
                 ],
                 *cli_result
             ]).split("\n"):
                 logger.info(line_msg)
+
 
     def calculate_position_summary(self):
         """计算持仓统计信息
@@ -847,7 +851,7 @@ class LanFund:
                     current_year = datetime.datetime.now().year
                     net_value_date = f"{current_year}-{net_value_date}"
 
-                estimated_growth_str = fund_data[4]
+                estimated_growth_str = fund_data[5]
                 if estimated_growth_str != "N/A":
                     estimated_growth_str = estimated_growth_str.replace('\033[1;31m', '').replace('\033[1;32m',
                                                                                                   '').replace('%', '')
@@ -855,7 +859,7 @@ class LanFund:
                 else:
                     estimated_growth = 0
 
-                day_growth_str = fund_data[5]
+                day_growth_str = fund_data[6]
                 if day_growth_str != "N/A":
                     day_growth_str = day_growth_str.replace('\033[1;31m', '').replace('\033[1;32m', '').replace('%', '')
                     day_growth = float(day_growth_str)
@@ -962,10 +966,10 @@ class LanFund:
         result = self.search_code(True)
         return get_table_html(
             [
-                "基金代码", "基金名称", "当前时间", "净值", "估值", "日涨幅", "连涨/跌", "近30天"
+                "基金代码", "基金名称", "当前时间", "当前净值", "估计净值", "估值涨幅", "日涨幅", "连涨/跌", "近30天"
             ],
             result,
-            sortable_columns=[4, 5, 6, 7]
+            sortable_columns=[4, 5, 6, 7, 8]
         )
 
     @staticmethod
